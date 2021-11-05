@@ -5,9 +5,9 @@ import CardServicios from '../Components/ContentsFront/CardServicios';
 import CardNovedades from '../Components/ContentsFront/CardNovedades';
 import { motion } from 'framer-motion';
 import CardNoticias from '../Components/ContentsFront/CardNoticias';
-
-
-
+import Layer1 from '../Components/Layer/Layer1';
+import Layer2 from '../Components/Layer/Layer2';
+import Main from '../Components/Layer/Main';
 
 const useStyles = makeStyles((theme) => ({
   gridinicio: {
@@ -16,44 +16,63 @@ const useStyles = makeStyles((theme) => ({
     alignContent: 'center',
     bacgkroundColor: '#ee7752',
     // background: 'linear-gradient(180deg, #ee7752 ,#eb8934 ,#eeb752 ,#ffffff)',
-
     alignItems: 'center',
   },
 
   section1: {
-    zIndex: 1,
-    background: 'URL(https://i.imgur.com/rxLBUCy.png)',
-    backgroundSize: 'cover',
-    backgroundRepeat: 'no-repeat',
-    padding: theme.spacing(30, 10, 0, 10),
-    height: '60em',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    zIndex: 0,
+    paddingTop: theme.spacing(8),
+  },
+
+  main: {},
+
+  gridtitulo: {
+    padding: theme.spacing(2),
+    display: 'flex',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    alignSelf: 'center',
+    position: 'absolute',
   },
 
   titulo: {
+    zIndex: 1,
     fontFamily: 'Lato',
     fontWeight: 600,
-    color: 'Orange',
-    fontSize: '8vw',
-    border: '3px solid orange',
-    backgroundColor: 'white',
+    color: 'White',
+    fontSize: '6vw',
+    border: '3px solid white',
+    padding: theme.spacing(1),
+    backgroundColor: 'transparent',
+    marginTop: theme.spacing(-23),
   },
   subtitulo: {
+    zIndex: 1,
     fontFamily: 'Lato',
     fontWeight: 600,
     color: 'white',
-    fontSize: '8vw',
+    fontSize: '4vw',
+  },
+
+  spacer: {
+    marginTop: theme.spacing(-5),
+  },
+
+  spacer2: {
+    marginTop: theme.spacing(-1),
+    transform: 'rotate(180deg)',
   },
 
   section2: {
-    height: 'auto',
-    zIndex: 0,
-    marginTop: theme.spacing(-5),
-    paddingBottom: theme.spacing(2),
+    paddingBottom: theme.spacing(0),
   },
 
   contenedorTituloAfiliados: {
     marginLeft: theme.spacing(3),
-    paddingTop: theme.spacing(5),
+    paddingTop: theme.spacing(4),
   },
 
   tituloAfiliados: {
@@ -61,7 +80,7 @@ const useStyles = makeStyles((theme) => ({
     fontFamily: 'Lato',
     fontWeight: 600,
     color: '#ee7752',
-    fontSize: '10vw',
+    fontSize: '6vw',
   },
 
   section2a: {
@@ -88,15 +107,15 @@ const useStyles = makeStyles((theme) => ({
   },
 
   contenedorh1: {
-    zIndex: 1,
     marginLeft: theme.spacing(3),
+    paddingTop: theme.spacing(4),
   },
   h1Noticiasfront: {
     borderBottom: '4px solid white',
     fontFamily: 'Lato',
     fontWeight: 600,
     color: 'white',
-    fontSize: '10vw',
+    fontSize: '6vw',
   },
 
   contenedorCardsNoticias: {
@@ -105,14 +124,19 @@ const useStyles = makeStyles((theme) => ({
 
   section3: {
     backgroundColor: '#ee7752',
-    padding: theme.spacing(0, 3, 5, 0),
+  },
+
+  contenedorh1section3: {
+    marginRight: theme.spacing(3),
+    paddingTop: theme.spacing(4),
+    paddingBottom: theme.spacing(4),
   },
   h1section3: {
     borderBottom: '4px solid White',
     fontFamily: 'Lato',
     fontWeight: 600,
     color: 'white',
-    fontSize: '10vw',
+    fontSize: '6vw',
   },
 }));
 
@@ -203,25 +227,32 @@ function Inicio() {
     <>
       <Grid container className={classes.gridinicio} zeroMinWidth>
         <Grid item xs={12} className={classes.section1}>
-          <Grid item xs={12}>
-            <motion.div
-              variants={tituloVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <Typography className={classes.titulo} align="center">
-                SECCIONAL NOROESTE
-              </Typography>
-
-              <Typography className={classes.subtitulo} align="center">
-                A.E.F.I.P.
-              </Typography>
-            </motion.div>
+          <Grid item xs={12} className={classes.main}>
+            <Main />
           </Grid>
+          <motion.Grid
+            item
+            xs={12}
+            variants={tituloVariants}
+            initial="hidden"
+            animate="visible"
+            className={classes.gridtitulo}
+          >
+            <Typography className={classes.titulo} align="center">
+              SECCIONAL NOROESTE
+            </Typography>
+
+            <Typography className={classes.subtitulo} align="center">
+              A.E.F.I.P.
+            </Typography>
+          </motion.Grid>
         </Grid>
+        <Grid item xs={12} className={classes.spacer}>
+          <Layer1 />
+        </Grid>
+        {/* <div className={classes.spacer}></div> */}
 
         <Grid container className={classes.section2}>
-          <div class="spacer layer1"></div>
           <Grid item xs={12} className={classes.contenedorTituloAfiliados}>
             <Typography align="left" className={classes.tituloAfiliados}>
               AFILIADOS
@@ -247,8 +278,10 @@ function Inicio() {
               </motion.div>
             </Grid>
           </Grid>
+          <Grid item xs={12} className={classes.spacer2}>
+            <Layer2 />
+          </Grid>
         </Grid>
-        <div class="spacer layer2"></div>
       </Grid>
 
       <Grid item xs={12} className={classes.sectionNoticiasfront}>
@@ -268,9 +301,11 @@ function Inicio() {
         </Grid>
       </Grid>
       <Grid item xs={12} className={classes.section3}>
-        <Typography align="right" className={classes.h1section3}>
-          SERVICIOS
-        </Typography>
+        <Grid item xs={12} className={classes.contenedorh1section3}>
+          <Typography align="right" className={classes.h1section3}>
+            SERVICIOS
+          </Typography>
+        </Grid>
       </Grid>
 
       <Grid item className={classes.sectionCardServicios}>
