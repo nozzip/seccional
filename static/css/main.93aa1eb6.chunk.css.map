@@ -1,0 +1,1 @@
+{"version":3,"sources":["webpack://src/index.css"],"names":[],"mappings":"AACA,KACE,YAAa,CACb,QAAS,CACT,wDAA4D,CAC5D,kCAAmC,CACnC,iCACF","file":"main.93aa1eb6.chunk.css","sourcesContent":["\nbody {\n  height: 100vh;\n  margin: 0;\n  font-family: 'Lato', 'Trebuchet MS', 'Helvetica', sans-serif;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n"]}
