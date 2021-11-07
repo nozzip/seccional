@@ -7,6 +7,7 @@ import Inicio from './Pages/Inicio';
 import Prensa from './Pages/Prensa';
 import Galeria from './Pages/Galeria';
 import FooterElements from './Components/Footer/FooterElements';
+import Servicios from './Components/Servicios/Servicios';
 
 
 
@@ -22,6 +23,7 @@ function App() {
         {/* <Route path="/iniciar-sesion" component={IniciarSesion} /> */}
         <Route path="/prensa" component={Prensa} />
         <Route path="/galeria" component={Galeria} />
+        <Route path="/servicios" component={Servicios} />
       </Switch>
       <FooterElements />
     </Router>

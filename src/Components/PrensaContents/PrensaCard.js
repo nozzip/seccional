@@ -17,12 +17,12 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    
+
   },
 
   card: {
     display: 'flex',
-    margin: theme.spacing(2, 0, 2, 0),
+    margin: theme.spacing(2, -2, 2, -2),
     flexDirection: 'column',
     borderBottom: 'solid 3px orange',
     borderRight: 'solid 3px orange',
@@ -30,17 +30,35 @@ const useStyles = makeStyles((theme) => ({
   cardtitulo: {
     fontFamily: 'Lato',
     fontWeight: '600',
+    fontSize:'5vw',
   },
   cardcontent: {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
+
   },
 
   media: {
     width: '100%',
     height: '200px',
     objectFit: 'cover',
+  },
+
+  titulocontent:{
+    fontSize:'6vw',
+  },
+
+  titulocontent2:{
+    fontSize:'14px',
+    paddingBottom: theme.spacing(3),
+
+  },
+
+  textocontent:{
+    fontSize:'3vh',
+    fontFamily:'Helvetica',
+    textIndent:'50px',
   },
 
   expand: {
@@ -76,11 +94,10 @@ function Item(props) {
 
   return (
     <Grid container className={classes.card}>
-      <Grid item>
+      <Grid item xs={12}>
         <CardContent>
           <Typography
             className={classes.cardtitulo}
-            variant="h3"
             color="textPrimary"
             component="p"
             align="left"
@@ -90,21 +107,22 @@ function Item(props) {
           </Typography>
         </CardContent>
         <CardActions className={classes.actions}>
-          <IconButton aria-label="add to favorites">
+          {/* <IconButton aria-label="add to favorites">
             <FavoriteIcon />
-          </IconButton>
-          <IconButton aria-label="share">
+          </IconButton> */}
+          {/* <IconButton aria-label="share">
             <ShareIcon />
-          </IconButton>
+          </IconButton> */}
         </CardActions>
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           <CardContent className={classes.cardcontent}>
             <img className={classes.media} src={props.item.thumbnail} />
             <Typography
-              variant="h3"
+
               color="textPrimary"
               component="p"
               align="center"
+              className={classes.titulocontent}
             >
               {props.item.titulo}
             </Typography>
@@ -113,10 +131,14 @@ function Item(props) {
               color="textSecondary"
               align="center"
               gutterBottom={true}
+              className={classes.titulocontent2}
             >
               {props.item.subtitulo}
             </Typography>
-            <Typography variant="body1" align="center" paragraph={true}>
+            <Typography
+            align="center"
+            paragraph={true}
+            className={classes.textocontent}>
               {props.item.texto}
             </Typography>
           </CardContent>

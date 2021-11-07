@@ -8,6 +8,7 @@ import CardNoticias from '../Components/ContentsFront/CardNoticias';
 import Layer1 from '../Components/Layer/Layer1';
 import Layer2 from '../Components/Layer/Layer2';
 import Main from '../Components/Layer/Main';
+import { Link } from 'react-router-dom';
 
 const useStyles = makeStyles((theme) => ({
   gridinicio: {
@@ -314,7 +315,9 @@ function Inicio() {
           initial="hidden"
           animate="visible"
         >
-          <CardServicios />
+          <Link to='/Servicios' style={{ textDecoration: 'none' }}>
+            <CardServicios />
+          </Link>
         </motion.div>
       </Grid>
     </>
