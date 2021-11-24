@@ -1,12 +1,14 @@
-import React from 'react';
+import {React, useEffect} from 'react';
 import { Grid, makeStyles, Typography } from '@material-ui/core';
 import PrensaCard from '../Components/PrensaContents/PrensaCard';
 
 const useStyles = makeStyles((theme) => ({
   grid: {
-    width:'100vw',
-    height:'100%',
-    padding: theme.spacing(5, 10, 30, 10),
+    width:'100%',
+    height:'auto',
+    padding: theme.spacing(2),
+    paddingTop: theme.spacing(5),
+
   },
   titulo: {
     paddingTop: theme.spacing(10),
@@ -20,9 +22,12 @@ const useStyles = makeStyles((theme) => ({
 
 function Prensa() {
   const classes = useStyles();
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
   return (
-    <Grid container className={classes.grid} zeroMinWidth>
-      <Grid item>
+    <Grid container className={classes.grid} zeroMinWidth autofocus>
+      <Grid item xs={12}>
         <Typography
           className={classes.titulo}
           align="right"

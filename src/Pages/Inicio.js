@@ -1,4 +1,4 @@
-import React from 'react';
+import { React, useEffect } from 'react';
 import { makeStyles, Grid, Typography, Paper } from '@material-ui/core';
 import Carusel from '../Components/ContentsFront/Carusel';
 import CardServicios from '../Components/ContentsFront/CardServicios';
@@ -25,7 +25,7 @@ const useStyles = makeStyles((theme) => ({
     flexDirection: 'column',
     justifyContent: 'center',
     zIndex: 0,
-    paddingTop: theme.spacing(8),
+    paddingTop: theme.spacing(7),
   },
 
   main: {},
@@ -48,7 +48,7 @@ const useStyles = makeStyles((theme) => ({
     border: '3px solid white',
     padding: theme.spacing(1),
     backgroundColor: 'transparent',
-    marginTop: theme.spacing(-23),
+    marginTop: theme.spacing(-21),
   },
   subtitulo: {
     zIndex: 1,
@@ -197,7 +197,7 @@ const noticiasVariants = {
     y: 60,
     opacity: 1,
     transition: {
-      delay: 5,
+      delay: 4,
       duration: 2,
       type: 'spring',
       stiffness: 75,
@@ -215,7 +215,7 @@ const beneficiosVariants = {
     transition: {
       ease: 'easeIn',
       duration: 1.5,
-      delay: 7,
+      delay: 5,
       type: 'spring',
     },
   },
@@ -223,6 +223,9 @@ const beneficiosVariants = {
 
 function Inicio() {
   const classes = useStyles();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <>
@@ -239,7 +242,7 @@ function Inicio() {
             animate="visible"
             className={classes.gridtitulo}
           >
-            <Typography className={classes.titulo} align="center">
+            <Typography className={classes.titulo} align="center" autofocus>
               SECCIONAL NOROESTE
             </Typography>
 
@@ -251,7 +254,6 @@ function Inicio() {
         <Grid item xs={12} className={classes.spacer}>
           <Layer1 />
         </Grid>
-        {/* <div className={classes.spacer}></div> */}
 
         <Grid container className={classes.section2}>
           <Grid item xs={12} className={classes.contenedorTituloAfiliados}>
@@ -308,26 +310,18 @@ function Inicio() {
           </Typography>
         </Grid>
       </Grid>
-
       <Grid item className={classes.sectionCardServicios}>
         <motion.div
           variants={beneficiosVariants}
           initial="hidden"
           animate="visible"
         >
-          <Link to='/Servicios' style={{ textDecoration: 'none' }}>
+          <Link to="/Servicios" style={{ textDecoration: 'none' }}>
             <CardServicios />
           </Link>
         </motion.div>
       </Grid>
     </>
-
-    //   </Grid>
-
-    //   <Grid container className={classes.section3a} zeroMinWidth>
-
-    //   </Grid>
-    // </Grid>
   );
 }
 

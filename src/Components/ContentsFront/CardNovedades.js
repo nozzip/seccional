@@ -11,16 +11,14 @@ import { dataNovedades } from '../mockData';
 import { Grid } from '@material-ui/core';
 
 const useStyles = makeStyles((theme) => ({
-  grid: {
-
-  },
+  grid: {},
   root: {
+    height: '204px',
     borderRadius: '10px',
     boxShadow: '5px 5px 10px -06px black',
   },
   gridreturn: {
-    marginTop: theme.spacing(8),
-
+    paddingTop: theme.spacing(6),
   },
 }));
 
@@ -44,23 +42,25 @@ function Item(props) {
     <Grid container className={classes.gridreturn}>
       <Grid item xs={12}>
         <Card className={classes.root}>
-          <CardActionArea>
-            <CardMedia
-              component="img"
-              alt="Novedades"
-              height="88"
-              src={props.item.thumbnail}
-            />
-            <CardContent>
-              <Typography gutterBottom variant="h5" component="h2" align='center'>
-                {props.item.title}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" component="p" align='center'>
-                {props.item.short_description}
-              </Typography>
-            </CardContent>
-          </CardActionArea>
-
+          <CardMedia
+            component="img"
+            alt="Novedades"
+            height="88"
+            src={props.item.thumbnail}
+          />
+          <CardContent>
+            <Typography gutterBottom variant="h5" component="h2" align="center">
+              {props.item.title}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="textSecondary"
+              component="p"
+              align="center"
+            >
+              {props.item.short_description}
+            </Typography>
+          </CardContent>
         </Card>
       </Grid>
     </Grid>

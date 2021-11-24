@@ -8,6 +8,8 @@ import {
   CardMedia,
   CardContent,
 } from '@material-ui/core';
+import Prensa from '../../Pages/Prensa';
+import { Link } from 'react-router-dom';
 
 import { dataNoticias } from '../mockData';
 
@@ -16,7 +18,6 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    
   },
 
   card: {
@@ -26,14 +27,13 @@ const useStyles = makeStyles((theme) => ({
     height: 'auto',
     border: '1px solid white',
     boxShadow: '2px 2px 5px 2px grey',
-    borderRadius:'10px',
+    borderRadius: '10px',
   },
 
   cardmedia: {
     width: '100%',
-    height: '45vh',
+    height: '300px',
     objectFit: 'cover',
-
   },
 
   cardcontent: {
@@ -48,8 +48,7 @@ const useStyles = makeStyles((theme) => ({
     height: '150px',
     fontFamily: 'Lato',
     fontWeight: 600,
-    fontSize:'15px',
-
+    fontSize: '15px',
   },
 }));
 
@@ -57,7 +56,7 @@ function CardNoticias(props) {
   const classes = useStyles();
   return (
     <Grid xs={12} className={classes.grid}>
-      {dataNoticias.slice(0, 3).map((item, i) => (
+      {dataNoticias.slice(0, 4).map((item, i) => (
         <Item key={i} item={item} />
       ))}
     </Grid>
@@ -69,19 +68,23 @@ function Item(props) {
   return (
     <Grid container className={classes.card}>
       <Grid item xs={12}>
-        <Card>
-          <CardActionArea>
-            <CardMedia
-              className={classes.cardmedia}
-              component="img"
-              src={props.item.thumbnail}
-            />
-          </CardActionArea>
-          <CardContent className={classes.cardcontent}>
-            <Typography className={classes.typo}>{props.item.title}</Typography>
-            <Typography>{props.item.subtitle}</Typography>
-          </CardContent>
-        </Card>
+        <Link to="/Prensa" style={{ textDecoration: 'none' }}>
+          <Card>
+            <CardActionArea>
+              <CardMedia
+                className={classes.cardmedia}
+                component="img"
+                src={props.item.thumbnail}
+              />
+            </CardActionArea>
+            <CardContent className={classes.cardcontent}>
+              <Typography className={classes.typo}>
+                {props.item.title}
+              </Typography>
+              <Typography>{props.item.subtitle}</Typography>
+            </CardContent>
+          </Card>
+        </Link>
       </Grid>
     </Grid>
   );

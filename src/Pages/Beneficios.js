@@ -1,12 +1,13 @@
-import React from 'react';
+import {React, useEffect} from 'react';
 import GridBeneficios from '../Components/ContentsBeneficios/GridBeneficios';
 import { makeStyles, Grid, Typography } from '@material-ui/core';
 
 const useStyles = makeStyles((theme) => ({
   grid: {
-    width: '100vw',
-    height: '100%',
-    padding: theme.spacing(5, 10, 30, 10),
+    width: '100%',
+    height: 'auto',
+    padding: theme.spacing(2),
+    paddingTop: theme.spacing(5),
   },
   titulo: {
     paddingTop: theme.spacing(10),
@@ -20,7 +21,11 @@ const useStyles = makeStyles((theme) => ({
 
 function Beneficios() {
   const classes = useStyles();
-  
+
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
 
   return (
     <Grid container className={classes.grid} zeroMinWidth>

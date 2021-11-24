@@ -5,6 +5,7 @@ import Paper from '@material-ui/core/Paper';
 import { dataBeneficios } from '../mockData';
 import Popover from '@material-ui/core/Popover';
 import Chip from '@material-ui/core/Chip';
+import { Button } from '@material-ui/core';
 
 const useStyles = makeStyles((theme) => ({
   grid: {
@@ -69,6 +70,10 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: 'space-between',
     padding: theme.spacing(2),
     borderBottom: '3px solid #ff9e1c',
+  },
+  button:{
+    width:'100%',
+    height:'100%',
   },
   texth2: {
     maxWidth: '800px',
@@ -151,6 +156,22 @@ export default function GridBeneficios(props) {
         label="Santiago"
         className={classes.chipIcon}
       />
+      <Chip
+        onClick={() => filter('Jujuy')}
+        variant="filled"
+        clickable={true}
+        size="medium"
+        label="Jujuy"
+        className={classes.chipIcon}
+      />
+      <Chip
+        onClick={() => filter('Oran')}
+        variant="filled"
+        clickable={true}
+        size="medium"
+        label="Oran"
+        className={classes.chipIcon}
+      />
 
       <Grid xs={12} item className={classes.grid}>
         {beneficios.map((item, i) => (
@@ -176,14 +197,8 @@ function Item(props) {
   const open = Boolean(anchorEl);
   const id = open ? 'simple-popover' : undefined;
 
-  const [checked, setChecked] = useState(false);
-
-  const handleChange = () => {
-    setChecked((prev) => !prev);
-  };
-
   return (
-    <Paper className={classes.paper} onClick={handleClick}>
+    <Paper className={classes.paper} >
       <div
         className={classes.img}
         style={{
@@ -193,13 +208,14 @@ function Item(props) {
           backgroundRepeat: 'no-repeat',
         }}
       >
+        <Button className={classes.button} onClick={handleClick}> </Button>
         <div className={classes.contenedorTexto} spacing={3}>
           <Popover
+            onClose={handleClose}
             className={classes.popover}
             id={id}
             open={open}
             anchorEl={anchorEl}
-            onClose={handleClose}
             anchorOrigin={{
               vertical: 'top',
               horizontal: 'left',
@@ -223,4 +239,24 @@ function Item(props) {
       </div>
     </Paper>
   );
+}
+
+{
+  /* <div>
+<Button aria-describedby={id} variant="contained" onClick={handleClick}>
+  Open Popover
+</Button>
+<Popover
+  id={id}
+  open={open}
+  anchorEl={anchorEl}
+  onClose={handleClose}
+  anchorOrigin={{
+    vertical: 'bottom',
+    horizontal: 'left',
+  }}
+>
+  <Typography sx={{ p: 2 }}>The content of the Popover.</Typography>
+</Popover>
+</div> */
 }

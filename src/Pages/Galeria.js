@@ -1,13 +1,14 @@
-import React from 'react';
+import {React, useEffect} from 'react';
 import FotosGaleria from '../Components/Galeria/FotosGaleria';
 import { makeStyles } from '@material-ui/core/styles';
 import { Grid, Typography } from '@material-ui/core';
 
 const useStyles = makeStyles((theme) => ({
   grid: {
-    width: '100vw',
-    height: '100%',
-    padding: theme.spacing(5, 10, 30, 10),
+    width: '100%',
+    height: 'auto',
+    padding: theme.spacing(2),
+    paddingTop: theme.spacing(5),
   },
   titulo: {
     paddingTop: theme.spacing(10),
@@ -21,6 +22,9 @@ const useStyles = makeStyles((theme) => ({
 
 function Galeria() {
   const classes = useStyles();
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
   return (
     <Grid container className={classes.grid} zeroMinWidth>
       <Grid item>

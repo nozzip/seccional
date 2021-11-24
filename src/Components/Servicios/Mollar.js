@@ -13,32 +13,52 @@ import ServiciosGaleriaMollar from './ServiciosGaleriaMollar';
 
 const useStyles = makeStyles((theme) => ({
   container: {
-    height: '100vh',
+
+
+    height:'100%',
+
+
+  },
+
+  section1: {
+    display: 'flex',
+
+    boxShadow: '5px 5px 10px -06px black',
+
+
   },
 
   card: {
-    borderRadius: '10px',
-    boxShadow: '5px 5px 10px -06px black',
-    display: 'flex',
-    flexDirection: 'row',
-    width: '100vw',
-    height: '300px',
+    height:'150px',
+    width:'auto',
+
+
   },
 
   card2: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    paddingTop: theme.spacing(2),
-    borderRadius: '10px',
-    boxShadow: '5px 5px 10px -06px black',
-    width: '100vw',
+    borderRight:'3px solid orange',
+    borderRadius:'10px',
+    height:'150px',
+    width:'100%',
+
   },
 
   titulo: {
+    paddingTop: theme.spacing(3),
     fontFamily: 'Lato',
-    fontSize: '3vw',
+    fontSize: '2vw',
+    fontWeight: '800',
+  },
+
+  subtitulo:{
+    fontFamily:'Lato',
+    fontSize: '1vw',
+    fontWeight: '800',
+  },
+
+  texto:{
+    fontFamily:'Lato',
+    fontSize: '12px',
     fontWeight: '800',
   },
 }));
@@ -47,29 +67,27 @@ function Mollar() {
   const classes = useStyles();
   return (
     <Grid container className={classes.container}>
-      <Grid item xs={12}>
-        <Card className={classes.card}>
-          <ServiciosGaleriaMollar />
-        </Card>
-        <Card className={classes.card2}>
-          <Typography className={classes.titulo}>Club Azucena</Typography>
-          <Typography>
-
-            Sarmiento 480, Yerba Buena - Tucumán - San Miguel de Tucumán
-          </Typography>
-          <Typography align='center'>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit.Donec vel
-            maximus orci, vehicula cursus urna. Etiam vel enim dolor. Praesent
-            et velit vitae ex facilisis laoreet eu eget ex. Proin in tortor eu
-            odio dignissim pretium non nec quam. Curabitur quis libero sodales,
-            maximus ante sit amet, dictum quam. Orci varius natoque penatibus et
-            magnis dis parturient montes, nascetur ridiculus mus. Donec egestas
-            commodo ex, ut luctus turpis feugiat sagittis. Donec quis hendrerit
-            risus, nec ultricies elit. Phasellus non tortor orci.
-            <br />
-            {'Vestibulum vitae dictum dui. Morbi cursus nisl sed massa malesuada ultrices.Morbi nec condimentum magna. Nunc viverra porta lectus, et ornare metus facilisis mattis. Mauris nec sapien lorem. Vestibulum eget mi. In ultricies massa non ante viverra, a venenatis justo auctor.Integer maximus tellus sed lacinia dignissim. Fusce eget urna felis consectetur interdum sit amet nec mauris. Nam non risus nonfelis porttitor tempus. Vivamus molestie fringilla dui, ascelerisque urna volutpat a'}
-          </Typography>
-        </Card>
+      <Grid item xs={12} className={classes.section1}>
+        <Grid item xs={12} md={6}>
+          <Card className={classes.card}>
+            <ServiciosGaleriaMollar />
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card className={classes.card2}>
+            <Typography align='center' className={classes.titulo}>Club Azucena</Typography>
+            <Typography align='center' className={classes.subtitulo}>
+              Sarmiento 480, Yerba Buena - Tucumán - San Miguel de Tucumán
+            </Typography>
+            <Typography align="center" className={classes.texto}>
+              Ofrecemos a nuestros afiliados un lugar donde pueden disfrutar de pileta climatizada, paddle, futbol 5, etc
+              <br />
+              {
+                'Numero de contacto: 382248788 '
+              }
+            </Typography>
+          </Card>
+        </Grid>
       </Grid>
     </Grid>
   );

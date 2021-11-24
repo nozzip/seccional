@@ -12,15 +12,16 @@ const dataCarusel = [
     thumbnail:
       'https://store-images.s-microsoft.com/image/apps.64444.14416131676512756.a4895ce9-cd8d-4c80-a13c-dd63cf1980f1.4fa73540-3bb6-4190-b96c-fc69bf560940?mode=scale&q=90&h=720&w=1280',
 
-    short_description: 'Felicitamos a Juan Marterie en su día',
+    short_description: 'Felicitamos a Juan Marterie',
   },
   {
     id: 3,
     title: 'https://images.vexels.com/media/users/3/161641/isolated/preview/c241e4afc30f804efd8c452d3d0a88c2-letras-de-feliz-cumpleanos.png',
     thumbnail:
       'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Vaporwave-4K-Wallpapers.jpg/800px-Vaporwave-4K-Wallpapers.jpg',
-    short_description: 'Nuestros afiliados disfrutan de estos beneficios',
+    short_description: 'Nuestros afiliados disfrutan',
   },
+  //Mantener el short_description a una linea, maximo de 30 caracteres, inlcuidos espacios
 ];
 
 export default dataCarusel;
@@ -412,37 +413,37 @@ export const photosServiciosMollar = [
   },
   {
     src: "https://source.unsplash.com/Dm-qxdynoEc/800x799",
-    width: 1,
-    height: 1
+    width: 0,
+    height: 0
   },
   {
     src: "https://source.unsplash.com/qDkso9nvCg0/600x799",
-    width: 2,
-    height: 2
+    width: 0,
+    height: 0
   },
   {
     src: "https://source.unsplash.com/iecJiKe_RNg/600x799",
-    width: 3,
-    height: 4
+    width: 0,
+    height: 0
   },
   {
     src: "https://source.unsplash.com/epcsn8Ed8kY/600x799",
-    width: 2,
-    height: 1
+    width: 0,
+    height: 0
   },
   {
     src: "https://source.unsplash.com/NQSWvyVRIJk/800x599",
-    width: 2,
-    height: 3
+    width: 0,
+    height: 0
   },
   {
     src: "https://source.unsplash.com/zh7GEuORbUw/600x799",
-    width: 1,
-    height: 4
+    width: 0,
+    height: 0
   },
   {
     src: "https://source.unsplash.com/PpOHJezOalU/800x599",
-    width: 2,
-    height: 1
+    width: 0,
+    height: 0
   },
 ];
