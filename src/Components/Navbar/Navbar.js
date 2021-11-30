@@ -36,7 +36,7 @@ const useStyles = makeStyles((theme) => ({
   logo: {
     padding: theme.spacing(2),
     flexGrow: '1',
-    maxWidth: '22vw',
+    maxWidth: '20vw',
     margin: theme.spacing(0, 0, 0, 3),
   },
 }));
@@ -79,6 +79,9 @@ function Navbar(props) {
                   <Link to="/" style={{ textDecoration: 'none' }}>
                     <Button className={classes.button}>Inicio</Button>
                   </Link>
+                  <Link to="/Gremio" style={{ textDecoration: 'none' }}>
+                    <Button className={classes.button}>Gremio</Button>
+                  </Link>
                   <Link to="/Beneficios" style={{ textDecoration: 'none' }}>
                     <Button className={classes.button}>Beneficios</Button>
                   </Link>
@@ -88,6 +91,8 @@ function Navbar(props) {
                   <Link to="/Galeria" style={{ textDecoration: 'none' }}>
                     <Button className={classes.button}>Galeria</Button>
                   </Link>
+
+
                 </div>
               )}
             </Toolbar>

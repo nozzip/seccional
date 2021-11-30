@@ -71,9 +71,9 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(2),
     borderBottom: '3px solid #ff9e1c',
   },
-  button:{
-    width:'100%',
-    height:'100%',
+  button: {
+    width: '100%',
+    height: '100%',
   },
   texth2: {
     maxWidth: '800px',
@@ -198,7 +198,7 @@ function Item(props) {
   const id = open ? 'simple-popover' : undefined;
 
   return (
-    <Paper className={classes.paper} >
+    <Paper className={classes.paper}>
       <div
         className={classes.img}
         style={{
@@ -208,7 +208,9 @@ function Item(props) {
           backgroundRepeat: 'no-repeat',
         }}
       >
-        <Button className={classes.button} onClick={handleClick}> </Button>
+        <Button className={classes.button} onClick={handleClick}>
+          {' '}
+        </Button>
         <div className={classes.contenedorTexto} spacing={3}>
           <Popover
             onClose={handleClose}

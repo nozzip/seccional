@@ -13,24 +13,17 @@ import ServiciosGaleriaMollar from './ServiciosGaleriaMollar';
 
 const useStyles = makeStyles((theme) => ({
   container: {
-
-
     height:'100%',
-
-
   },
 
   section1: {
     display: 'flex',
-
     boxShadow: '5px 5px 10px -06px black',
-
-
   },
 
   card: {
-    height:'150px',
-    width:'auto',
+    height:'200px',
+
 
 
   },
@@ -38,27 +31,27 @@ const useStyles = makeStyles((theme) => ({
   card2: {
     borderRight:'3px solid orange',
     borderRadius:'10px',
-    height:'150px',
-    width:'100%',
+    height:'200px',
+    width:'auto',
 
   },
 
   titulo: {
     paddingTop: theme.spacing(3),
     fontFamily: 'Lato',
-    fontSize: '2vw',
+    fontSize: '22px',
     fontWeight: '800',
   },
 
   subtitulo:{
     fontFamily:'Lato',
-    fontSize: '1vw',
+    fontSize: '12px',
     fontWeight: '800',
   },
 
   texto:{
     fontFamily:'Lato',
-    fontSize: '12px',
+    fontSize: '10px',
     fontWeight: '800',
   },
 }));
@@ -68,12 +61,12 @@ function Mollar() {
   return (
     <Grid container className={classes.container}>
       <Grid item xs={12} className={classes.section1}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={4} md={4}>
           <Card className={classes.card}>
             <ServiciosGaleriaMollar />
           </Card>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={8} md={8}>
           <Card className={classes.card2}>
             <Typography align='center' className={classes.titulo}>Club Azucena</Typography>
             <Typography align='center' className={classes.subtitulo}>

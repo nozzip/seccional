@@ -8,7 +8,7 @@ import Prensa from './Pages/Prensa';
 import Galeria from './Pages/Galeria';
 import FooterElements from './Components/Footer/FooterElements';
 import Servicios from './Components/Servicios/Servicios';
-
+import Gremio from './Pages/Gremio';
 
 
 
@@ -24,6 +24,8 @@ function App() {
         <Route path="/prensa" component={Prensa} />
         <Route path="/galeria" component={Galeria} />
         <Route path="/servicios" component={Servicios} />
+        <Route path="/gremio" component={Gremio} />
+
       </Switch>
       <FooterElements />
     </Router>

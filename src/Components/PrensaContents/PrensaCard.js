@@ -17,27 +17,24 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    width:'100%',
-
+    width: '100%',
   },
 
   card: {
     display: 'flex',
     margin: theme.spacing(2, -2, 2, -2),
-    flexDirection: 'column',
     borderBottom: 'solid 3px orange',
     borderRight: 'solid 3px orange',
   },
   cardtitulo: {
     fontFamily: 'Lato',
     fontWeight: '600',
-    fontSize:'5vw',
+    fontSize: '4vw',
   },
   cardcontent: {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
-
   },
 
   media: {
@@ -46,25 +43,31 @@ const useStyles = makeStyles((theme) => ({
     objectFit: 'cover',
   },
 
-  titulocontent:{
-    fontSize:'6vw',
+  titulocontent: {
+    fontSize: '6vw',
   },
 
-  titulocontent2:{
-    fontSize:'14px',
+  titulocontent2: {
+    fontSize: '14px',
     paddingBottom: theme.spacing(3),
-
   },
 
-  textocontent:{
-    fontSize:'3vh',
-    fontFamily:'Helvetica',
-    textIndent:'50px',
+  textocontent: {
+    fontSize: '3vh',
+    fontFamily: 'Helvetica',
+    textIndent: '50px',
   },
 
   expand: {
     transform: 'rotate(0deg)',
     marginLeft: 'auto',
+    transition: theme.transitions.create('transform', {
+      duration: theme.transitions.duration.shortest,
+    }),
+  },
+  expand2: {
+    transform: 'rotate(0deg)',
+    marginLeft: theme.spacing(-1),
     transition: theme.transitions.create('transform', {
       duration: theme.transitions.duration.shortest,
     }),
@@ -108,6 +111,16 @@ function Item(props) {
           </Typography>
         </CardContent>
         <CardActions className={classes.actions}>
+          <IconButton
+            className={clsx(classes.expand2, {
+              [classes.expandOpen]: expanded,
+            })}
+            onClick={() => handleExpandClick(props.item.id)}
+            aria-expanded={expanded === props.item.id}
+            aria-label="show more"
+          >
+            <ExpandMoreIcon />
+          </IconButton>
           {/* <IconButton aria-label="add to favorites">
             <FavoriteIcon />
           </IconButton> */}
@@ -115,11 +128,11 @@ function Item(props) {
             <ShareIcon />
           </IconButton> */}
         </CardActions>
+
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           <CardContent className={classes.cardcontent}>
             <img className={classes.media} src={props.item.thumbnail} />
             <Typography
-
               color="textPrimary"
               component="p"
               align="center"
@@ -137,23 +150,25 @@ function Item(props) {
               {props.item.subtitulo}
             </Typography>
             <Typography
-            align="center"
-            paragraph={true}
-            className={classes.textocontent}>
+              align="center"
+              paragraph={true}
+              className={classes.textocontent}
+            >
               {props.item.texto}
             </Typography>
           </CardContent>
+          <IconButton
+            color="inherit"
+            className={clsx(classes.expand, {
+              [classes.expandOpen]: expanded,
+            })}
+            onClick={() => handleExpandClick(props.item.id)}
+            aria-expanded={expanded === props.item.id}
+            aria-label="show more"
+          >
+            <ExpandMoreIcon />
+          </IconButton>
         </Collapse>
-        <IconButton
-          className={clsx(classes.expand, {
-            [classes.expandOpen]: expanded,
-          })}
-          onClick={() => handleExpandClick(props.item.id)}
-          aria-expanded={expanded === props.item.id}
-          aria-label="show more"
-        >
-          <ExpandMoreIcon />
-        </IconButton>
       </Grid>
     </Grid>
   );
