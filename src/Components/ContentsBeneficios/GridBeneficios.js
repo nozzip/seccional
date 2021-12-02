@@ -13,7 +13,6 @@ const useStyles = makeStyles((theme) => ({
     flexWrap: 'wrap',
     justifyContent: 'center',
     height: '100vh',
-    margin: theme.spacing(1),
   },
 
   chip: {
@@ -22,15 +21,15 @@ const useStyles = makeStyles((theme) => ({
   },
 
   chipIcon: {
-    margin: theme.spacing(1),
-    padding: theme.spacing(2),
-    borderRadius: '15px',
+    marginLeft: theme.spacing(1),
+    marginBottom: theme.spacing(2),
+    borderRadius: '5px',
     fontFamily: 'Lato',
     backgroundColor: 'white',
     fontWeight: '800',
     color: 'Grey',
     fontSize: '20px',
-    border: '1px solid #ff9e1c',
+    border: '0px solid #ff9e1c',
     '&:hover': {
       color: 'black',
       backgroundColor: 'white',
@@ -40,8 +39,7 @@ const useStyles = makeStyles((theme) => ({
   },
 
   paper: {
-    padding: theme.spacing(0.5),
-    margin: theme.spacing(2),
+    margin: theme.spacing(1),
     backgroundColor: '#ff9e1c',
     width: '25vw',
     height: 'auto',
