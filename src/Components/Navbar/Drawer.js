@@ -12,7 +12,7 @@ import MenuIcon from '@material-ui/icons/Menu';
 import { Link } from 'react-router-dom';
 
 const useStyles = makeStyles((theme) => ({
-  listitem:{
+  listitem: {
     boxShadow: 'inset 0 0 2000px rgba(255, 255, 255, .5)',
     filter: 'blur(2px)',
   },
@@ -24,8 +24,8 @@ const useStyles = makeStyles((theme) => ({
   logo: {
     padding: theme.spacing(4),
     flexGrow: '1',
-    width:'180px',
-    borderBottom:'1px solid #ff9e1c',
+    width: '180px',
+    borderBottom: '1px solid #ff9e1c',
   },
 
   button: {
@@ -38,7 +38,6 @@ const useStyles = makeStyles((theme) => ({
     color: '#ff9e1c',
 
     borderLeft: '1px solid #ff9e1c',
-    
 
     '&:hover': {
       color: 'black',
@@ -58,15 +57,14 @@ function DrawerComponent() {
   return (
     <>
       <Drawer open={openDrawer} onClose={() => setOpenDrawer(false)}>
-      <Link to="/">
-            <img
-              src="https://i.imgur.com/GdXnW3A.png"
-              alt="logo"
-              className={classes.logo}
-            />
-          </Link>
+        <Link to="/">
+          <img
+            src="https://i.imgur.com/GdXnW3A.png"
+            alt="logo"
+            className={classes.logo}
+          />
+        </Link>
         <List className={classes.list}>
-
           <ListItem onClick={() => setOpenDrawer(false)}>
             <ListItemText>
               <Button className={classes.button}>
@@ -84,6 +82,19 @@ function DrawerComponent() {
             <ListItemText>
               <Button className={classes.button}>
                 <Link
+                  to="/gremio"
+                  className={classes.link}
+                  style={{ textDecoration: 'none' }}
+                >
+                  Gremio
+                </Link>
+              </Button>
+            </ListItemText>
+          </ListItem>
+          <ListItem onClick={() => setOpenDrawer(false)}>
+            <ListItemText>
+              <Button className={classes.button}>
+                <Link
                   to="/beneficios"
                   className={classes.link}
                   style={{ textDecoration: 'none' }}
@@ -93,6 +104,7 @@ function DrawerComponent() {
               </Button>
             </ListItemText>
           </ListItem>
+
           <ListItem onClick={() => setOpenDrawer(false)}>
             <ListItemText>
               <Button className={classes.button}>

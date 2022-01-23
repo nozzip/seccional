@@ -36,7 +36,7 @@ function Carusel(props) {
       <Carousel
         className={classes.carousel}
         spacing={1}
-        autoPlay={true}
+        autoPlay={false}
         navButtonsAlwaysVisible={true}
         navButtonsProps={{
           style: {
@@ -60,10 +60,10 @@ function Item(props) {
   return (
     <Paper className={classes.paper}>
       <img className={classes.img} src={props.item.thumbnail} alt="imgfront" />
-      <img className={classes.title} src={props.item.title} />
-      <Typography align="center" className={classes.text}>
+      {/* <img className={classes.title} src={props.item.title} />
+      <Typography variant='body1' align="center"  className={classes.text}>
         {props.item.short_description}
-      </Typography>
+      </Typography> */}
     </Paper>
   );
 }

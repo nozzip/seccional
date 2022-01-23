@@ -1,31 +1,36 @@
+
+
+
+
+/*Carusel Afiliados Cumpleaños */
 const dataCarusel = [
   {
     id: 1,
-    title: 'https://images.vexels.com/media/users/3/161641/isolated/preview/c241e4afc30f804efd8c452d3d0a88c2-letras-de-feliz-cumpleanos.png',
+    title: '',
     thumbnail:
-      'https://store-images.s-microsoft.com/image/apps.64444.14416131676512756.a4895ce9-cd8d-4c80-a13c-dd63cf1980f1.4fa73540-3bb6-4190-b96c-fc69bf560940?mode=scale&q=90&h=720&w=1280',
-    short_description: 'Scorserce Martin, Catamarca',
+      'https://i.imgur.com/uECOaEP.png',
+    short_description: '',
   },
   {
     id: 2,
-    title: 'https://images.vexels.com/media/users/3/161641/isolated/preview/c241e4afc30f804efd8c452d3d0a88c2-letras-de-feliz-cumpleanos.png',
+    title: '',
     thumbnail:
-      'https://store-images.s-microsoft.com/image/apps.64444.14416131676512756.a4895ce9-cd8d-4c80-a13c-dd63cf1980f1.4fa73540-3bb6-4190-b96c-fc69bf560940?mode=scale&q=90&h=720&w=1280',
-
-    short_description: 'Felicitamos a Juan Marterie',
+      'https://i.imgur.com/7D0zraW.png',
+    short_description: '',
   },
   {
     id: 3,
-    title: 'https://images.vexels.com/media/users/3/161641/isolated/preview/c241e4afc30f804efd8c452d3d0a88c2-letras-de-feliz-cumpleanos.png',
+    title: '',
     thumbnail:
-      'https://store-images.s-microsoft.com/image/apps.64444.14416131676512756.a4895ce9-cd8d-4c80-a13c-dd63cf1980f1.4fa73540-3bb6-4190-b96c-fc69bf560940?mode=scale&q=90&h=720&w=1280',
-    short_description: 'Nuestros afiliados disfrutan',
+      'https://i.imgur.com/WXlphHs.png',
+    short_description: '',
   },
   //Mantener el short_description a una linea, maximo de 30 caracteres, inlcuidos espacios
 ];
 
 export default dataCarusel;
 
+/*Pestaña Beneficios */
 export const dataBeneficios = [
   {
     id: 1,
@@ -118,6 +123,7 @@ export const dataBeneficios = [
   },
 ];
 
+/*Tarjetas Final de Pagina*/
 export const dataServicios = [
   {
     id: 1,
@@ -149,31 +155,25 @@ export const dataServicios = [
   },
 ];
 
+/*Tarjetas al lado de carusel cumpleaños*/
 export const dataNovedades = [
   {
     id: 1,
-    title: 'id 1',
+    title: '',
     thumbnail:
-      'https://store-images.s-microsoft.com/image/apps.64444.14416131676512756.a4895ce9-cd8d-4c80-a13c-dd63cf1980f1.4fa73540-3bb6-4190-b96c-fc69bf560940?mode=scale&q=90&h=720&w=1280',
+      'https://i.imgur.com/CRZ7KOC.png',
     short_description:
-      'Esta es una breve descripciónEsta es una breve descripciónEsta es una breve descripción',
+      'Adquirí tu solicitud de turismo a través de nuestro numero de whatsapp!',
   },
   {
     id: 2,
-    title: 'id 2',
+    title: '',
     thumbnail:
-      'https://store-images.s-microsoft.com/image/apps.64444.14416131676512756.a4895ce9-cd8d-4c80-a13c-dd63cf1980f1.4fa73540-3bb6-4190-b96c-fc69bf560940?mode=scale&q=90&h=720&w=1280',
+      'https://i.imgur.com/gFIq5md.png',
     short_description:
-      'Esta es una breve descripciónEsta es una breve descripciónEsta es una breve descripción',
+      'Podes hacerlo directamente por whatsapp!',
   },
-  {
-    id: 3,
-    title: 'id 3',
-    thumbnail:
-      'https://store-images.s-microsoft.com/image/apps.64444.14416131676512756.a4895ce9-cd8d-4c80-a13c-dd63cf1980f1.4fa73540-3bb6-4190-b96c-fc69bf560940?mode=scale&q=90&h=720&w=1280',
-    short_description:
-      'Esta es una breve descripciónEsta es una breve descripciónEsta es una breve descripción',
-  },
+
 
 ];
 

@@ -7,7 +7,6 @@ import {
   Typography,
   CardMedia,
 } from '@material-ui/core';
-import { FormatAlignCenterOutlined } from '@material-ui/icons';
 
 const useStyles = makeStyles((theme) => ({
   container: {
