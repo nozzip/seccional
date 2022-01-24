@@ -306,7 +306,7 @@ function Inicio() {
       <Grid item xs={12} className={classes.section3}>
         <Grid item xs={12} className={classes.contenedorh1section3}>
           <Typography align="right" className={classes.h1section3}>
-            SERVICIOS
+            TURISMO
           </Typography>
         </Grid>
       </Grid>

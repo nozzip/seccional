@@ -1,7 +1,4 @@
 
-
-
-
 /*Carusel Afiliados Cumpleaños */
 const dataCarusel = [
   {
