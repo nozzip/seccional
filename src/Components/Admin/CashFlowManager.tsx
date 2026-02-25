@@ -194,42 +194,25 @@ export default function CashFlowManager() {
 
   const [inventoryItems, setInventoryItems] = useState(() => {
     const saved = localStorage.getItem("seccional_inventory");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          {
-            id: 1,
-            name: "Coca Cola 500ml",
-            category: "Bebidas",
-            initialStock: 20,
-            entries: 0,
-            exits: 0,
-          },
-          {
-            id: 2,
-            name: "Agua Mineral 500ml",
-            category: "Bebidas",
-            initialStock: 15,
-            entries: 5,
-            exits: 2,
-          },
-          {
-            id: 3,
-            name: "Alfafor (Variedad)",
-            category: "Snacks",
-            initialStock: 10,
-            entries: 0,
-            exits: 3,
-          },
-          {
-            id: 4,
-            name: "Papas Fritas",
-            category: "Snacks",
-            initialStock: 12,
-            entries: 0,
-            exits: 0,
-          },
-        ];
+    if (saved) return JSON.parse(saved);
+
+    // Default items based on the user's price list and categorization rules
+    return [
+      { id: 1, name: 'Agua chica', category: 'Bebidas', initialStock: 10, entries: 0, exits: 0, price: 1000 },
+      { id: 2, name: 'Agua grande', category: 'Bebidas', initialStock: 10, entries: 0, exits: 0, price: 2000 },
+      { id: 3, name: 'Aquarius 1500cc', category: 'Bebidas', initialStock: 10, entries: 0, exits: 0, price: 3000 },
+      { id: 4, name: 'Aquarius 500cc', category: 'Bebidas', initialStock: 10, entries: 0, exits: 0, price: 2000 },
+      { id: 5, name: 'Coca Cola 1500cc', category: 'Bebidas', initialStock: 10, entries: 0, exits: 0, price: 3000 },
+      { id: 6, name: 'Coca Coca 500cc', category: 'Bebidas', initialStock: 10, entries: 0, exits: 0, price: 2000 },
+      { id: 7, name: 'Powerade 500cc', category: 'Bebidas', initialStock: 10, entries: 0, exits: 0, price: 3000 },
+      { id: 8, name: 'Monster', category: 'Bebidas', initialStock: 10, entries: 0, exits: 0, price: 4000 },
+      { id: 9, name: 'Heineken', category: 'Bebidas', initialStock: 10, entries: 0, exits: 0, price: 8000 },
+      { id: 10, name: 'Cereales', category: 'Snacks', initialStock: 10, entries: 0, exits: 0, price: 3000 },
+      { id: 11, name: 'Papas fritas 20grs', category: 'Snacks', initialStock: 10, entries: 0, exits: 0, price: 2000 },
+      { id: 12, name: 'Papas fritas 40grs', category: 'Snacks', initialStock: 10, entries: 0, exits: 0, price: 3000 },
+      { id: 13, name: 'Manies-Palitos-Chizitos', category: 'Snacks', initialStock: 10, entries: 0, exits: 0, price: 3000 },
+      { id: 14, name: 'Barra cereal', category: 'Snacks', initialStock: 10, entries: 0, exits: 0, price: 2000 },
+    ];
   });
 
   const [archivedDays, setArchivedDays] = useState<ArchivedDay[]>(() => {
@@ -267,6 +250,85 @@ export default function CashFlowManager() {
   useEffect(() => {
     localStorage.setItem("seccional_students", JSON.stringify(students));
   }, [students]);
+
+  // Precios globales de productos para sincronizar con Inventario
+  const [productsPrices, setProductsPrices] = useState(() => {
+    const saved = localStorage.getItem("seccional_products_prices");
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: 'Agua chica', price: 1000 },
+      { id: 2, name: 'Agua grande', price: 2000 },
+      { id: 3, name: 'Aquarius 1500cc', price: 3000 },
+      { id: 4, name: 'Aquarius 500cc', price: 2000 },
+      { id: 5, name: 'Coca Cola 1500cc', price: 3000 },
+      { id: 6, name: 'Coca Coca 500cc', price: 2000 },
+      { id: 7, name: 'Powerade 500cc', price: 3000 },
+      { id: 8, name: 'Monster', price: 4000 },
+      { id: 9, name: 'Heineken', price: 8000 },
+      { id: 10, name: 'Cereales', price: 3000 },
+      { id: 11, name: 'Papas fritas 20grs', price: 2000 },
+      { id: 12, name: 'Papas fritas 40grs', price: 3000 },
+      { id: 13, name: 'Manies-Palitos-Chizitos', price: 3000 },
+      { id: 14, name: 'Barra cereal', price: 2000 },
+    ];
+  });
+
+  // --- NUEVOS ESTADOS COMPARTIDOS PARA INTEGRACIÓN NATACIÓN/FINANZAS ---
+
+  // Precios de Natación (Extraídos de PriceManager e inicializados aquí)
+  const [swimmingPrices, setSwimmingPrices] = useState(() => {
+    const saved = localStorage.getItem("seccional_swimming_prices");
+    return saved ? JSON.parse(saved) : {
+      conProfesor: {
+        v2: { total: 70000, club: 50000, prof: 20000 },
+        v3: { total: 80000, club: 53000, prof: 27000 },
+        v5: { total: 94000, club: 60000, prof: 34000 }
+      },
+      libre: {
+        v2: 63000,
+        v3: 70000,
+        v5: 86000
+      },
+      porClase: { total: 15000, club: 10000, prof: 5000 },
+      porDiaLibre: 12000,
+      matronatacion: { total: 48000, club: 30000, prof: 18000 },
+      plantel: { total: 63000, club: 42000, prof: 21000 }
+    };
+  });
+
+  // Sync inventory items with centralized productsPrices
+  useEffect(() => {
+    setInventoryItems((prev: any[]) => {
+      // 1. Map existing items to update prices
+      const updatedExisting = prev.map(item => {
+        const globalInfo = productsPrices.find((p: any) => p.name === item.name);
+        return globalInfo ? { ...item, price: globalInfo.price } : item;
+      });
+
+      // 2. Identify and add missing products from global list
+      const missingProducts = productsPrices.filter(
+        (gp: any) => !prev.some(item => item.name === gp.name)
+      ).map((gp: any) => ({
+        id: gp.id,
+        name: gp.name,
+        category: gp.name.toLowerCase().includes('agua') || gp.name.toLowerCase().includes('coca') || gp.name.toLowerCase().includes('aquarius') || gp.name.toLowerCase().includes('powerade') || gp.name.toLowerCase().includes('monster') || gp.name.toLowerCase().includes('heineken') ? 'Bebidas' : 'Snacks',
+        initialStock: 0,
+        entries: 0,
+        exits: 0,
+        price: gp.price
+      }));
+
+      // Only updating if there are missing products or price changes to avoid infinite loop
+      // (React's setState with function handles this mostly, but we are returning a new array)
+      if (missingProducts.length === 0) {
+        // Check if prices actually changed to decide if we return new array
+        const pricesChanged = updatedExisting.some((item, idx) => item.price !== prev[idx]?.price);
+        if (!pricesChanged) return prev;
+      }
+
+      return [...updatedExisting, ...missingProducts];
+    });
+  }, [productsPrices]);
+
   const [formData, setFormData] = useState({
     type: "Ingreso",
     category: "",
@@ -299,16 +361,54 @@ export default function CashFlowManager() {
     phone: "",
   });
 
+  const [renewalDays, setRenewalDays] = useState(30);
+  const [swimmingSelection, setSwimmingSelection] = useState({
+    planType: 'conProfesor', // conProfesor, libre, matronatacion, plantel, porClase, porDiaLibre
+    frequency: 'v2', // v2, v3, v5
+  });
+
   const [shouldDiscountStock, setShouldDiscountStock] = useState(false);
   const [selectedStockProduct, setSelectedStockProduct] = useState<any>(null);
   const [discountQuantity, setDiscountQuantity] = useState(1);
-  const [renewalDays, setRenewalDays] = useState(30);
 
-  const frequentCategories = ["Canchas", "Limpieza", "Insumos"];
+  const frequentCategories = ["Pileta", "Bebida", "Snack"];
+
   const isPileta =
-    formData.category.toLowerCase().includes("pileta") ||
-    formData.category.toLowerCase().includes("natación") ||
-    formData.category.toLowerCase().includes("natacion");
+    formData.type === "Ingreso" &&
+    (formData.category.toLowerCase().includes("pileta") ||
+      formData.category.toLowerCase().includes("natación") ||
+      formData.category.toLowerCase().includes("natacion"));
+
+  const isCourtCategory =
+    formData.type === "Ingreso" &&
+    formData.category.toLowerCase().includes("cancha");
+
+  const [courtBookings, setCourtBookings] = useState<any[]>([]);
+  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const loadBookings = () => {
+      const saved = localStorage.getItem('seccional_court_bookings');
+      if (saved) setCourtBookings(JSON.parse(saved));
+    };
+    const loadPrices = () => {
+      const savedProducts = localStorage.getItem("seccional_products_prices");
+      if (savedProducts) setProductsPrices(JSON.parse(savedProducts));
+      const savedSwimming = localStorage.getItem("seccional_swimming_prices");
+      if (savedSwimming) setSwimmingPrices(JSON.parse(savedSwimming));
+    };
+
+    loadBookings();
+    loadPrices();
+
+    window.addEventListener('court_bookings_updated', loadBookings);
+    window.addEventListener('prices_updated', loadPrices);
+
+    return () => {
+      window.removeEventListener('court_bookings_updated', loadBookings);
+      window.removeEventListener('prices_updated', loadPrices);
+    };
+  }, []);
 
   const isAutoInvoice =
     formData.type === "Ingreso" &&
@@ -320,6 +420,36 @@ export default function CashFlowManager() {
     formData.type === "Ingreso" &&
     (formData.category.toLowerCase().includes("bebida") ||
       formData.category.toLowerCase().includes("snack"));
+
+  // Efecto para calcular el precio de Club automáticamente para Natación
+  useEffect(() => {
+    if (isPileta) {
+      let baseClubPrice = 0;
+      const { planType, frequency } = swimmingSelection;
+
+      if (planType === 'conProfesor') {
+        baseClubPrice = (swimmingPrices.conProfesor as any)[frequency]?.club || 0;
+      } else if (planType === 'libre') {
+        baseClubPrice = (swimmingPrices.libre as any)[frequency] || 0;
+      } else if (planType === 'porDiaLibre') {
+        baseClubPrice = swimmingPrices.porDiaLibre;
+      } else {
+        baseClubPrice = (swimmingPrices as any)[planType]?.club || (swimmingPrices as any)[planType] || 0;
+      }
+
+      // Ajustar por periodo (30 días es el base)
+      const calculatedAmount = (baseClubPrice * renewalDays) / 30;
+      setFormData(prev => ({ ...prev, amount: Math.round(calculatedAmount).toString() }));
+    }
+  }, [swimmingSelection, renewalDays, isPileta, swimmingPrices]);
+
+  // Efecto para calcular el precio de Inventario automáticamente (Precio * Cantidad)
+  useEffect(() => {
+    if (isInventoryCategory && selectedStockProduct) {
+      const total = selectedStockProduct.price * discountQuantity;
+      setFormData(prev => ({ ...prev, amount: total.toString() }));
+    }
+  }, [selectedStockProduct, discountQuantity, isInventoryCategory]);
 
   const handleInvoiceChange = (
     field: "letter" | "num1" | "num2",
@@ -465,6 +595,17 @@ export default function CashFlowManager() {
       });
     }
 
+    // Handle Court Booking Payment
+    if (selectedBookingId) {
+      const savedBookings = JSON.parse(localStorage.getItem('seccional_court_bookings') || '[]');
+      const updatedBookings = savedBookings.map((b: any) =>
+        b.id === selectedBookingId ? { ...b, status: 'Pagado' } : b
+      );
+      localStorage.setItem('seccional_court_bookings', JSON.stringify(updatedBookings));
+      window.dispatchEvent(new Event('court_bookings_updated'));
+      setSelectedBookingId(null);
+    }
+
     setShowSuccess(true);
     setFormData({
       ...formData,
@@ -511,6 +652,7 @@ export default function CashFlowManager() {
     setIsCreatingStudent(false);
     setShouldDiscountStock(false);
     setSelectedStockProduct(null);
+    setSelectedBookingId(null);
     setDiscountQuantity(1);
   };
 
@@ -746,7 +888,7 @@ export default function CashFlowManager() {
                       INGRESOS (ESTE DÍA)
                     </Typography>
                     <Typography variant="h5" sx={{ fontWeight: 800 }}>
-                      ${totalIncomes.toLocaleString()}
+                      ${(totalIncomes || 0).toLocaleString()}
                     </Typography>
                   </Box>
                 </Stack>
@@ -774,7 +916,7 @@ export default function CashFlowManager() {
                       EGRESOS (ESTE DÍA)
                     </Typography>
                     <Typography variant="h5" sx={{ fontWeight: 800 }}>
-                      ${totalExpenses.toLocaleString()}
+                      ${(totalExpenses || 0).toLocaleString()}
                     </Typography>
                   </Box>
                 </Stack>
@@ -802,7 +944,7 @@ export default function CashFlowManager() {
                       BALANCE (ESTE DÍA)
                     </Typography>
                     <Typography variant="h5" sx={{ fontWeight: 800 }}>
-                      ${balance.toLocaleString()}
+                      ${(balance || 0).toLocaleString()}
                     </Typography>
                   </Box>
                 </Stack>
@@ -860,7 +1002,7 @@ export default function CashFlowManager() {
                           <Typography
                             sx={{ fontSize: "0.75rem", fontWeight: 800 }}
                           >
-                            ${amount.toLocaleString()}
+                            ${(amount || 0).toLocaleString()}
                           </Typography>
                         </Stack>
                         <Box
@@ -971,7 +1113,7 @@ export default function CashFlowManager() {
                         }}
                       >
                         {t.type === "Ingreso" ? "+" : "-"}$
-                        {t.amount.toLocaleString()}
+                        {(t.amount || 0).toLocaleString()}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -1075,54 +1217,95 @@ export default function CashFlowManager() {
                       p: 2,
                       bgcolor: alpha(theme.palette.info.main, 0.05),
                       borderRadius: 2,
+                      border: "1px solid",
+                      borderColor: "info.main",
                     }}
                   >
                     <Typography
                       variant="subtitle2"
-                      sx={{ mb: 2, color: "info.main", fontWeight: 700 }}
+                      sx={{ mb: 2, color: "info.main", fontWeight: 800 }}
                     >
-                      Asignar Pago a Alumno
+                      Configuración de Natación (Cálculo Automático Club)
                     </Typography>
-                    <Autocomplete
-                      options={students}
-                      getOptionLabel={(option) =>
-                        `${option.fullName} (DNI: ${option.dni})`
-                      }
-                      value={selectedStudent}
-                      onChange={(_, newValue) => setSelectedStudent(newValue)}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Buscar Alumno"
-                          size="small"
-                        />
-                      )}
-                    />
-                    <Grid container spacing={2} sx={{ mt: 1 }}>
-                      <Grid item xs={12}>
-                        <TextField
-                          select
-                          fullWidth
-                          size="small"
-                          label="Periodo de Pago"
-                          value={renewalDays}
-                          onChange={(e) =>
-                            setRenewalDays(Number(e.target.value))
-                          }
-                        >
-                          <MenuItem value={15}>Quincena (15 días)</MenuItem>
-                          <MenuItem value={30}>Mes (30 días)</MenuItem>
-                          <MenuItem value={7}>Semana (7 días)</MenuItem>
-                        </TextField>
+
+                    <Stack spacing={2}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            select
+                            label="Tipo de Plan"
+                            fullWidth
+                            size="small"
+                            value={swimmingSelection.planType}
+                            onChange={(e) => setSwimmingSelection({ ...swimmingSelection, planType: e.target.value })}
+                          >
+                            <MenuItem value="conProfesor">Con Profesor</MenuItem>
+                            <MenuItem value="libre">Pileta Libre</MenuItem>
+                            <MenuItem value="matronatacion">Matronatación</MenuItem>
+                            <MenuItem value="plantel">Plantel</MenuItem>
+                            <MenuItem value="porClase">Clase Suelta</MenuItem>
+                            <MenuItem value="porDiaLibre">Día Libre</MenuItem>
+                          </TextField>
+                        </Grid>
+
+                        {(swimmingSelection.planType === 'conProfesor' || swimmingSelection.planType === 'libre') && (
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              select
+                              label="Frecuencia"
+                              fullWidth
+                              size="small"
+                              value={swimmingSelection.frequency}
+                              onChange={(e) => setSwimmingSelection({ ...swimmingSelection, frequency: e.target.value })}
+                            >
+                              <MenuItem value="v2">2 veces p/semana</MenuItem>
+                              <MenuItem value="v3">3 veces p/semana</MenuItem>
+                              <MenuItem value="v5">5 veces p/semana</MenuItem>
+                            </TextField>
+                          </Grid>
+                        )}
+
+                        <Grid item xs={12}>
+                          <TextField
+                            select
+                            fullWidth
+                            size="small"
+                            label="Duración / Periodo de Pago"
+                            value={renewalDays}
+                            onChange={(e) => setRenewalDays(Number(e.target.value))}
+                          >
+                            <MenuItem value={30}>Mes Completo (30 días)</MenuItem>
+                            <MenuItem value={15}>Quincena (15 días)</MenuItem>
+                            <MenuItem value={7}>Semana (7 días)</MenuItem>
+                          </TextField>
+                        </Grid>
                       </Grid>
-                    </Grid>
-                    <Button
-                      size="small"
-                      sx={{ mt: 1, fontWeight: 700 }}
-                      onClick={() => setIsCreatingStudent(true)}
-                    >
-                      + Crear nuevo alumno rápido
-                    </Button>
+
+                      <Autocomplete
+                        options={students}
+                        getOptionLabel={(option) =>
+                          `${option.fullName} (DNI: ${option.dni})`
+                        }
+                        value={selectedStudent}
+                        onChange={(_, newValue) => setSelectedStudent(newValue)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Asignar Alumno"
+                            size="small"
+                          />
+                        )}
+                      />
+
+                      <Button
+                        size="small"
+                        sx={{ fontWeight: 700, alignSelf: 'flex-start' }}
+                        onClick={() => setIsCreatingStudent(true)}
+                      >
+                        + Crear nuevo alumno rápido
+                      </Button>
+                    </Stack>
+
                     <StudentRegistrationDialog
                       open={isCreatingStudent}
                       onClose={() => setIsCreatingStudent(false)}
@@ -1131,6 +1314,71 @@ export default function CashFlowManager() {
                         setIsCreatingStudent(false);
                       }}
                     />
+                  </Paper>
+                )}
+
+                {isCourtCategory && (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      bgcolor: alpha(theme.palette.warning.main, 0.05),
+                      borderRadius: 2,
+                      border: "1px dashed",
+                      borderColor: "warning.main",
+                    }}
+                  >
+                    <Stack spacing={2}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "warning.dark" }}>
+                        Vincular Reserva de Cancha (Pendientes)
+                      </Typography>
+
+                      <Autocomplete
+                        options={courtBookings.filter(b => {
+                          if (b.status === 'Pagado') return false;
+
+                          // Categoría de cancha
+                          const cat = formData.category.toLowerCase();
+                          if (cat.includes('paddle') && b.courtType !== 0) return false;
+                          if (cat.includes('squash') && b.courtType !== 1) return false;
+                          if (cat.includes('fútbol') || cat.includes('futbol')) {
+                            if (b.courtType !== 2) return false;
+                          }
+
+                          // Filtro de proximidad (Hoy +/- 2 días)
+                          if (!b.isWeekly && b.date) {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const bDate = new Date(b.date);
+                            bDate.setHours(0, 0, 0, 0);
+                            const diffDays = Math.abs(bDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+                            if (diffDays > 2) return false;
+                          }
+
+                          return true;
+                        })}
+                        getOptionLabel={(option) =>
+                          `${option.user} - ${option.dayName} (${option.startTime} hs) - ${option.duration}m`
+                        }
+                        onChange={(_, newValue) => {
+                          setSelectedBookingId(newValue ? newValue.id : null);
+                          if (newValue) {
+                            // Si se selecciona una reserva, se podría sugerir el precio, por ahora permitimos que sigan usando el default o lo ingresen
+                            setFormData(prev => ({ ...prev, description: `Pago Cancha: ${newValue.user} (${newValue.dayName} ${newValue.startTime}hs)` }));
+                          }
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Seleccionar Reserva Pendiente"
+                            size="small"
+                          />
+                        )}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        Al registrar el ingreso, la reserva se marcará automáticamente como <b>Pagada</b> en el calendario.
+                      </Typography>
+                    </Stack>
                   </Paper>
                 )}
 
@@ -1145,54 +1393,59 @@ export default function CashFlowManager() {
                       borderColor: "success.main",
                     }}
                   >
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={shouldDiscountStock}
-                          onChange={(e) =>
-                            setShouldDiscountStock(e.target.checked)
-                          }
-                          color="success"
-                        />
-                      }
-                      label={
-                        <Typography sx={{ fontWeight: 800 }}>
-                          Descontar del Inventario
-                        </Typography>
-                      }
-                    />
+                    <Stack spacing={2}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "success.main" }}>
+                        Venta de Productos (Precio e Inventario Automático)
+                      </Typography>
 
-                    {shouldDiscountStock && (
-                      <Stack spacing={2} sx={{ mt: 1 }}>
-                        <Autocomplete
-                          options={inventoryItems.filter(
-                            (item) =>
-                              item.category
-                                .toLowerCase()
-                                .includes(
-                                  formData.category.toLowerCase().split(" ")[0],
-                                ) ||
-                              formData.category
-                                .toLowerCase()
-                                .includes(item.category.toLowerCase()),
-                          )}
-                          getOptionLabel={(option) =>
-                            `${option.name} (Stock: ${option.initialStock + option.entries - option.exits})`
+                      <Autocomplete
+                        options={inventoryItems.filter(item => {
+                          const cat = formData.category.toLowerCase();
+                          // Match category: Bebidas or Snacks (Kiosco usually implies one of these)
+                          if (cat.includes('bebida')) return item.category === 'Bebidas';
+                          if (cat.includes('snack') || cat.includes('kiosco')) return item.category === 'Snacks';
+                          return true;
+                        })}
+                        getOptionLabel={(option) =>
+                          `${option.name} ($${option.price?.toLocaleString() || 0}) - Stock: ${option.initialStock + option.entries - option.exits}`
+                        }
+                        value={selectedStockProduct}
+                        onChange={(_, newValue) => {
+                          setSelectedStockProduct(newValue);
+                          if (newValue) {
+                            setShouldDiscountStock(true);
+                            setFormData(prev => ({ ...prev, amount: (newValue.price * discountQuantity).toString() }));
                           }
-                          value={selectedStockProduct}
-                          onChange={(_, newValue) =>
-                            setSelectedStockProduct(newValue)
-                          }
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Producto de Inventario"
-                              size="small"
-                            />
-                          )}
-                        />
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Seleccionar Producto"
+                            size="small"
+                          />
+                        )}
+                      />
+
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={shouldDiscountStock}
+                            onChange={(e) =>
+                              setShouldDiscountStock(e.target.checked)
+                            }
+                            color="success"
+                          />
+                        }
+                        label={
+                          <Typography variant="caption" sx={{ fontWeight: 800 }}>
+                            Descontar del Inventario al registrar
+                          </Typography>
+                        }
+                      />
+
+                      {shouldDiscountStock && (
                         <TextField
-                          label="Cantidad a descontar"
+                          label="Cantidad a vender"
                           size="small"
                           type="number"
                           value={discountQuantity}
@@ -1200,9 +1453,10 @@ export default function CashFlowManager() {
                             setDiscountQuantity(parseInt(e.target.value) || 1)
                           }
                           InputProps={{ inputProps: { min: 1 } }}
+                          sx={{ maxWidth: 150 }}
                         />
-                      </Stack>
-                    )}
+                      )}
+                    </Stack>
                   </Paper>
                 )}
 
@@ -1402,12 +1656,12 @@ export default function CashFlowManager() {
                       <Typography
                         sx={{ fontWeight: 700, color: "success.main" }}
                       >
-                        ${accIncomes.toLocaleString()}
+                        ${(accIncomes || 0).toLocaleString()}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
                       <Typography sx={{ fontWeight: 700, color: "error.main" }}>
-                        ${accExpenses.toLocaleString()}
+                        ${(accExpenses || 0).toLocaleString()}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
@@ -1418,7 +1672,7 @@ export default function CashFlowManager() {
                             accBalance >= 0 ? "primary.main" : "error.main",
                         }}
                       >
-                        ${accBalance.toLocaleString()}
+                        ${(accBalance || 0).toLocaleString()}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">

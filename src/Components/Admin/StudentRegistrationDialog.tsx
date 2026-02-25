@@ -21,10 +21,8 @@ import {
   Box,
 } from "@mui/material";
 import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 
-const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-const HOURS = Array.from({ length: 14 }, (_, i) => `${i + 8}:00`);
+// Schedule constants removed as requested
 
 export interface StudentData {
   id?: number;
@@ -166,19 +164,7 @@ export default function StudentRegistrationDialog({
           {/* Schedule & Prof */}
           <Grid item xs={12} md={6}>
             <Stack spacing={3}>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  color: "primary.main",
-                  fontWeight: 700,
-                }}
-              >
-                <CalendarMonthIcon fontSize="small" /> HORARIOS Y PROFESOR
-              </Typography>
-
+              {/* Schedule and Professor category section header removed */}
               <FormControlLabel
                 control={
                   <Checkbox
@@ -191,89 +177,6 @@ export default function StudentRegistrationDialog({
                 label="Asignar Profesor"
                 sx={{ "& .MuiTypography-root": { fontWeight: 700 } }}
               />
-
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{ fontWeight: 700, mb: 1, display: "block" }}
-                >
-                  DÍAS Y HORAS
-                </Typography>
-                <TableContainer
-                  component={Paper}
-                  elevation={0}
-                  sx={{
-                    border: "1px solid",
-                    borderColor: "divider",
-                    maxHeight: 400,
-                    overflowY: "auto",
-                  }}
-                >
-                  <Table size="small" stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell
-                          sx={{
-                            bgcolor: "background.paper",
-                            zIndex: 3,
-                            left: 0,
-                            position: "sticky",
-                          }}
-                        >
-                          Hora
-                        </TableCell>
-                        {DAYS.map((day) => (
-                          <TableCell
-                            key={day}
-                            align="center"
-                            sx={{ bgcolor: "background.paper" }}
-                          >
-                            {day.substring(0, 3)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {HOURS.map((hour) => (
-                        <TableRow key={hour}>
-                          <TableCell
-                            sx={{
-                              fontWeight: 600,
-                              bgcolor: "background.paper",
-                              zIndex: 1,
-                              left: 0,
-                              position: "sticky",
-                            }}
-                          >
-                            {hour}
-                          </TableCell>
-                          {DAYS.map((day) => {
-                            const slotKey = `${day}-${hour}`;
-                            return (
-                              <TableCell key={day} align="center">
-                                <Checkbox
-                                  size="small"
-                                  sx={{ p: 0 }}
-                                  checked={formData.schedule[slotKey] || false}
-                                  onChange={(e) => {
-                                    const newSchedule = {
-                                      ...formData.schedule,
-                                    };
-                                    if (e.target.checked)
-                                      newSchedule[slotKey] = true;
-                                    else delete newSchedule[slotKey];
-                                    handleChange("schedule", newSchedule);
-                                  }}
-                                />
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
             </Stack>
           </Grid>
         </Grid>

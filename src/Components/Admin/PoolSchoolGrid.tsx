@@ -8,10 +8,6 @@ import {
   alpha,
   useTheme,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   List,
   ListItem,
   ListItemAvatar,
@@ -24,11 +20,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DescriptionIcon from "@mui/icons-material/Description";
-import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import PersonIcon from "@mui/icons-material/Person";
-
-const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-const HOURS = Array.from({ length: 14 }, (_, i) => `${i + 8}:00`);
 
 import StudentManager from "./StudentManager";
 import { StudentData } from "./StudentRegistrationDialog";
@@ -71,15 +63,9 @@ export default function PoolSchoolGrid() {
       });
     });
   });
-  const [view, setView] = useState(0); // 0: Grid, 1: Summary, 2: Students
-  const [selectedSlot, setSelectedSlot] = useState<{
-    day: string;
-    hour: string;
-  } | null>(null);
+  const [view, setView] = useState(0); // 0: Summary, 1: Students
+  // Slots and selection logic removed
 
-  const studentsInSelectedSlot = selectedSlot
-    ? poolData[`${selectedSlot.day}-${selectedSlot.hour}`] || []
-    : [];
 
   // Data for summary by professor
   const getSummaryByProfessor = () => {
@@ -120,12 +106,6 @@ export default function PoolSchoolGrid() {
             sx={{ minHeight: 40, mt: 1 }}
           >
             <Tab
-              icon={<ViewModuleIcon sx={{ fontSize: 20 }} />}
-              label="Grilla Horaria"
-              iconPosition="start"
-              sx={{ minHeight: 40 }}
-            />
-            <Tab
               icon={<DescriptionIcon sx={{ fontSize: 20 }} />}
               label="Resumen Profesores"
               iconPosition="start"
@@ -151,114 +131,6 @@ export default function PoolSchoolGrid() {
       </Box>
 
       {view === 0 && (
-        <Box sx={{ overflowX: "auto" }}>
-          <Box sx={{ minWidth: 1000 }}>
-            {/* Grid Header */}
-            <Grid container spacing={1} sx={{ mb: 1 }}>
-              <Grid item xs={1}>
-                <Box sx={{ height: 40 }} />
-              </Grid>
-              {DAYS.map((day) => (
-                <Grid item xs={1.8} key={day}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 1,
-                      textAlign: "center",
-                      bgcolor: alpha(theme.palette.primary.main, 0.1),
-                      borderRadius: 2,
-                    }}
-                  >
-                    <Typography sx={{ fontWeight: 800 }}>{day}</Typography>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
-
-            {/* Grid Body */}
-            {HOURS.map((hour) => (
-              <Grid container spacing={1} key={hour} sx={{ mb: 1 }}>
-                <Grid item xs={1}>
-                  <Box
-                    sx={{
-                      height: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{ fontWeight: 700, color: "text.secondary" }}
-                    >
-                      {hour}
-                    </Typography>
-                  </Box>
-                </Grid>
-                {DAYS.map((day) => {
-                  const students = poolData[`${day}-${hour}`] || [];
-                  return (
-                    <Grid item xs={1.8} key={day}>
-                      <Paper
-                        elevation={0}
-                        onClick={() => setSelectedSlot({ day, hour })}
-                        sx={{
-                          p: 1.5,
-                          minHeight: 70,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          border: "1px solid",
-                          borderColor:
-                            students.length > 0 ? "secondary.main" : "divider",
-                          borderRadius: 2,
-                          bgcolor:
-                            students.length > 0
-                              ? alpha(theme.palette.secondary.main, 0.05)
-                              : "transparent",
-                          cursor: "pointer",
-                          transition: "all 0.2s",
-                          "&:hover": {
-                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                            borderColor: "primary.main",
-                            transform: "scale(1.02)",
-                          },
-                        }}
-                      >
-                        {students.length > 0 ? (
-                          <Box sx={{ textAlign: "center" }}>
-                            <Typography
-                              variant="h6"
-                              sx={{
-                                color: "secondary.dark",
-                                fontWeight: 800,
-                                lineHeight: 1,
-                              }}
-                            >
-                              {students.length}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              sx={{ fontWeight: 700, opacity: 0.7 }}
-                            >
-                              ALUMNOS
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <AddIcon sx={{ opacity: 0.1 }} fontSize="small" />
-                        )}
-                      </Paper>
-                    </Grid>
-                  );
-                })}
-              </Grid>
-            ))}
-          </Box>
-        </Box>
-      )}
-
-      {view === 1 && (
         <Grid container spacing={3}>
           {Object.entries(professorSummary).map(([prof, students]) => (
             <Grid item xs={12} md={6} lg={4} key={prof}>
@@ -305,72 +177,8 @@ export default function PoolSchoolGrid() {
         </Grid>
       )}
 
-      {view === 2 && <StudentManager />}
+      {view === 1 && <StudentManager />}
 
-      {/* Details Dialog */}
-      <Dialog
-        open={!!selectedSlot}
-        onClose={() => setSelectedSlot(null)}
-        fullWidth
-        maxWidth="xs"
-        PaperProps={{ sx: { borderRadius: 3 } }}
-      >
-        <DialogTitle sx={{ pb: 1 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>
-            {selectedSlot?.day} - {selectedSlot?.hour}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Alumnos registrados en este turno
-          </Typography>
-        </DialogTitle>
-        <DialogContent dividers>
-          {studentsInSelectedSlot.length > 0 ? (
-            <List sx={{ pt: 0 }}>
-              {studentsInSelectedSlot.map((s) => (
-                <ListItem key={s.id} sx={{ px: 0 }}>
-                  <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: "secondary.main" }}>
-                      {s.name.charAt(0)}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={`${s.name} ${s.lastName}`}
-                    secondary={
-                      <Box
-                        component="span"
-                        sx={{ color: "primary.main", fontWeight: 700 }}
-                      >
-                        {s.professor}
-                      </Box>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
-          ) : (
-            <Typography sx={{ py: 2, textAlign: "center", opacity: 0.5 }}>
-              No hay alumnos registrados.
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button
-            onClick={() => setSelectedSlot(null)}
-            fullWidth
-            variant="outlined"
-          >
-            Cerrar
-          </Button>
-          <Button
-            color="primary"
-            variant="contained"
-            fullWidth
-            startIcon={<AddIcon />}
-          >
-            Inscribir
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

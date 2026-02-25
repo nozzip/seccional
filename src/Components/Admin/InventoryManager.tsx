@@ -14,6 +14,7 @@ import {
   alpha,
   useTheme,
   Button,
+  Chip,
 } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
@@ -25,6 +26,7 @@ interface InventoryItem {
   initialStock: number;
   entries: number;
   exits: number;
+  price?: number;
 }
 
 interface InventoryManagerProps {
@@ -56,6 +58,11 @@ export default function InventoryManager({
     return item.initialStock + item.entries - item.exits;
   };
 
+  const totalInventoryValue = items.reduce((acc, item) => {
+    const final = calculateFinal(item);
+    return acc + (final * (item.price || 0));
+  }, 0);
+
   return (
     <Box>
       <Box
@@ -77,6 +84,25 @@ export default function InventoryManager({
             Gestión de stock: Inicial + Entradas - Salidas = Final
           </Typography>
         </Box>
+
+        <Paper
+          variant="outlined"
+          sx={{
+            px: 3,
+            py: 1,
+            borderRadius: 3,
+            bgcolor: alpha(theme.palette.success.main, 0.05),
+            borderColor: 'success.main',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end'
+          }}
+        >
+          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>VALOR TOTAL STOCk</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 900, color: 'success.dark' }}>
+            ${totalInventoryValue.toLocaleString()}
+          </Typography>
+        </Paper>
       </Box>
 
       <TableContainer
@@ -89,6 +115,7 @@ export default function InventoryManager({
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Producto</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Categoría</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700 }}>Precio</TableCell>
               <TableCell
                 align="center"
                 sx={{
@@ -102,7 +129,7 @@ export default function InventoryManager({
                 align="center"
                 sx={{
                   fontWeight: 700,
-                  bgcolor: alpha(theme.palette.success.main, 0.05),
+                  bgcolor: alpha(theme.palette.info.main, 0.05),
                 }}
               >
                 Entradas
@@ -114,7 +141,7 @@ export default function InventoryManager({
                   bgcolor: alpha(theme.palette.error.main, 0.05),
                 }}
               >
-                Salidas (Ventas)
+                Salidas
               </TableCell>
               <TableCell
                 align="center"
@@ -123,17 +150,37 @@ export default function InventoryManager({
                   bgcolor: alpha(theme.palette.primary.main, 0.05),
                 }}
               >
-                STOCK FINAL
+                FINAL
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{
+                  fontWeight: 700,
+                  bgcolor: alpha(theme.palette.success.main, 0.05),
+                }}
+              >
+                VALOR
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {items.map((item) => {
               const finalStock = calculateFinal(item);
+              const itemValue = finalStock * (item.price || 0);
               return (
                 <TableRow key={item.id} hover>
                   <TableCell sx={{ fontWeight: 700 }}>{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={item.category}
+                      size="small"
+                      sx={{ fontWeight: 700, fontSize: '0.65rem' }}
+                      color={item.category === 'Bebidas' ? 'primary' : 'warning'}
+                    />
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+                    ${(item.price || 0).toLocaleString()}
+                  </TableCell>
                   <TableCell align="center">
                     <Typography sx={{ fontWeight: 600 }}>
                       {item.initialStock}
@@ -159,7 +206,7 @@ export default function InventoryManager({
                       <IconButton
                         size="small"
                         onClick={() => handleUpdate(item.id, "entries", 1)}
-                        color="success"
+                        color="info"
                       >
                         <AddCircleIcon fontSize="small" />
                       </IconButton>
@@ -185,27 +232,24 @@ export default function InventoryManager({
                       <IconButton
                         size="small"
                         onClick={() => handleUpdate(item.id, "exits", 1)}
-                        color="success"
+                        color="error"
                       >
                         <AddCircleIcon fontSize="small" />
                       </IconButton>
                     </Stack>
                   </TableCell>
                   <TableCell align="center">
-                    <Box
+                    <Typography
                       sx={{
-                        bgcolor:
-                          finalStock < 5
-                            ? alpha(theme.palette.error.main, 0.1)
-                            : alpha(theme.palette.primary.main, 0.1),
-                        color: finalStock < 5 ? "error.main" : "primary.main",
-                        py: 0.5,
-                        borderRadius: 1,
                         fontWeight: 900,
+                        color: finalStock > 0 ? "primary.main" : "error.main",
                       }}
                     >
                       {finalStock}
-                    </Box>
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800, color: 'success.dark' }}>
+                    ${itemValue.toLocaleString()}
                   </TableCell>
                 </TableRow>
               );

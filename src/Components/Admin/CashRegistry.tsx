@@ -1117,7 +1117,7 @@ export default function CashRegistry({
                                         color: "success.main",
                                       }}
                                     >
-                                      +${s.systemIncome.toLocaleString()}
+                                      +${(s.systemIncome || 0).toLocaleString()}
                                     </Typography>
                                   </Box>
                                   <Box
@@ -1139,7 +1139,7 @@ export default function CashRegistry({
                                         color: "error.main",
                                       }}
                                     >
-                                      -${s.systemExpense.toLocaleString()}
+                                      -${(s.systemExpense || 0).toLocaleString()}
                                     </Typography>
                                   </Box>
                                   <Divider />
@@ -1162,9 +1162,9 @@ export default function CashRegistry({
                                     >
                                       $
                                       {(
-                                        s.openingCash +
-                                        s.systemIncome -
-                                        s.systemExpense
+                                        (s.openingCash || 0) +
+                                        (s.systemIncome || 0) -
+                                        (s.systemExpense || 0)
                                       ).toLocaleString()}
                                     </Typography>
                                   </Box>
@@ -1262,10 +1262,10 @@ export default function CashRegistry({
                                                 bgcolor:
                                                   ssidx % 2 === 0
                                                     ? alpha(
-                                                        theme.palette.action
-                                                          .hover,
-                                                        0.5,
-                                                      )
+                                                      theme.palette.action
+                                                        .hover,
+                                                      0.5,
+                                                    )
                                                     : "transparent",
                                               }}
                                             >

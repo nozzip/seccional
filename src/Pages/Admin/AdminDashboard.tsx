@@ -19,7 +19,7 @@ import AdminOverview from "../../Components/Admin/AdminOverview";
 import PoolSchoolGrid from "../../Components/Admin/PoolSchoolGrid";
 import CourtBookingGrid from "../../Components/Admin/CourtBookingGrid";
 import CashFlowManager from "../../Components/Admin/CashFlowManager";
-import PoolManager from "../../Components/Admin/PoolManager";
+import PriceManager from "../../Components/Admin/PriceManager";
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState(0);
@@ -114,7 +114,7 @@ function AdminDashboard() {
             {activeTab === 1 && <CashFlowManager />}
             {activeTab === 2 && <PoolSchoolGrid />}
             {activeTab === 3 && <CourtBookingGrid />}
-            {activeTab === 4 && <PoolManager />}
+            {activeTab === 4 && <PriceManager />}
           </Box>
         </Paper>
       </Container>
