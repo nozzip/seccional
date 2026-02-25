@@ -30,6 +30,9 @@ import PersonIcon from "@mui/icons-material/Person";
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const HOURS = Array.from({ length: 14 }, (_, i) => `${i + 8}:00`);
 
+import StudentManager from "./StudentManager";
+import { StudentData } from "./StudentRegistrationDialog";
+
 interface Student {
   id: number;
   name: string;
@@ -41,25 +44,33 @@ interface SlotData {
   [key: string]: Student[];
 }
 
-const mockPoolData: SlotData = {
-  "Lunes-09:00": [
-    { id: 1, name: "Lucas", lastName: "Rossi", professor: "Prof. García" },
-    { id: 2, name: "Ana", lastName: "Sosa", professor: "Prof. García" },
-    { id: 3, name: "Mateo", lastName: "Paz", professor: "Prof. Ruiz" },
-  ],
-  "Martes-10:00": [
-    { id: 4, name: "Elena", lastName: "Vigil", professor: "Prof. Ruiz" },
-    { id: 5, name: "Pedro", lastName: "Gómez", professor: "Prof. Ruiz" },
-  ],
-  "Miércoles-15:00": [
-    { id: 6, name: "Sofía", lastName: "López", professor: "Prof. García" },
-  ],
-};
-
-import StudentManager from "./StudentManager";
-
 export default function PoolSchoolGrid() {
+  const [studentsData] = useState<StudentData[]>(() => {
+    const saved = localStorage.getItem("seccional_students");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const theme = useTheme();
+
+  const isExpired = (expiryDate?: string) => {
+    if (!expiryDate) return true;
+    return new Date(expiryDate) < new Date();
+  };
+
+  const activeStudents = studentsData.filter((s) => !isExpired(s.expiryDate));
+
+  const poolData: SlotData = {};
+  activeStudents.forEach((student) => {
+    Object.keys(student.schedule).forEach((slotKey) => {
+      if (!poolData[slotKey]) poolData[slotKey] = [];
+      poolData[slotKey].push({
+        id: student.id || 0,
+        name: student.fullName.split(" ")[0],
+        lastName: student.fullName.split(" ").slice(1).join(" "),
+        professor: student.hasProfessor ? "Profesor Asignado" : "Pileta Libre",
+      });
+    });
+  });
   const [view, setView] = useState(0); // 0: Grid, 1: Summary, 2: Students
   const [selectedSlot, setSelectedSlot] = useState<{
     day: string;
@@ -67,13 +78,13 @@ export default function PoolSchoolGrid() {
   } | null>(null);
 
   const studentsInSelectedSlot = selectedSlot
-    ? mockPoolData[`${selectedSlot.day}-${selectedSlot.hour}`] || []
+    ? poolData[`${selectedSlot.day}-${selectedSlot.hour}`] || []
     : [];
 
   // Data for summary by professor
   const getSummaryByProfessor = () => {
     const summary: { [key: string]: Student[] } = {};
-    Object.values(mockPoolData).forEach((students) => {
+    Object.values(poolData).forEach((students) => {
       students.forEach((student) => {
         if (!summary[student.professor]) summary[student.professor] = [];
         summary[student.professor].push(student);
@@ -185,7 +196,7 @@ export default function PoolSchoolGrid() {
                   </Box>
                 </Grid>
                 {DAYS.map((day) => {
-                  const students = mockPoolData[`${day}-${hour}`] || [];
+                  const students = poolData[`${day}-${hour}`] || [];
                   return (
                     <Grid item xs={1.8} key={day}>
                       <Paper

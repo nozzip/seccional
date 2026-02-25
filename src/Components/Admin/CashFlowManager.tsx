@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -24,6 +24,9 @@ import {
   MenuItem,
   Snackbar,
   Alert,
+  Autocomplete,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -40,15 +43,83 @@ interface Transaction {
   type: "Ingreso" | "Egreso";
   category: string;
   amount: number;
-  paymentMethod: "Efectivo" | "Transferencia" | "Tarjeta" | "Otro";
+  paymentMethod: string; // Updated to be dynamic
   invoice?: string;
   description: string;
 }
 
+interface Shift {
+  id: number;
+  name: string;
+  timeLabel: string;
+  responsible: string;
+  openingCash: number;
+  systemIncome: number;
+  systemExpense: number;
+  realCash: number | null;
+  difference: number | null;
+  status: "No Iniciado" | "Abierta" | "Cerrada";
+  notes?: string;
+  openedAt?: number;
+  closedAt?: number;
+  startingStock?: { name: string; quantity: number }[];
+  stockSnapshot?: { name: string; quantity: number }[];
+}
+
+interface ArchivedDay {
+  date: string;
+  shifts: Shift[];
+  totalBalance: number;
+  movements?: { [key: string]: { income: number; expense: number } };
+}
+
+interface StaffRoster {
+  [key: string]: {
+    morning: string;
+    afternoon: string;
+  };
+}
+
+const defaultRoster: StaffRoster = {
+  Lunes: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
+  Martes: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
+  Miércoles: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
+  Jueves: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
+  Viernes: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
+  Sábado: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
+};
+
+interface Account {
+  id: number;
+  name: string;
+  type: "Ingreso" | "Egreso" | "Mixto";
+  balance: number;
+  color: string;
+}
+
+const initialAccountsData: Account[] = [
+  {
+    id: 1,
+    name: "Cuota Pileta",
+    type: "Ingreso",
+    balance: 0,
+    color: "#4caf50",
+  },
+  { id: 2, name: "Kiosco", type: "Ingreso", balance: 0, color: "#2196f3" },
+  {
+    id: 3,
+    name: "Venta Bebidas",
+    type: "Ingreso",
+    balance: 0,
+    color: "#ff9800",
+  },
+  { id: 4, name: "Limpieza", type: "Egreso", balance: 0, color: "#f44336" },
+];
+
 const initialTransactions: Transaction[] = [
   {
     id: 1,
-    date: "2026-02-23",
+    date: new Date().toISOString().split("T")[0],
     type: "Ingreso",
     category: "Venta Bebidas",
     amount: 4500,
@@ -57,7 +128,7 @@ const initialTransactions: Transaction[] = [
   },
   {
     id: 2,
-    date: "2026-02-22",
+    date: new Date().toISOString().split("T")[0],
     type: "Ingreso",
     category: "Canchas",
     amount: 12000,
@@ -66,7 +137,7 @@ const initialTransactions: Transaction[] = [
   },
   {
     id: 3,
-    date: "2026-02-21",
+    date: new Date().toISOString().split("T")[0],
     type: "Egreso",
     category: "Limpieza",
     amount: 3500,
@@ -90,31 +161,222 @@ import InventoryManager from "./InventoryManager";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import { Tabs, Tab, InputBase, Tooltip } from "@mui/material";
+import StudentRegistrationDialog, {
+  StudentData,
+} from "./StudentRegistrationDialog";
 
 export default function CashFlowManager() {
-  const [transactions, setTransactions] =
-    useState<Transaction[]>(initialTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    const saved = localStorage.getItem("seccional_transactions");
+    return saved ? JSON.parse(saved) : initialTransactions;
+  });
+
+  const [accountsData, setAccountsData] = useState<Account[]>(() => {
+    const saved = localStorage.getItem("seccional_accounts");
+    return saved ? JSON.parse(saved) : initialAccountsData;
+  });
+
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState(0); // 0: Flow, 1: Registry, 2: Inventory
+  const [openAccountDialog, setOpenAccountDialog] = useState(false);
+  const [openRosterDialog, setOpenRosterDialog] = useState(false);
+  const [view, setView] = useState(0); // 0: Flow, 1: Registry, 2: Inventory, 3: Accounts
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const [students, setStudents] = useState<StudentData[]>(() => {
+    const saved = localStorage.getItem("seccional_students");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [staffRoster, setStaffRoster] = useState<StaffRoster>(() => {
+    const saved = localStorage.getItem("seccional_staff_roster");
+    return saved ? JSON.parse(saved) : defaultRoster;
+  });
+
+  const [inventoryItems, setInventoryItems] = useState(() => {
+    const saved = localStorage.getItem("seccional_inventory");
+    return saved
+      ? JSON.parse(saved)
+      : [
+          {
+            id: 1,
+            name: "Coca Cola 500ml",
+            category: "Bebidas",
+            initialStock: 20,
+            entries: 0,
+            exits: 0,
+          },
+          {
+            id: 2,
+            name: "Agua Mineral 500ml",
+            category: "Bebidas",
+            initialStock: 15,
+            entries: 5,
+            exits: 2,
+          },
+          {
+            id: 3,
+            name: "Alfafor (Variedad)",
+            category: "Snacks",
+            initialStock: 10,
+            entries: 0,
+            exits: 3,
+          },
+          {
+            id: 4,
+            name: "Papas Fritas",
+            category: "Snacks",
+            initialStock: 12,
+            entries: 0,
+            exits: 0,
+          },
+        ];
+  });
+
+  const [archivedDays, setArchivedDays] = useState<ArchivedDay[]>(() => {
+    const saved = localStorage.getItem("seccional_archived_days");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Persistence Effects
+  useEffect(() => {
+    localStorage.setItem(
+      "seccional_transactions",
+      JSON.stringify(transactions),
+    );
+  }, [transactions]);
+
+  useEffect(() => {
+    localStorage.setItem("seccional_accounts", JSON.stringify(accountsData));
+  }, [accountsData]);
+
+  useEffect(() => {
+    localStorage.setItem("seccional_inventory", JSON.stringify(inventoryItems));
+  }, [inventoryItems]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "seccional_archived_days",
+      JSON.stringify(archivedDays),
+    );
+  }, [archivedDays]);
+
+  useEffect(() => {
+    localStorage.setItem("seccional_staff_roster", JSON.stringify(staffRoster));
+  }, [staffRoster]);
+
+  useEffect(() => {
+    localStorage.setItem("seccional_students", JSON.stringify(students));
+  }, [students]);
   const [formData, setFormData] = useState({
-    type: "Egreso",
+    type: "Ingreso",
     category: "",
     amount: "",
     paymentMethod: "Efectivo",
-    invoice: "",
     description: "",
   });
+  const [accountFormData, setAccountFormData] = useState({
+    name: "",
+    type: "Ingreso",
+    balance: "0",
+  });
+  const [invoiceData, setInvoiceData] = useState({
+    letter: "",
+    num1: "",
+    num2: "",
+  });
+
   const [filters, setFilters] = useState({
     search: "",
     type: "Todos",
     category: "Todas",
   });
 
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [isCreatingStudent, setIsCreatingStudent] = useState(false);
+  const [newStudentData, setNewStudentData] = useState({
+    fullName: "",
+    dni: "",
+    phone: "",
+  });
+
+  const [shouldDiscountStock, setShouldDiscountStock] = useState(false);
+  const [selectedStockProduct, setSelectedStockProduct] = useState<any>(null);
+  const [discountQuantity, setDiscountQuantity] = useState(1);
+  const [renewalDays, setRenewalDays] = useState(30);
+
+  const frequentCategories = ["Canchas", "Limpieza", "Insumos"];
+  const isPileta =
+    formData.category.toLowerCase().includes("pileta") ||
+    formData.category.toLowerCase().includes("natación") ||
+    formData.category.toLowerCase().includes("natacion");
+
+  const isAutoInvoice =
+    formData.type === "Ingreso" &&
+    (isPileta ||
+      formData.category.toLowerCase().includes("bebida") ||
+      formData.category.toLowerCase().includes("snack"));
+
+  const isInventoryCategory =
+    formData.type === "Ingreso" &&
+    (formData.category.toLowerCase().includes("bebida") ||
+      formData.category.toLowerCase().includes("snack"));
+
+  const handleInvoiceChange = (
+    field: "letter" | "num1" | "num2",
+    value: string,
+  ) => {
+    // Restrict num1 and num2 to digits only
+    if (
+      (field === "num1" || field === "num2") &&
+      value !== "" &&
+      !/^\d+$/.test(value)
+    ) {
+      return;
+    }
+
+    const newData = { ...invoiceData, [field]: value.toUpperCase() };
+    setInvoiceData(newData);
+
+    if (field === "letter" && value.length >= 1) {
+      document.getElementById("invoice-num1")?.focus();
+    } else if (field === "num1" && value.length >= 4) {
+      document.getElementById("invoice-num2")?.focus();
+    }
+  };
+
   const theme = useTheme();
+
+  const generateAutoInvoice = () => {
+    const prefix = "C-0100-";
+    const relevantInvoices = transactions
+      .filter((t) => t.invoice?.startsWith(prefix))
+      .map((t) => {
+        const parts = t.invoice?.split("-");
+        return parts ? parseInt(parts[2]) : 0;
+      });
+
+    const nextNumber =
+      relevantInvoices.length > 0 ? Math.max(...relevantInvoices) + 1 : 1;
+    return `${prefix}${nextNumber.toString().padStart(8, "0")}`;
+  };
 
   const handleRegister = () => {
     if (!formData.category || !formData.amount) return;
+
+    let finalInvoice = undefined;
+    if (isAutoInvoice) {
+      finalInvoice = generateAutoInvoice();
+    } else if (invoiceData.letter || invoiceData.num1 || invoiceData.num2) {
+      finalInvoice = `${invoiceData.letter || "X"}-${invoiceData.num1 || "0000"}-${invoiceData.num2 || "00000000"}`;
+    }
+
+    let finalDesc = formData.description;
+    if (isPileta) {
+      if (isCreatingStudent && newStudentData.fullName)
+        finalDesc += ` (Nuevo Alumno: ${newStudentData.fullName} - ${newStudentData.dni})`;
+      else if (selectedStudent)
+        finalDesc += ` (Alumno: ${selectedStudent.fullName})`;
+    }
 
     const newTransaction: Transaction = {
       id: Date.now(),
@@ -123,25 +385,133 @@ export default function CashFlowManager() {
       category: formData.category,
       amount: parseFloat(formData.amount),
       paymentMethod: formData.paymentMethod as any,
-      invoice: formData.invoice,
-      description: formData.description,
+      invoice: finalInvoice,
+      description: finalDesc,
     };
 
     setTransactions([newTransaction, ...transactions]);
+
+    // Update account balance or create if missing
+    setAccountsData((prev) => {
+      const exists = prev.find((a) => a.name === formData.category);
+      if (exists) {
+        return prev.map((acc) => {
+          if (acc.name === formData.category) {
+            return {
+              ...acc,
+              balance:
+                acc.balance +
+                (formData.type === "Ingreso"
+                  ? parseFloat(formData.amount)
+                  : -parseFloat(formData.amount)),
+            };
+          }
+          return acc;
+        });
+      } else {
+        // Create new account automatically
+        const newAcc: Account = {
+          id: Date.now(),
+          name: formData.category,
+          type: "Mixto",
+          balance:
+            formData.type === "Ingreso"
+              ? parseFloat(formData.amount)
+              : -parseFloat(formData.amount),
+          color: theme.palette.primary.main,
+        };
+        return [...prev, newAcc];
+      }
+    });
+
+    // Handle Inventory Discount
+    if (shouldDiscountStock && selectedStockProduct) {
+      setInventoryItems((prev: any[]) =>
+        prev.map((item: any) =>
+          item.id === selectedStockProduct.id
+            ? { ...item, exits: item.exits + discountQuantity }
+            : item,
+        ),
+      );
+    }
+
+    // Handle Student Enrollment/Renewal
+    if (isPileta && selectedStudent) {
+      setStudents((prev) => {
+        const student = prev.find((s) => s.dni === selectedStudent.dni);
+        const today = new Date();
+        const baseDate =
+          student && student.expiryDate && new Date(student.expiryDate) > today
+            ? new Date(student.expiryDate)
+            : today;
+
+        const newExpiry = new Date(baseDate);
+        newExpiry.setDate(newExpiry.getDate() + renewalDays);
+
+        const updatedData = {
+          ...selectedStudent,
+          lastPayment: {
+            date: today.toISOString().split("T")[0],
+            amount: parseFloat(formData.amount),
+          },
+          expiryDate: newExpiry.toISOString().split("T")[0],
+        };
+
+        if (student) {
+          return prev.map((s) => (s.dni === student.dni ? updatedData : s));
+        } else {
+          return [...prev, { ...updatedData, id: Date.now() }];
+        }
+      });
+    }
+
     setShowSuccess(true);
     setFormData({
-      type: "Egreso",
-      category: "",
+      ...formData,
       amount: "",
-      paymentMethod: "Efectivo",
-      invoice: "",
       description: "",
     });
+    setInvoiceData({ letter: "", num1: "", num2: "" });
+    setSelectedStudent(null);
+    setIsCreatingStudent(false);
+    setNewStudentData({ fullName: "", dni: "", phone: "" });
+
+    // Reset stock discount states
+    setShouldDiscountStock(false);
+    setSelectedStockProduct(null);
+    setDiscountQuantity(1);
+  };
+
+  const handleCreateAccount = () => {
+    if (!accountFormData.name) return;
+    const newAcc: Account = {
+      id: Date.now(),
+      name: accountFormData.name,
+      type: accountFormData.type as any,
+      balance: parseFloat(accountFormData.balance) || 0,
+      color: theme.palette.primary.main,
+    };
+    setAccountsData([...accountsData, newAcc]);
+    setOpenAccountDialog(false);
+    setAccountFormData({ name: "", type: "Ingreso", balance: "0" });
   };
 
   const handleCloseDialog = () => {
     setOpen(false);
     setShowSuccess(false);
+    setFormData({
+      type: "Ingreso",
+      category: "",
+      amount: "",
+      paymentMethod: "Efectivo",
+      description: "",
+    });
+    setInvoiceData({ letter: "", num1: "", num2: "" });
+    setSelectedStudent(null);
+    setIsCreatingStudent(false);
+    setShouldDiscountStock(false);
+    setSelectedStockProduct(null);
+    setDiscountQuantity(1);
   };
 
   const filteredTransactions = transactions.filter((t) => {
@@ -163,7 +533,6 @@ export default function CashFlowManager() {
     .filter((t) => t.type === "Egreso")
     .reduce((acc, t) => acc + t.amount, 0);
   const balance = totalIncomes - totalExpenses;
-
   return (
     <Box>
       <Box
@@ -171,53 +540,91 @@ export default function CashFlowManager() {
           mb: 4,
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: "flex-end",
+          flexWrap: "wrap",
+          gap: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          pb: 1,
         }}
       >
-        <Box>
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 800, color: "primary.main" }}
+        <Tabs
+          value={view}
+          onChange={(_, v) => setView(v)}
+          sx={{ minHeight: 40 }}
+        >
+          <Tab
+            icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />}
+            label="Flujo de Caja"
+            iconPosition="start"
+            sx={{ minHeight: 40 }}
+          />
+          <Tab
+            icon={<PointOfSaleIcon sx={{ fontSize: 20 }} />}
+            label="Arqueo de Caja"
+            iconPosition="start"
+            sx={{ minHeight: 40 }}
+          />
+          <Tab
+            icon={<InventoryIcon sx={{ fontSize: 20 }} />}
+            label="Inventario"
+            iconPosition="start"
+            sx={{ minHeight: 40 }}
+          />
+          <Tab
+            icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />}
+            label="Libro Mayor"
+            iconPosition="start"
+            sx={{ minHeight: 40 }}
+          />
+        </Tabs>
+
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 800, color: "text.secondary", pb: 1 }}
+        >
+          {new Date().toLocaleDateString("es-AR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })}
+        </Typography>
+      </Box>
+
+      {view === 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Button
+            variant="contained"
+            fullWidth
+            size="large"
+            startIcon={<AddIcon sx={{ fontSize: 24 }} />}
+            onClick={() => setOpen(true)}
+            sx={{
+              py: 2,
+              fontSize: "1.1rem",
+              fontWeight: 900,
+              borderRadius: 3,
+              boxShadow: theme.shadows[4],
+              "&:hover": {
+                boxShadow: theme.shadows[8],
+                transform: "translateY(-2px)",
+              },
+              transition: "all 0.2s",
+            }}
           >
-            Finanzas y Caja •{" "}
-            {new Date().toLocaleDateString("es-AR", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-            })}
-          </Typography>
-          <Tabs
-            value={view}
-            onChange={(_, v) => setView(v)}
-            sx={{ minHeight: 40, mt: 1 }}
-          >
-            <Tab
-              icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />}
-              label="Flujo de Caja"
-              iconPosition="start"
-              sx={{ minHeight: 40 }}
-            />
-            <Tab
-              icon={<PointOfSaleIcon sx={{ fontSize: 20 }} />}
-              label="Arqueo de Caja"
-              iconPosition="start"
-              sx={{ minHeight: 40 }}
-            />
-            <Tab
-              icon={<InventoryIcon sx={{ fontSize: 20 }} />}
-              label="Inventario de Bebidas"
-              iconPosition="start"
-              sx={{ minHeight: 40 }}
-            />
-          </Tabs>
+            REGISTRAR NUEVO MOVIMIENTO
+          </Button>
         </Box>
-        {view === 0 && (
+      )}
+
+      <Box sx={{ mb: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+        {view === 3 && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setOpen(true)}
+            onClick={() => setOpenAccountDialog(true)}
           >
-            Nuevo Movimiento
+            Nueva Cuenta
           </Button>
         )}
       </Box>
@@ -424,7 +831,11 @@ export default function CashFlowManager() {
                   INGRESOS POR MÉTODO (HOY)
                 </Typography>
                 <Stack spacing={1}>
-                  {["Efectivo", "Transferencia", "Tarjeta"].map((method) => {
+                  {["Efectivo", "Transferencia"].map((method) => {
+                    const mappedName =
+                      method === "Efectivo"
+                        ? "Caja Azucena (Efvo)"
+                        : "Banco Ficticio (Transf)";
                     const amount = filteredTransactions
                       .filter(
                         (t) =>
@@ -444,7 +855,7 @@ export default function CashFlowManager() {
                           <Typography
                             sx={{ fontSize: "0.75rem", fontWeight: 700 }}
                           >
-                            {method}
+                            {mappedName}
                           </Typography>
                           <Typography
                             sx={{ fontSize: "0.75rem", fontWeight: 800 }}
@@ -572,7 +983,7 @@ export default function CashFlowManager() {
           <Dialog
             open={open}
             onClose={handleCloseDialog}
-            maxWidth="xs"
+            maxWidth="sm"
             fullWidth
             PaperProps={{ sx: { borderRadius: 4 } }}
           >
@@ -609,22 +1020,192 @@ export default function CashFlowManager() {
                         })
                       }
                     >
-                      <MenuItem value="Efectivo">Efectivo</MenuItem>
-                      <MenuItem value="Transferencia">Transferencia</MenuItem>
-                      <MenuItem value="Tarjeta">Tarjeta</MenuItem>
-                      <MenuItem value="Otro">Otro</MenuItem>
+                      <MenuItem value="Efectivo">
+                        Caja Azucena (Efectivo)
+                      </MenuItem>
+                      <MenuItem value="Transferencia">
+                        Banco Ficticio (Transferencia)
+                      </MenuItem>
                     </TextField>
                   </Grid>
                 </Grid>
-                <TextField
-                  label="Categoría"
-                  fullWidth
-                  placeholder="Eje: Insumos, Sueldos, Limpieza..."
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
-                />
+
+                <Box>
+                  <Autocomplete
+                    freeSolo
+                    options={accountsData.map((a) => a.name)}
+                    value={formData.category}
+                    onInputChange={(_, newValue) =>
+                      setFormData({ ...formData, category: newValue })
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Cuenta"
+                        placeholder="Ej: Cuota Pileta, Kiosco..."
+                      />
+                    )}
+                  />
+                  <Box
+                    sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}
+                  >
+                    {frequentCategories.map((cat) => (
+                      <Chip
+                        key={cat}
+                        label={cat}
+                        size="small"
+                        onClick={() =>
+                          setFormData({ ...formData, category: cat })
+                        }
+                        color={
+                          formData.category === cat ? "primary" : "default"
+                        }
+                        variant={
+                          formData.category === cat ? "filled" : "outlined"
+                        }
+                      />
+                    ))}
+                  </Box>
+                </Box>
+
+                {isPileta && (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      bgcolor: alpha(theme.palette.info.main, 0.05),
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ mb: 2, color: "info.main", fontWeight: 700 }}
+                    >
+                      Asignar Pago a Alumno
+                    </Typography>
+                    <Autocomplete
+                      options={students}
+                      getOptionLabel={(option) =>
+                        `${option.fullName} (DNI: ${option.dni})`
+                      }
+                      value={selectedStudent}
+                      onChange={(_, newValue) => setSelectedStudent(newValue)}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Buscar Alumno"
+                          size="small"
+                        />
+                      )}
+                    />
+                    <Grid container spacing={2} sx={{ mt: 1 }}>
+                      <Grid item xs={12}>
+                        <TextField
+                          select
+                          fullWidth
+                          size="small"
+                          label="Periodo de Pago"
+                          value={renewalDays}
+                          onChange={(e) =>
+                            setRenewalDays(Number(e.target.value))
+                          }
+                        >
+                          <MenuItem value={15}>Quincena (15 días)</MenuItem>
+                          <MenuItem value={30}>Mes (30 días)</MenuItem>
+                          <MenuItem value={7}>Semana (7 días)</MenuItem>
+                        </TextField>
+                      </Grid>
+                    </Grid>
+                    <Button
+                      size="small"
+                      sx={{ mt: 1, fontWeight: 700 }}
+                      onClick={() => setIsCreatingStudent(true)}
+                    >
+                      + Crear nuevo alumno rápido
+                    </Button>
+                    <StudentRegistrationDialog
+                      open={isCreatingStudent}
+                      onClose={() => setIsCreatingStudent(false)}
+                      onSave={(student) => {
+                        setSelectedStudent(student);
+                        setIsCreatingStudent(false);
+                      }}
+                    />
+                  </Paper>
+                )}
+
+                {isInventoryCategory && (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      bgcolor: alpha(theme.palette.success.main, 0.05),
+                      borderRadius: 2,
+                      border: "1px dashed",
+                      borderColor: "success.main",
+                    }}
+                  >
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={shouldDiscountStock}
+                          onChange={(e) =>
+                            setShouldDiscountStock(e.target.checked)
+                          }
+                          color="success"
+                        />
+                      }
+                      label={
+                        <Typography sx={{ fontWeight: 800 }}>
+                          Descontar del Inventario
+                        </Typography>
+                      }
+                    />
+
+                    {shouldDiscountStock && (
+                      <Stack spacing={2} sx={{ mt: 1 }}>
+                        <Autocomplete
+                          options={inventoryItems.filter(
+                            (item) =>
+                              item.category
+                                .toLowerCase()
+                                .includes(
+                                  formData.category.toLowerCase().split(" ")[0],
+                                ) ||
+                              formData.category
+                                .toLowerCase()
+                                .includes(item.category.toLowerCase()),
+                          )}
+                          getOptionLabel={(option) =>
+                            `${option.name} (Stock: ${option.initialStock + option.entries - option.exits})`
+                          }
+                          value={selectedStockProduct}
+                          onChange={(_, newValue) =>
+                            setSelectedStockProduct(newValue)
+                          }
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Producto de Inventario"
+                              size="small"
+                            />
+                          )}
+                        />
+                        <TextField
+                          label="Cantidad a descontar"
+                          size="small"
+                          type="number"
+                          value={discountQuantity}
+                          onChange={(e) =>
+                            setDiscountQuantity(parseInt(e.target.value) || 1)
+                          }
+                          InputProps={{ inputProps: { min: 1 } }}
+                        />
+                      </Stack>
+                    )}
+                  </Paper>
+                )}
+
                 <TextField
                   label="Importe"
                   fullWidth
@@ -637,16 +1218,72 @@ export default function CashFlowManager() {
                     startAdornment: (
                       <InputAdornment position="start">$</InputAdornment>
                     ),
+                    sx: { fontSize: "1.2rem", fontWeight: 700 },
                   }}
                 />
-                <TextField
-                  label="Nro de Factura / Ticket"
-                  fullWidth
-                  value={formData.invoice}
-                  onChange={(e) =>
-                    setFormData({ ...formData, invoice: e.target.value })
-                  }
-                />
+
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 700, mb: 0.5, display: "block" }}
+                  >
+                    Nro de Factura / Ticket
+                  </Typography>
+                  <Grid container spacing={1}>
+                    <Grid item xs={3}>
+                      <TextField
+                        placeholder="A"
+                        disabled={isAutoInvoice}
+                        inputProps={{
+                          maxLength: 1,
+                          style: {
+                            textAlign: "center",
+                            textTransform: "uppercase",
+                          },
+                        }}
+                        value={isAutoInvoice ? "C" : invoiceData.letter}
+                        onChange={(e) =>
+                          handleInvoiceChange("letter", e.target.value)
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={4}>
+                      <TextField
+                        id="invoice-num1"
+                        placeholder="0001"
+                        disabled={isAutoInvoice}
+                        inputProps={{
+                          maxLength: 4,
+                          style: { textAlign: "center" },
+                        }}
+                        value={isAutoInvoice ? "0100" : invoiceData.num1}
+                        onChange={(e) =>
+                          handleInvoiceChange("num1", e.target.value)
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={5}>
+                      <TextField
+                        id="invoice-num2"
+                        placeholder={isAutoInvoice ? "AUTO" : "00000000"}
+                        disabled={isAutoInvoice}
+                        inputProps={{
+                          maxLength: 8,
+                          style: { textAlign: "center" },
+                        }}
+                        value={isAutoInvoice ? "" : invoiceData.num2}
+                        onChange={(e) =>
+                          handleInvoiceChange("num2", e.target.value)
+                        }
+                        helperText={isAutoInvoice ? "Asignado por sistema" : ""}
+                        FormHelperTextProps={{
+                          sx: { fontWeight: 700, color: "primary.main" },
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+
                 <TextField
                   label="Descripción"
                   fullWidth
@@ -674,8 +1311,194 @@ export default function CashFlowManager() {
           </Dialog>
         </>
       )}
-      {view === 1 && <CashRegistry />}
-      {view === 2 && <InventoryManager />}
+      {view === 1 && (
+        <CashRegistry
+          transactions={transactions}
+          inventoryItems={inventoryItems}
+          onUpdateInventory={setInventoryItems}
+          archivedDays={archivedDays}
+          onArchiveDay={(newDay: ArchivedDay) =>
+            setArchivedDays([newDay, ...archivedDays])
+          }
+          staffRoster={staffRoster}
+          onOpenRoster={() => setOpenRosterDialog(true)}
+        />
+      )}
+      {view === 2 && (
+        <InventoryManager
+          items={inventoryItems}
+          onUpdateItems={setInventoryItems}
+        />
+      )}
+      {view === 3 && (
+        <TableContainer
+          component={Paper}
+          elevation={0}
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 3,
+          }}
+        >
+          <Table>
+            <TableHead
+              sx={{ bgcolor: alpha(theme.palette.primary.main, 0.02) }}
+            >
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Cuenta</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Tipo</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  Total Ingresos (Debe)
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  Total Egresos (Haber)
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  Saldo Neto
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  Acciones
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {accountsData.map((acc) => {
+                const accIncomes = transactions
+                  .filter(
+                    (t) => t.category === acc.name && t.type === "Ingreso",
+                  )
+                  .reduce((sum, t) => sum + t.amount, 0);
+                const accExpenses = transactions
+                  .filter((t) => t.category === acc.name && t.type === "Egreso")
+                  .reduce((sum, t) => sum + t.amount, 0);
+                const accBalance = accIncomes - accExpenses;
+
+                return (
+                  <TableRow key={acc.id} hover>
+                    <TableCell>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: "50%",
+                            bgcolor: acc.color,
+                          }}
+                        />
+                        <Typography sx={{ fontWeight: 700 }}>
+                          {acc.name}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={acc.type}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600, fontSize: "0.75rem" }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography
+                        sx={{ fontWeight: 700, color: "success.main" }}
+                      >
+                        ${accIncomes.toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography sx={{ fontWeight: 700, color: "error.main" }}>
+                        ${accExpenses.toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography
+                        sx={{
+                          fontWeight: 900,
+                          color:
+                            accBalance >= 0 ? "primary.main" : "error.main",
+                        }}
+                      >
+                        ${accBalance.toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Button
+                        size="small"
+                        variant="text"
+                        sx={{ fontWeight: 700 }}
+                        onClick={() => {
+                          setFilters({ ...filters, category: acc.name });
+                          setView(0);
+                        }}
+                      >
+                        Auditar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      {/* Account Dialog */}
+      <Dialog
+        open={openAccountDialog}
+        onClose={() => setOpenAccountDialog(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Nueva Cuenta</DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            <TextField
+              label="Nombre de la Cuenta"
+              fullWidth
+              value={accountFormData.name}
+              onChange={(e) =>
+                setAccountFormData({
+                  ...accountFormData,
+                  name: e.target.value,
+                })
+              }
+              placeholder="Ej: Cuota Pileta, Kiosco, Cantina..."
+            />
+            <TextField
+              select
+              label="Tipo Predominante"
+              fullWidth
+              value={accountFormData.type}
+              onChange={(e) =>
+                setAccountFormData({
+                  ...accountFormData,
+                  type: e.target.value,
+                })
+              }
+            >
+              <MenuItem value="Ingreso">Ingreso</MenuItem>
+              <MenuItem value="Egreso">Egreso</MenuItem>
+              <MenuItem value="Mixto">Mixto</MenuItem>
+            </TextField>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button
+            onClick={() => setOpenAccountDialog(false)}
+            sx={{ fontWeight: 700 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleCreateAccount}
+            sx={{ fontWeight: 700, px: 4 }}
+          >
+            Crear Cuenta
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={showSuccess}
@@ -690,6 +1513,84 @@ export default function CashFlowManager() {
           Movimiento registrado exitosamente
         </Alert>
       </Snackbar>
+
+      <Dialog
+        open={openRosterDialog}
+        onClose={() => setOpenRosterDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>
+          Personal Responsable por Día
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Define quiénes estarán a cargo de cada turno. Estos nombres se
+            asignarán automáticamente al abrir la caja cada día (Lunes a
+            Sábado).
+          </Typography>
+          <Stack spacing={3}>
+            {Object.entries(staffRoster).map(([day, staff]) => (
+              <Box
+                key={day}
+                sx={{
+                  p: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 3,
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: 800, mb: 1, color: "primary.main" }}
+                >
+                  {day}
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <TextField
+                      label="Turno Mañana"
+                      fullWidth
+                      size="small"
+                      value={staff.morning}
+                      onChange={(e) =>
+                        setStaffRoster({
+                          ...staffRoster,
+                          [day]: { ...staff, morning: e.target.value },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      label="Turno Tarde"
+                      fullWidth
+                      size="small"
+                      value={staff.afternoon}
+                      onChange={(e) =>
+                        setStaffRoster({
+                          ...staffRoster,
+                          [day]: { ...staff, afternoon: e.target.value },
+                        })
+                      }
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => setOpenRosterDialog(false)}
+            variant="contained"
+            fullWidth
+            sx={{ fontWeight: 800 }}
+          >
+            GUARDAR CONFIGURACIÓN
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
