@@ -242,7 +242,7 @@ export default function InventoryManager({
                     <Typography
                       sx={{
                         fontWeight: 900,
-                        color: finalStock > 0 ? "primary.main" : "error.main",
+                        color: finalStock >= 0 ? "success.main" : "error.main",
                       }}
                     >
                       {finalStock}

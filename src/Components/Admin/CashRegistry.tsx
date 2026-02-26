@@ -668,13 +668,15 @@ export default function CashRegistry({
 
                 {currentDifference !== null && (
                   <Alert
-                    severity={currentDifference === 0 ? "success" : "error"}
+                    severity={currentDifference >= 0 ? "success" : "error"}
                     sx={{ fontWeight: 700 }}
                   >
                     Diferencia: ${currentDifference.toLocaleString()}
                     {currentDifference === 0
                       ? " (Caja terminada con éxito)"
-                      : " (Revisar movimientos)"}
+                      : currentDifference > 0
+                        ? " (Sobrante en caja)"
+                        : " (Faltante: revisar movimientos)"}
                   </Alert>
                 )}
 
@@ -762,10 +764,10 @@ export default function CashRegistry({
                         sx={{
                           fontWeight: 800,
                           color:
-                            s.difference === 0 ? "success.main" : "error.main",
+                            s.difference >= 0 ? "success.main" : "error.main",
                         }}
                       >
-                        {s.difference === 0 ? "OK" : `$${s.difference}`}
+                        {s.difference === 0 ? "OK" : `${s.difference > 0 ? "+" : ""}$${s.difference}`}
                       </Typography>
                     ) : (
                       "—"
@@ -837,7 +839,16 @@ export default function CashRegistry({
                         >
                           ${data.expense.toLocaleString()}
                         </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 800 }}>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            fontWeight: 800,
+                            color:
+                              data.income - data.expense >= 0
+                                ? "success.main"
+                                : "error.main",
+                          }}
+                        >
                           ${(data.income - data.expense).toLocaleString()}
                         </TableCell>
                       </TableRow>
@@ -862,7 +873,13 @@ export default function CashRegistry({
                       </TableCell>
                       <TableCell
                         align="right"
-                        sx={{ fontWeight: 900, color: "primary.main" }}
+                        sx={{
+                          fontWeight: 900,
+                          color:
+                            currentIncome - currentExpense >= 0
+                              ? "success.main"
+                              : "error.main",
+                        }}
                       >
                         ${(currentIncome - currentExpense).toLocaleString()}
                       </TableCell>
@@ -1224,12 +1241,16 @@ export default function CashRegistry({
                                       sx={{
                                         fontWeight: 900,
                                         color:
-                                          s.difference === 0
-                                            ? "success.main"
-                                            : "error.main",
+                                          s.difference !== null
+                                            ? s.difference >= 0
+                                              ? "success.main"
+                                              : "error.main"
+                                            : "text.primary",
                                       }}
                                     >
-                                      ${s.difference?.toLocaleString()}
+                                      {s.difference !== null
+                                        ? `${s.difference > 0 ? "+" : ""}$${s.difference.toLocaleString()}`
+                                        : "—"}
                                     </Typography>
                                   </Box>
 
@@ -1273,10 +1294,10 @@ export default function CashRegistry({
                                                 bgcolor:
                                                   ssidx % 2 === 0
                                                     ? alpha(
-                                                        theme.palette.action
-                                                          .hover,
-                                                        0.5,
-                                                      )
+                                                      theme.palette.action
+                                                        .hover,
+                                                      0.5,
+                                                    )
                                                     : "transparent",
                                               }}
                                             >

@@ -165,6 +165,13 @@ import StudentRegistrationDialog, {
   StudentData,
 } from "./StudentRegistrationDialog";
 
+const toTitleCase = (str: string) => {
+  return str.replace(
+    /\w\S*/g,
+    (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()
+  );
+};
+
 export default function CashFlowManager() {
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem("seccional_transactions");
@@ -181,6 +188,8 @@ export default function CashFlowManager() {
   const [openRosterDialog, setOpenRosterDialog] = useState(false);
   const [view, setView] = useState(0); // 0: Flow, 1: Registry, 2: Inventory, 3: Accounts
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [students, setStudents] = useState<StudentData[]>(() => {
     const saved = localStorage.getItem("seccional_students");
@@ -369,21 +378,21 @@ export default function CashFlowManager() {
     return saved
       ? JSON.parse(saved)
       : [
-          { id: 1, name: "Agua chica", price: 1000 },
-          { id: 2, name: "Agua grande", price: 2000 },
-          { id: 3, name: "Aquarius 1500cc", price: 3000 },
-          { id: 4, name: "Aquarius 500cc", price: 2000 },
-          { id: 5, name: "Coca Cola 1500cc", price: 3000 },
-          { id: 6, name: "Coca Coca 500cc", price: 2000 },
-          { id: 7, name: "Powerade 500cc", price: 3000 },
-          { id: 8, name: "Monster", price: 4000 },
-          { id: 9, name: "Heineken", price: 8000 },
-          { id: 10, name: "Cereales", price: 3000 },
-          { id: 11, name: "Papas fritas 20grs", price: 2000 },
-          { id: 12, name: "Papas fritas 40grs", price: 3000 },
-          { id: 13, name: "Manies-Palitos-Chizitos", price: 3000 },
-          { id: 14, name: "Barra cereal", price: 2000 },
-        ];
+        { id: 1, name: "Agua chica", price: 1000 },
+        { id: 2, name: "Agua grande", price: 2000 },
+        { id: 3, name: "Aquarius 1500cc", price: 3000 },
+        { id: 4, name: "Aquarius 500cc", price: 2000 },
+        { id: 5, name: "Coca Cola 1500cc", price: 3000 },
+        { id: 6, name: "Coca Coca 500cc", price: 2000 },
+        { id: 7, name: "Powerade 500cc", price: 3000 },
+        { id: 8, name: "Monster", price: 4000 },
+        { id: 9, name: "Heineken", price: 8000 },
+        { id: 10, name: "Cereales", price: 3000 },
+        { id: 11, name: "Papas fritas 20grs", price: 2000 },
+        { id: 12, name: "Papas fritas 40grs", price: 3000 },
+        { id: 13, name: "Manies-Palitos-Chizitos", price: 3000 },
+        { id: 14, name: "Barra cereal", price: 2000 },
+      ];
   });
 
   // --- NUEVOS ESTADOS COMPARTIDOS PARA INTEGRACIÓN NATACIÓN/FINANZAS ---
@@ -394,21 +403,21 @@ export default function CashFlowManager() {
     return saved
       ? JSON.parse(saved)
       : {
-          conProfesor: {
-            v2: { total: 70000, club: 50000, prof: 20000 },
-            v3: { total: 80000, club: 53000, prof: 27000 },
-            v5: { total: 94000, club: 60000, prof: 34000 },
-          },
-          libre: {
-            v2: 63000,
-            v3: 70000,
-            v5: 86000,
-          },
-          porClase: { total: 15000, club: 10000, prof: 5000 },
-          porDiaLibre: 12000,
-          matronatacion: { total: 48000, club: 30000, prof: 18000 },
-          plantel: { total: 63000, club: 42000, prof: 21000 },
-        };
+        conProfesor: {
+          v2: { total: 70000, club: 50000, prof: 20000 },
+          v3: { total: 80000, club: 53000, prof: 27000 },
+          v5: { total: 94000, club: 60000, prof: 34000 },
+        },
+        libre: {
+          v2: 63000,
+          v3: 70000,
+          v5: 86000,
+        },
+        porClase: { total: 15000, club: 10000, prof: 5000 },
+        porDiaLibre: 12000,
+        matronatacion: { total: 48000, club: 30000, prof: 18000 },
+        plantel: { total: 63000, club: 42000, prof: 21000 },
+      };
   });
 
   // Sync inventory items with centralized productsPrices
@@ -430,11 +439,11 @@ export default function CashFlowManager() {
           name: gp.name,
           category:
             gp.name.toLowerCase().includes("agua") ||
-            gp.name.toLowerCase().includes("coca") ||
-            gp.name.toLowerCase().includes("aquarius") ||
-            gp.name.toLowerCase().includes("powerade") ||
-            gp.name.toLowerCase().includes("monster") ||
-            gp.name.toLowerCase().includes("heineken")
+              gp.name.toLowerCase().includes("coca") ||
+              gp.name.toLowerCase().includes("aquarius") ||
+              gp.name.toLowerCase().includes("powerade") ||
+              gp.name.toLowerCase().includes("monster") ||
+              gp.name.toLowerCase().includes("heineken")
               ? "Bebidas"
               : "Snacks",
           initialStock: 0,
@@ -517,6 +526,14 @@ export default function CashFlowManager() {
     null,
   );
 
+  const [promotions, setPromotions] = useState<any[]>(() => {
+    const saved = localStorage.getItem("seccional_promotions");
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    const today = new Date().toISOString().split("T")[0];
+    return parsed.filter((p: any) => p.active && (!p.startDate || p.startDate <= today) && (!p.endDate || p.endDate >= today));
+  });
+
   useEffect(() => {
     const loadBookings = () => {
       const saved = localStorage.getItem("seccional_court_bookings");
@@ -528,16 +545,26 @@ export default function CashFlowManager() {
       const savedSwimming = localStorage.getItem("seccional_swimming_prices");
       if (savedSwimming) setSwimmingPrices(JSON.parse(savedSwimming));
     };
+    const loadPromos = () => {
+      const saved = localStorage.getItem("seccional_promotions");
+      if (!saved) return;
+      const parsed = JSON.parse(saved);
+      const today = new Date().toISOString().split("T")[0];
+      setPromotions(parsed.filter((p: any) => p.active && (!p.startDate || p.startDate <= today) && (!p.endDate || p.endDate >= today)));
+    };
 
     loadBookings();
     loadPrices();
+    loadPromos();
 
     window.addEventListener("court_bookings_updated", loadBookings);
     window.addEventListener("prices_updated", loadPrices);
+    window.addEventListener("promotions_updated", loadPromos);
 
     return () => {
       window.removeEventListener("court_bookings_updated", loadBookings);
       window.removeEventListener("prices_updated", loadPrices);
+      window.removeEventListener("promotions_updated", loadPromos);
     };
   }, []);
 
@@ -603,7 +630,7 @@ export default function CashFlowManager() {
         planNames[swimmingSelection.planType] || swimmingSelection.planType;
       const freq =
         swimmingSelection.planType === "conProfesor" ||
-        swimmingSelection.planType === "libre"
+          swimmingSelection.planType === "libre"
           ? ` (${freqLabels[swimmingSelection.frequency] || ""})`
           : "";
       const period =
@@ -666,11 +693,20 @@ export default function CashFlowManager() {
   const handleRegister = () => {
     if (!formData.category || !formData.amount) return;
 
+    const formattedCategory = toTitleCase(formData.category.trim());
+
     let finalInvoice = undefined;
     if (isAutoInvoice) {
       finalInvoice = generateAutoInvoice();
     } else if (invoiceData.letter || invoiceData.num1 || invoiceData.num2) {
       finalInvoice = `${invoiceData.letter || "X"}-${invoiceData.num1 || "0000"}-${invoiceData.num2 || "00000000"}`;
+
+      const isDuplicate = transactions.some((t) => t.invoice === finalInvoice);
+      if (isDuplicate) {
+        setErrorMessage("Ya existe un movimiento con este número de comprobante/factura.");
+        setShowError(true);
+        return;
+      }
     }
 
     let finalDesc = formData.description;
@@ -697,7 +733,7 @@ export default function CashFlowManager() {
         planNames[swimmingSelection.planType] || swimmingSelection.planType;
       const freq =
         swimmingSelection.planType === "conProfesor" ||
-        swimmingSelection.planType === "libre"
+          swimmingSelection.planType === "libre"
           ? ` (${freqLabels[swimmingSelection.frequency] || ""})`
           : "";
       const period =
@@ -710,7 +746,7 @@ export default function CashFlowManager() {
       id: Date.now(),
       date: new Date().toISOString().split("T")[0],
       type: formData.type as "Ingreso" | "Egreso",
-      category: formData.category,
+      category: formattedCategory,
       amount: parseFloat(formData.amount),
       paymentMethod: formData.paymentMethod as any,
       invoice: finalInvoice,
@@ -721,10 +757,10 @@ export default function CashFlowManager() {
 
     // Update account balance or create if missing
     setAccountsData((prev) => {
-      const exists = prev.find((a) => a.name === formData.category);
+      const exists = prev.find((a) => a.name.toLowerCase() === formattedCategory.toLowerCase());
       if (exists) {
         return prev.map((acc) => {
-          if (acc.name === formData.category) {
+          if (acc.name.toLowerCase() === formattedCategory.toLowerCase()) {
             return {
               ...acc,
               balance:
@@ -740,7 +776,7 @@ export default function CashFlowManager() {
         // Create new account automatically
         const newAcc: Account = {
           id: Date.now(),
-          name: formData.category,
+          name: formattedCategory,
           type: "Mixto",
           balance:
             formData.type === "Ingreso"
@@ -828,9 +864,20 @@ export default function CashFlowManager() {
 
   const handleCreateAccount = () => {
     if (!accountFormData.name) return;
+
+    const formattedName = toTitleCase(accountFormData.name.trim());
+
+    // Validate uniqueness
+    const exists = accountsData.some(a => a.name.toLowerCase() === formattedName.toLowerCase());
+    if (exists) {
+      setErrorMessage("Ya existe una cuenta con ese nombre.");
+      setShowError(true);
+      return;
+    }
+
     const newAcc: Account = {
       id: Date.now(),
-      name: accountFormData.name,
+      name: formattedName,
       type: accountFormData.type as any,
       balance: parseFloat(accountFormData.balance) || 0,
       color: theme.palette.primary.main,
@@ -1411,6 +1458,45 @@ export default function CashFlowManager() {
                       />
                     ))}
                   </Box>
+
+                  {promotions.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 800,
+                          color: "success.main",
+                          mb: 1,
+                          display: "block",
+                        }}
+                      >
+                        PROMOCIONES ACTIVAS
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        {promotions.map((promo) => (
+                          <Chip
+                            key={promo.id}
+                            label={`${promo.name} ($${promo.price.toLocaleString()})`}
+                            size="small"
+                            color="success"
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                amount: promo.price.toString(),
+                                description: `PROMO: ${promo.name} - ${promo.description}`,
+                                category: "Promociones",
+                              });
+                            }}
+                            variant={
+                              formData.description.includes(promo.id)
+                                ? "filled"
+                                : "outlined"
+                            }
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
 
                 {isPileta && (
@@ -1462,26 +1548,26 @@ export default function CashFlowManager() {
 
                         {(swimmingSelection.planType === "conProfesor" ||
                           swimmingSelection.planType === "libre") && (
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              select
-                              label="Frecuencia"
-                              fullWidth
-                              size="small"
-                              value={swimmingSelection.frequency}
-                              onChange={(e) =>
-                                setSwimmingSelection({
-                                  ...swimmingSelection,
-                                  frequency: e.target.value,
-                                })
-                              }
-                            >
-                              <MenuItem value="v2">2 veces p/semana</MenuItem>
-                              <MenuItem value="v3">3 veces p/semana</MenuItem>
-                              <MenuItem value="v5">5 veces p/semana</MenuItem>
-                            </TextField>
-                          </Grid>
-                        )}
+                            <Grid item xs={12} sm={6}>
+                              <TextField
+                                select
+                                label="Frecuencia"
+                                fullWidth
+                                size="small"
+                                value={swimmingSelection.frequency}
+                                onChange={(e) =>
+                                  setSwimmingSelection({
+                                    ...swimmingSelection,
+                                    frequency: e.target.value,
+                                  })
+                                }
+                              >
+                                <MenuItem value="v2">2 veces p/semana</MenuItem>
+                                <MenuItem value="v3">3 veces p/semana</MenuItem>
+                                <MenuItem value="v5">5 veces p/semana</MenuItem>
+                              </TextField>
+                            </Grid>
+                          )}
 
                         <Grid item xs={12}>
                           <TextField
@@ -1556,11 +1642,11 @@ export default function CashFlowManager() {
                       initialData={
                         studentSearchInput
                           ? ({
-                              fullName: studentSearchInput,
-                              dni: "",
-                              phone: "",
-                              schedule: {},
-                            } as any)
+                            fullName: studentSearchInput,
+                            dni: "",
+                            phone: "",
+                            schedule: {},
+                          } as any)
                           : null
                       }
                       onSave={(student) => {
@@ -2052,6 +2138,20 @@ export default function CashFlowManager() {
           sx={{ width: "100%", borderRadius: 3, fontWeight: 700 }}
         >
           Movimiento registrado exitosamente
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={showError}
+        autoHideDuration={4000}
+        onClose={() => setShowError(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="error"
+          sx={{ width: "100%", borderRadius: 3, fontWeight: 700 }}
+        >
+          {errorMessage}
         </Alert>
       </Snackbar>
 

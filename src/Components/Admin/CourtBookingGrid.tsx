@@ -62,6 +62,165 @@ interface CourtBooking {
   status: "Pendiente" | "Pagado";
 }
 
+const BookingDialog = ({
+  open,
+  onClose,
+  onSave,
+  selectedSlot,
+  courtName,
+  hasSubCourts,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (data: { user: string; duration: number; isWeekly: boolean }) => void;
+  selectedSlot: any;
+  courtName: string;
+  hasSubCourts: boolean;
+}) => {
+  const [bookingData, setBookingData] = useState({
+    user: "",
+    duration: 60,
+    isWeekly: false,
+  });
+  const theme = useTheme();
+
+  useEffect(() => {
+    if (open) {
+      setBookingData({ user: "", duration: 60, isWeekly: false });
+    }
+  }, [open]);
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: 3 } }}
+    >
+      <DialogTitle sx={{ fontWeight: 800 }}>
+        Nueva Reserva: {courtName}{" "}
+        {hasSubCourts ? `(Unidad ${selectedSlot?.subNumber})` : ""}
+      </DialogTitle>
+      <DialogContent>
+        <Stack spacing={3} sx={{ mt: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              p: 2,
+              bgcolor: alpha(theme.palette.primary.main, 0.05),
+              borderRadius: 2,
+            }}
+          >
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontWeight: 700, display: "block" }}
+              >
+                RESERVA PARA EL
+              </Typography>
+              <Typography sx={{ fontWeight: 800, color: "primary.main" }}>
+                {selectedSlot?.dayName}{" "}
+                {selectedSlot?.date?.split("-").reverse().join("/")} •{" "}
+                {selectedSlot?.time} hs
+              </Typography>
+            </Box>
+          </Box>
+
+          <TextField
+            fullWidth
+            label="Nombre del Cliente / Grupo"
+            value={bookingData.user}
+            onChange={(e) =>
+              setBookingData({ ...bookingData, user: e.target.value })
+            }
+            autoFocus
+            InputProps={{
+              startAdornment: (
+                <PersonIcon sx={{ mr: 1, color: "text.secondary" }} />
+              ),
+            }}
+          />
+
+          <TextField
+            select
+            fullWidth
+            label="Duración del Turno"
+            value={bookingData.duration}
+            onChange={(e) =>
+              setBookingData({
+                ...bookingData,
+                duration: Number(e.target.value),
+              })
+            }
+            InputProps={{
+              startAdornment: (
+                <AccessTimeIcon sx={{ mr: 1, color: "text.secondary" }} />
+              ),
+            }}
+          >
+            <MenuItem value={60}>1 Hora</MenuItem>
+            <MenuItem value={90}>1 Hora y Media</MenuItem>
+            <MenuItem value={120}>2 Horas</MenuItem>
+          </TextField>
+
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              borderStyle: bookingData.isWeekly ? "solid" : "dashed",
+              borderColor: bookingData.isWeekly ? "secondary.main" : "divider",
+            }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={bookingData.isWeekly}
+                  onChange={(e) =>
+                    setBookingData({
+                      ...bookingData,
+                      isWeekly: e.target.checked,
+                    })
+                  }
+                  color="secondary"
+                />
+              }
+              label={
+                <Box>
+                  <Typography sx={{ fontWeight: 800, fontSize: "0.9rem" }}>
+                    Reserva Semanal Permanente
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Se repetirá todos los {selectedSlot?.dayName}s automáticamente para
+                    siempre.
+                  </Typography>
+                </Box>
+              }
+            />
+          </Paper>
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ p: 3 }}>
+        <Button onClick={onClose} sx={{ fontWeight: 700 }}>
+          Cancelar
+        </Button>
+        <Button
+          variant="contained"
+          onClick={() => onSave(bookingData)}
+          disabled={!bookingData.user}
+          sx={{ px: 4, fontWeight: 800, borderRadius: 2 }}
+        >
+          CONFIRMAR
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 export default function CourtBookingGrid() {
   const [court, setCourt] = useState(0);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -83,11 +242,6 @@ export default function CourtBookingGrid() {
     date: string;
     subNumber: number;
   } | null>(null);
-  const [bookingData, setBookingData] = useState({
-    user: "",
-    duration: 60,
-    isWeekly: false,
-  });
 
   const theme = useTheme();
 
@@ -139,12 +293,11 @@ export default function CourtBookingGrid() {
     subNumber: number,
   ) => {
     setSelectedSlot({ dayName, time, date, subNumber });
-    setBookingData({ user: "", duration: 60, isWeekly: false });
     setOpenDialog(true);
   };
 
-  const handleSaveBooking = () => {
-    if (!selectedSlot || !bookingData.user) return;
+  const handleSaveBooking = (data: { user: string; duration: number; isWeekly: boolean }) => {
+    if (!selectedSlot || !data.user) return;
 
     const newBooking: CourtBooking = {
       id: Date.now(),
@@ -152,10 +305,10 @@ export default function CourtBookingGrid() {
       courtSubNumber: selectedSlot.subNumber,
       dayName: selectedSlot.dayName,
       startTime: selectedSlot.time,
-      duration: bookingData.duration,
-      user: bookingData.user,
-      isWeekly: bookingData.isWeekly,
-      date: bookingData.isWeekly ? undefined : selectedSlot.date,
+      duration: data.duration,
+      user: data.user,
+      isWeekly: data.isWeekly,
+      date: data.isWeekly ? undefined : selectedSlot.date,
       status: "Pendiente",
     };
 
@@ -533,136 +686,14 @@ export default function CourtBookingGrid() {
         </Box>
       </Box>
 
-      {/* Dialog para Nueva Reserva */}
-      <Dialog
+      <BookingDialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
-      >
-        <DialogTitle sx={{ fontWeight: 800 }}>
-          Nueva Reserva: {getCourtName()}{" "}
-          {hasSubCourts() ? `(Unidad ${selectedSlot?.subNumber})` : ""}
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-                p: 2,
-                bgcolor: alpha(theme.palette.primary.main, 0.05),
-                borderRadius: 2,
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ fontWeight: 700, display: "block" }}
-                >
-                  RESERVA PARA EL
-                </Typography>
-                <Typography sx={{ fontWeight: 800, color: "primary.main" }}>
-                  {selectedSlot?.dayName}{" "}
-                  {selectedSlot?.date.split("-").reverse().join("/")} •{" "}
-                  {selectedSlot?.time} hs
-                </Typography>
-              </Box>
-            </Box>
-
-            <TextField
-              fullWidth
-              label="Nombre del Cliente / Grupo"
-              value={bookingData.user}
-              onChange={(e) =>
-                setBookingData({ ...bookingData, user: e.target.value })
-              }
-              autoFocus
-              InputProps={{
-                startAdornment: (
-                  <PersonIcon sx={{ mr: 1, color: "text.secondary" }} />
-                ),
-              }}
-            />
-
-            <TextField
-              select
-              fullWidth
-              label="Duración del Turno"
-              value={bookingData.duration}
-              onChange={(e) =>
-                setBookingData({
-                  ...bookingData,
-                  duration: Number(e.target.value),
-                })
-              }
-              InputProps={{
-                startAdornment: (
-                  <AccessTimeIcon sx={{ mr: 1, color: "text.secondary" }} />
-                ),
-              }}
-            >
-              <MenuItem value={60}>1 Hora</MenuItem>
-              <MenuItem value={90}>1 Hora y Media</MenuItem>
-              <MenuItem value={120}>2 Horas</MenuItem>
-            </TextField>
-
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                borderStyle: bookingData.isWeekly ? "solid" : "dashed",
-                borderColor: bookingData.isWeekly
-                  ? "secondary.main"
-                  : "divider",
-              }}
-            >
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={bookingData.isWeekly}
-                    onChange={(e) =>
-                      setBookingData({
-                        ...bookingData,
-                        isWeekly: e.target.checked,
-                      })
-                    }
-                    color="secondary"
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography sx={{ fontWeight: 800, fontSize: "0.9rem" }}>
-                      Reserva Semanal Permanente
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Se repetirá todos los {selectedSlot?.dayName}s
-                      automáticamente para siempre.
-                    </Typography>
-                  </Box>
-                }
-              />
-            </Paper>
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpenDialog(false)} sx={{ fontWeight: 700 }}>
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSaveBooking}
-            disabled={!bookingData.user}
-            sx={{ px: 4, fontWeight: 800, borderRadius: 2 }}
-          >
-            CONFIRMAR
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSave={handleSaveBooking}
+        selectedSlot={selectedSlot}
+        courtName={getCourtName()}
+        hasSubCourts={hasSubCourts()}
+      />
     </Box>
   );
 }
