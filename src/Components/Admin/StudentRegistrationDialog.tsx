@@ -19,10 +19,14 @@ import {
   Checkbox,
   Stack,
   Box,
+  alpha,
+  useTheme,
 } from "@mui/material";
 import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 
-// Schedule constants removed as requested
+const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const HOURS = Array.from({ length: 14 }, (_, i) => `${i + 8}:00`);
 
 export interface StudentData {
   id?: number;
@@ -51,6 +55,7 @@ export default function StudentRegistrationDialog({
   onSave,
   initialData,
 }: StudentRegistrationDialogProps) {
+  const theme = useTheme();
   const [formData, setFormData] = useState<StudentData>({
     fullName: "",
     dni: "",
@@ -64,20 +69,16 @@ export default function StudentRegistrationDialog({
 
   useEffect(() => {
     if (open) {
-      if (initialData) {
-        setFormData({ ...formData, ...initialData });
-      } else {
-        setFormData({
-          fullName: "",
-          dni: "",
-          phone: "",
-          dob: "",
-          address: "",
-          city: "",
-          hasProfessor: true,
-          schedule: {},
-        });
-      }
+      setFormData({
+        fullName: initialData?.fullName || "",
+        dni: initialData?.dni || "",
+        phone: initialData?.phone || "",
+        dob: initialData?.dob || "",
+        address: initialData?.address || "",
+        city: initialData?.city || "",
+        hasProfessor: initialData?.hasProfessor ?? true,
+        schedule: initialData?.schedule || {},
+      });
     }
   }, [open, initialData]);
 
@@ -164,7 +165,84 @@ export default function StudentRegistrationDialog({
           {/* Schedule & Prof */}
           <Grid item xs={12} md={6}>
             <Stack spacing={3}>
-              {/* Schedule and Professor category section header removed */}
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  color: "primary.main",
+                  fontWeight: 700,
+                }}
+              >
+                <CalendarMonthIcon fontSize="small" /> HORARIOS Y DÍAS
+              </Typography>
+
+              <TableContainer
+                component={Paper}
+                variant="outlined"
+                sx={{ borderRadius: 3, maxHeight: 400, overflow: "auto" }}
+              >
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell
+                        sx={{ bgcolor: "background.paper", fontWeight: 800 }}
+                      >
+                        Hs
+                      </TableCell>
+                      {DAYS.map((day) => (
+                        <TableCell
+                          key={day}
+                          align="center"
+                          sx={{
+                            bgcolor: "background.paper",
+                            fontWeight: 800,
+                            minWidth: 80,
+                          }}
+                        >
+                          {day.substring(0, 3)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {HOURS.map((hour) => (
+                      <TableRow key={hour}>
+                        <TableCell
+                          sx={{ fontWeight: 700, fontSize: "0.75rem" }}
+                        >
+                          {hour}
+                        </TableCell>
+                        {DAYS.map((day) => {
+                          const slotKey = `${day}-${hour}`;
+                          const isSelected = !!formData.schedule[slotKey];
+                          return (
+                            <TableCell key={day} align="center" sx={{ p: 0 }}>
+                              <Checkbox
+                                size="small"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  const newSchedule = { ...formData.schedule };
+                                  if (e.target.checked)
+                                    newSchedule[slotKey] = true;
+                                  else delete newSchedule[slotKey];
+                                  handleChange("schedule", newSchedule);
+                                }}
+                                sx={{
+                                  color: alpha(theme.palette.primary.main, 0.2),
+                                  "&.Mui-checked": { color: "primary.main" },
+                                }}
+                              />
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
               <FormControlLabel
                 control={
                   <Checkbox

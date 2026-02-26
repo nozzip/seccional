@@ -112,38 +112,48 @@ export default function CashRegistry({
 
   // States for Day Management
   const [dayArchived, setDayArchived] = useState(false);
-  const [shifts, setShifts] = useState<Shift[]>([
-    {
-      id: 1,
-      name: "Turno Mañana",
-      timeLabel: "08:00 a 16:00",
-      responsible: todayStaff.morning,
-      openingCash: 5000,
-      systemIncome: 0,
-      systemExpense: 0,
-      realCash: null,
-      difference: null,
-      status: "Abierta",
-      openedAt: new Date().setHours(0, 0, 0, 0),
-      startingStock: inventoryItems.map((item) => ({
-        name: item.name,
-        quantity: item.initialStock,
-      })),
-    },
-    {
-      id: 2,
-      name: "Turno Tarde",
-      timeLabel: "16:00 a 24:00",
-      responsible: todayStaff.afternoon,
-      openingCash: 0,
-      systemIncome: 0,
-      systemExpense: 0,
-      realCash: null,
-      difference: null,
-      status: "No Iniciado",
-      startingStock: [],
-    },
-  ]);
+  const [shifts, setShifts] = useState<Shift[]>(() => {
+    let initialCash = 0;
+    if (archivedDays && archivedDays.length > 0) {
+      const lastDay = archivedDays[archivedDays.length - 1];
+      if (lastDay.shifts && lastDay.shifts.length > 0) {
+        initialCash = lastDay.shifts[lastDay.shifts.length - 1].realCash || 0;
+      }
+    }
+
+    return [
+      {
+        id: 1,
+        name: "Turno Mañana",
+        timeLabel: "08:00 a 16:00",
+        responsible: todayStaff.morning,
+        openingCash: initialCash,
+        systemIncome: 0,
+        systemExpense: 0,
+        realCash: null,
+        difference: null,
+        status: "Abierta",
+        openedAt: new Date().setHours(0, 0, 0, 0),
+        startingStock: inventoryItems.map((item) => ({
+          name: item.name,
+          quantity: item.initialStock,
+        })),
+      },
+      {
+        id: 2,
+        name: "Turno Tarde",
+        timeLabel: "16:00 a 24:00",
+        responsible: todayStaff.afternoon,
+        openingCash: 0,
+        systemIncome: 0,
+        systemExpense: 0,
+        realCash: null,
+        difference: null,
+        status: "No Iniciado",
+        startingStock: [],
+      },
+    ];
+  });
 
   // States for Form Inputs
   const [realCashInput, setRealCashInput] = useState<string>("");
@@ -1139,7 +1149,8 @@ export default function CashRegistry({
                                         color: "error.main",
                                       }}
                                     >
-                                      -${(s.systemExpense || 0).toLocaleString()}
+                                      -$
+                                      {(s.systemExpense || 0).toLocaleString()}
                                     </Typography>
                                   </Box>
                                   <Divider />
@@ -1262,10 +1273,10 @@ export default function CashRegistry({
                                                 bgcolor:
                                                   ssidx % 2 === 0
                                                     ? alpha(
-                                                      theme.palette.action
-                                                        .hover,
-                                                      0.5,
-                                                    )
+                                                        theme.palette.action
+                                                          .hover,
+                                                        0.5,
+                                                      )
                                                     : "transparent",
                                               }}
                                             >
