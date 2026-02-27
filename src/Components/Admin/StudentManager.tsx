@@ -37,80 +37,54 @@ import StudentRegistrationDialog, {
   StudentData,
 } from "./StudentRegistrationDialog";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
-
-const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-const HOURS = Array.from({ length: 14 }, (_, i) => `${i + 8}:00`);
-
-interface Student {
-  id: number;
-  fullName: string;
-  dni: string;
-  phone: string;
-  address: string;
-  city: string;
-  dob: string;
-  hasProfessor: boolean;
-  schedule: { [key: string]: boolean };
-  lastPayment: { date: string; amount: number };
-}
-
-const mockStudents: StudentData[] = [
-  {
-    id: 1,
-    fullName: "Juan Pérez (VENCIDO)",
-    dni: "35.123.456",
-    phone: "381-1234567",
-    address: "Av. Aconquija 1234",
-    city: "Yerba Buena",
-    dob: "1990-05-15",
-    hasProfessor: true,
-    schedule: { "Lunes-09:00": true, "Miércoles-09:00": true },
-    lastPayment: { date: "2026-01-20", amount: 70000 },
-    expiryDate: "2026-02-20",
-  },
-  {
-    id: 2,
-    fullName: "María García (A VENCER)",
-    dni: "40.987.654",
-    phone: "381-7654321",
-    address: "San Martín 500",
-    city: "San Miguel",
-    dob: "1995-12-10",
-    hasProfessor: false,
-    schedule: { "Martes-18:00": true, "Jueves-18:00": true },
-    lastPayment: { date: "2026-02-11", amount: 63000 },
-    expiryDate: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0], // En 3 días
-  },
-  {
-    id: 3,
-    fullName: "Carlos López (EN REGLA)",
-    dni: "28.333.444",
-    phone: "381-8889999",
-    address: "Belgrano 1200",
-    city: "Tafí Viejo",
-    dob: "1985-03-22",
-    hasProfessor: true,
-    schedule: {
-      "Lunes-11:00": true,
-      "Martes-11:00": true,
-      "Miércoles-11:00": true,
-    },
-    lastPayment: { date: "2026-02-25", amount: 80000 },
-    expiryDate: "2026-03-27",
-  },
-];
+import { supabase } from "../../supabaseClient";
 
 export default function StudentManager() {
-  const [students, setStudents] = useState<StudentData[]>(() => {
-    const saved = localStorage.getItem("seccional_students");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.length > 0) return parsed;
+  const [students, setStudents] = useState<StudentData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("students")
+        .select("*")
+        .order("full_name", { ascending: true });
+
+      if (error) throw error;
+
+      const mapped = (data || []).map((s: any) => ({
+        ...s,
+        fullName: s.full_name,
+        hasProfessor: s.has_professor,
+        lastPayment: s.last_payment,
+        expiryDate: s.expiry_date,
+      }));
+      setStudents(mapped);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+    } finally {
+      setLoading(false);
     }
-    return mockStudents;
-  });
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    const channel = supabase
+      .channel("students_manager_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "students" },
+        fetchData,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const [open, setOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentData | null>(
     null,
@@ -118,17 +92,26 @@ export default function StudentManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterExpiring, setFilterExpiring] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem("seccional_students", JSON.stringify(students));
-    window.dispatchEvent(new Event("students_updated"));
-  }, [students]);
-
-  const theme = useTheme();
-
   const isExpired = (expiryDate?: string) => {
     if (!expiryDate) return true;
     return new Date(expiryDate) < new Date();
   };
+
+  const handleDelete = async (studentId: number) => {
+    if (!window.confirm("¿Estás seguro de eliminar este alumno?")) return;
+    try {
+      const { error } = await supabase
+        .from("students")
+        .delete()
+        .eq("id", studentId);
+      if (error) throw error;
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting student:", error);
+    }
+  };
+
+  const theme = useTheme();
 
   return (
     <Box>
@@ -354,7 +337,11 @@ export default function StudentManager() {
                     >
                       <EditIcon fontSize="small" />
                     </IconButton>
-                    <IconButton size="small" color="error">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => s.id && handleDelete(s.id)}
+                    >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </TableCell>
@@ -368,18 +355,40 @@ export default function StudentManager() {
         open={open}
         onClose={() => setOpen(false)}
         initialData={selectedStudent}
-        onSave={(updatedStudent) => {
-          if (selectedStudent) {
-            setStudents(
-              students.map((s) =>
-                s.dni === selectedStudent.dni ? { ...s, ...updatedStudent } : s,
-              ),
-            );
-          } else {
-            setStudents([...students, { ...updatedStudent, id: Date.now() }]);
+        onSave={async (updatedStudent) => {
+          try {
+            const studentToSave = {
+              full_name: updatedStudent.fullName,
+              dni: updatedStudent.dni,
+              phone: updatedStudent.phone,
+              dob: updatedStudent.dob,
+              address: updatedStudent.address,
+              city: updatedStudent.city,
+              has_professor: updatedStudent.hasProfessor,
+              schedule: updatedStudent.schedule,
+              last_payment: updatedStudent.lastPayment,
+              expiry_date: updatedStudent.expiryDate,
+            };
+
+            if (selectedStudent?.id) {
+              const { error } = await supabase
+                .from("students")
+                .update(studentToSave)
+                .eq("id", selectedStudent.id);
+              if (error) throw error;
+            } else {
+              const { error } = await supabase
+                .from("students")
+                .insert(studentToSave);
+              if (error) throw error;
+            }
+
+            setOpen(false);
+            setSelectedStudent(null);
+            fetchData();
+          } catch (error) {
+            console.error("Error saving student:", error);
           }
-          setOpen(false);
-          setSelectedStudent(null);
         }}
       />
     </Box>

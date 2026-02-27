@@ -32,6 +32,9 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 import PeopleIcon from "@mui/icons-material/People";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
@@ -41,69 +44,16 @@ import AutorenewIcon from "@mui/icons-material/Autorenew";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { supabase } from "../../supabaseClient";
 
-// Data Mock
-const financialData = [
-  { name: "Mar", ingresos: 120000, gastos: 85000 },
-  { name: "Abr", ingresos: 150000, gastos: 92000 },
-  { name: "May", ingresos: 145000, gastos: 110000 },
-  { name: "Jun", ingresos: 180000, gastos: 105000 },
-  { name: "Jul", ingresos: 170000, gastos: 98000 },
-  { name: "Ago", ingresos: 210000, gastos: 115000 },
+const COLORS = [
+  "#1a5f7a",
+  "#c1121f",
+  "#ffb703",
+  "#8ecae6",
+  "#4caf50",
+  "#9c27b0",
 ];
-
-const categoryData = [
-  { name: "Natación", value: 45000 },
-  { name: "Canchas", value: 35000 },
-  { name: "Bebidas", value: 25000 },
-  { name: "Cuotas", value: 105000 },
-];
-
-const incomeTableData = [
-  {
-    date: "23/08/2026",
-    concept: "Cuota Mensual - Alumno 01",
-    category: "Cuotas",
-    amount: 15000,
-    method: "Transferencia",
-  },
-  {
-    date: "22/08/2026",
-    concept: "Alquiler Cancha 1 - 20hs",
-    category: "Canchas",
-    amount: 8000,
-    method: "Efectivo",
-  },
-  {
-    date: "22/08/2026",
-    concept: "Venta Bebidas - Pack 12",
-    category: "Bebidas",
-    amount: 12000,
-    method: "Efectivo",
-  },
-  {
-    date: "21/08/2026",
-    concept: "Inscripción Natación - Alumno 02",
-    category: "Natación",
-    amount: 18000,
-    method: "Débito",
-  },
-  {
-    date: "21/08/2026",
-    concept: "Cuota Mensual - Alumno 03",
-    category: "Cuotas",
-    amount: 15000,
-    method: "Transferencia",
-  },
-];
-
-const lowStockItems = [
-  { name: "Agua Mineral 500ml", stock: 5 },
-  { name: "Gatorade Manzana", stock: 2 },
-  { name: "Powerade Azul", stock: 3 },
-];
-
-const COLORS = ["#1a5f7a", "#c1121f", "#ffb703", "#8ecae6"];
 
 const StatCard = ({
   title,
@@ -179,6 +129,179 @@ const StatCard = ({
 
 export default function AdminOverview() {
   const theme = useTheme();
+  const [isExporting, setIsExporting] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [data, setData] = React.useState({
+    totalStudents: 0,
+    incomeMonth: 0,
+    expenseMonth: 0,
+    lowStock: [] as any[],
+    financialSeries: [] as any[],
+    categories: [] as any[],
+    recentTxs: [] as any[],
+  });
+
+  const fetchData = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      // 1. Fetch Students
+      const { count: studentCount } = await supabase
+        .from("students")
+        .select("*", { count: "exact", head: true });
+
+      // 2. Fetch Inventory for Low Stock
+      const { data: invData } = await supabase.from("inventory").select("*");
+
+      // 3. Fetch Transactions for Financials
+      const { data: txs } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("date", { ascending: false });
+
+      if (txs) {
+        const monthlyStats: { [key: string]: any } = {};
+        const monthNames = [
+          "Ene",
+          "Feb",
+          "Mar",
+          "Abr",
+          "May",
+          "Jun",
+          "Jul",
+          "Ago",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dic",
+        ];
+
+        // Calculate series for chart (last 6 months)
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const m = d.getMonth();
+          const y = d.getFullYear();
+          const label = `${monthNames[m]} ${y}`;
+          monthlyStats[label] = { name: label, ingresos: 0, gastos: 0, m, y };
+        }
+
+        let incM = 0;
+        let expM = 0;
+        const catMap: { [key: string]: number } = {};
+
+        txs.forEach((t) => {
+          const td = new Date(t.date);
+          const tm = td.getMonth();
+          const ty = td.getFullYear();
+          const tLabel = `${monthNames[tm]} ${ty}`;
+
+          if (monthlyStats[tLabel]) {
+            if (t.type === "Ingreso") monthlyStats[tLabel].ingresos += t.amount;
+            else monthlyStats[tLabel].gastos += t.amount;
+          }
+
+          if (tm === currentMonth && ty === currentYear) {
+            if (t.type === "Ingreso") {
+              incM += t.amount;
+              catMap[t.category] = (catMap[t.category] || 0) + t.amount;
+            } else {
+              expM += t.amount;
+            }
+          }
+        });
+
+        setData({
+          totalStudents: studentCount || 0,
+          incomeMonth: incM,
+          expenseMonth: expM,
+          lowStock: (invData || [])
+            .map((i) => ({
+              name: i.name,
+              stock: (i.initial_stock || 0) + (i.entries || 0) - (i.exits || 0),
+            }))
+            .filter((i) => i.stock < 10),
+          financialSeries: Object.values(monthlyStats),
+          categories: Object.entries(catMap).map(([name, value]) => ({
+            name,
+            value,
+          })),
+          recentTxs: txs.slice(0, 5),
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleExportReport = async () => {
+    setIsExporting(true);
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      doc.setFontSize(22);
+      doc.setTextColor(26, 95, 122);
+      doc.text("Reporte General de Métricas", 14, 20);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Fecha de emisión: ${new Date().toLocaleString()}`, 14, 28);
+
+      autoTable(doc, {
+        startY: 40,
+        head: [["Métrica", "Valor Actual", "Tendencia"]],
+        body: [
+          ["Total Alumnos", "124", "+12%"],
+          ["Ingresos (Ago)", "$210.000", "+8%"],
+          ["Gastos (Ago)", "$115.000", "+5%"],
+          ["Ocupación Canchas", "78%", "Sábados Pico"],
+        ],
+        headStyles: { fillColor: [26, 95, 122] },
+      });
+
+      // Capture charts if possible
+      const charts = document.querySelectorAll(
+        ".recharts-responsive-container",
+      );
+      if (charts.length > 0) {
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.text("Visualizaciones de Rendimiento", 14, 20);
+
+        for (let i = 0; i < Math.min(charts.length, 2); i++) {
+          const canvas = await html2canvas(charts[i] as HTMLElement, {
+            scale: 2,
+          });
+          const imgData = canvas.toDataURL("image/png");
+          const imgWidth = pageWidth - 28;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          doc.addImage(
+            imgData,
+            "PNG",
+            14,
+            30 + i * (imgHeight + 10),
+            imgWidth,
+            imgHeight,
+          );
+        }
+      }
+
+      doc.save("Reporte_General_Admin.pdf");
+    } catch (error) {
+      console.error("Export error", error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <Box>
@@ -196,9 +319,11 @@ export default function AdminOverview() {
         <Button
           startIcon={<FileDownloadIcon />}
           variant="outlined"
+          onClick={handleExportReport}
+          disabled={isExporting}
           sx={{ borderRadius: 2 }}
         >
-          Exportar Reporte
+          {isExporting ? "Generando..." : "Exportar Reporte"}
         </Button>
       </Box>
 
@@ -206,50 +331,51 @@ export default function AdminOverview() {
         <Grid item xs={12} sm={6} lg={4}>
           <StatCard
             title="Total Alumnos"
-            value="124"
+            value={data.totalStudents.toString()}
             icon={PeopleIcon}
-            trend="+12% este mes"
+            trend="Datos en tiempo real"
           />
         </Grid>
         <Grid item xs={12} sm={6} lg={4}>
           <StatCard
-            title="Ingresos (Ago)"
-            value="$210.000"
+            title="Ingresos del Mes"
+            value={`$${data.incomeMonth.toLocaleString()}`}
             icon={AccountBalanceWalletIcon}
-            trend="+8% vs Jul"
+            trend="Total acumulado"
           />
         </Grid>
         <Grid item xs={12} sm={6} lg={4}>
           <StatCard
-            title="Gastos (Ago)"
-            value="$115.000"
+            title="Gastos del Mes"
+            value={`$${data.expenseMonth.toLocaleString()}`}
             icon={TrendingDownIcon}
-            trend="+5% vs Jul"
+            trend="Total registrado"
             trendType="down"
           />
         </Grid>
         <Grid item xs={12} sm={6} lg={4}>
           <StatCard
-            title="Ocupación Canchas"
-            value="78%"
+            title="Balance Neto"
+            value={`$${(data.incomeMonth - data.expenseMonth).toLocaleString()}`}
             icon={EventAvailableIcon}
-            trend="Pico: Sábados"
+            trend="Diferencia mensual"
           />
         </Grid>
         <Grid item xs={12} sm={6} lg={4}>
           <StatCard
-            title="Renovaciones"
-            value="45"
+            title="Items Stock Bajo"
+            value={data.lowStock.length.toString()}
+            icon={WarningAmberIcon}
+            trend="Requieren atención"
+            trendType="down"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={4}>
+          <StatCard
+            title="Transacciones"
+            value={data.recentTxs.length.toString()}
             icon={AutorenewIcon}
-            trend="85% de socios"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={4}>
-          <StatCard
-            title="Venta Bebidas"
-            value="$25.000"
-            icon={LocalDrinkIcon}
-            trend="+15% vs Jul"
+            trend="Últimas registradas"
           />
         </Grid>
       </Grid>
@@ -270,7 +396,7 @@ export default function AdminOverview() {
             </Typography>
             <Box sx={{ width: "100%", height: 350 }}>
               <ResponsiveContainer>
-                <AreaChart data={financialData}>
+                <AreaChart data={data.financialSeries}>
                   <defs>
                     <linearGradient
                       id="colorIngresos"
@@ -366,13 +492,13 @@ export default function AdminOverview() {
                 <ResponsiveContainer>
                   <PieChart>
                     <Pie
-                      data={categoryData}
+                      data={data.categories}
                       innerRadius={60}
                       outerRadius={80}
                       paddingAngle={5}
                       dataKey="value"
                     >
-                      {categoryData.map((entry, index) => (
+                      {data.categories.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={COLORS[index % COLORS.length]}
@@ -384,7 +510,7 @@ export default function AdminOverview() {
                 </ResponsiveContainer>
               </Box>
               <Stack spacing={1} sx={{ mt: 2 }}>
-                {categoryData.map((entry, index) => (
+                {data.categories.map((entry: any, index: number) => (
                   <Box
                     key={entry.name}
                     sx={{
@@ -439,27 +565,36 @@ export default function AdminOverview() {
                 </Typography>
               </Box>
               <Stack spacing={1.5}>
-                {lowStockItems.map((item) => (
-                  <Box
-                    key={item.name}
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
+                {data.lowStock.length > 0 ? (
+                  data.lowStock.map((item) => (
+                    <Box
+                      key={item.name}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {item.name}
+                      </Typography>
+                      <Chip
+                        label={`${item.stock} u.`}
+                        size="small"
+                        color="warning"
+                        variant="outlined"
+                        sx={{ fontWeight: 700 }}
+                      />
+                    </Box>
+                  ))
+                ) : (
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.secondary" }}
                   >
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {item.name}
-                    </Typography>
-                    <Chip
-                      label={`${item.stock} u.`}
-                      size="small"
-                      color="warning"
-                      variant="outlined"
-                      sx={{ fontWeight: 700 }}
-                    />
-                  </Box>
-                ))}
+                    No hay alertas de stock bajo.
+                  </Typography>
+                )}
               </Stack>
             </Paper>
           </Stack>
@@ -506,12 +641,14 @@ export default function AdminOverview() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {incomeTableData.map((row, index) => (
+              {data.recentTxs.map((row, index) => (
                 <TableRow key={index} hover>
                   <TableCell sx={{ fontSize: "0.875rem" }}>
                     {row.date}
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 500 }}>{row.concept}</TableCell>
+                  <TableCell sx={{ fontWeight: 500 }}>
+                    {row.description}
+                  </TableCell>
                   <TableCell>
                     <Chip
                       label={row.category}
@@ -530,7 +667,7 @@ export default function AdminOverview() {
                   <TableCell
                     sx={{ color: "text.secondary", fontSize: "0.875rem" }}
                   >
-                    {row.method}
+                    {row.paymentMethod}
                   </TableCell>
                 </TableRow>
               ))}

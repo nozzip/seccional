@@ -39,6 +39,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import StudentManager from "./StudentManager";
 import { StudentData } from "./StudentRegistrationDialog";
+import { supabase } from "../../supabaseClient";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const HOURS = Array.from({ length: 14 }, (_, i) => `${i + 8}:00`);
@@ -55,87 +56,71 @@ interface SlotData {
   [key: string]: any[];
 }
 export default function PoolSchoolGrid() {
-  const [studentsData, setStudentsData] = useState<StudentData[]>(() => {
-    const saved = localStorage.getItem("seccional_students");
-    const mockStudents = [
-      {
-        id: 1,
-        fullName: "Juan Pérez (VENCIDO)",
-        dni: "35.123.456",
-        phone: "381-1234567",
-        address: "Av. Aconquija 1234",
-        city: "Yerba Buena",
-        dob: "1990-05-15",
-        hasProfessor: true,
-        schedule: { "Lunes-09:00": true, "Miércoles-09:00": true },
-        lastPayment: { date: "2026-01-20", amount: 70000 },
-        expiryDate: "2026-02-20",
-      },
-      {
-        id: 2,
-        fullName: "María García (A VENCER)",
-        dni: "40.987.654",
-        phone: "381-7654321",
-        address: "San Martín 500",
-        city: "San Miguel",
-        dob: "1995-12-10",
-        hasProfessor: false,
-        schedule: { "Martes-18:00": true, "Jueves-18:00": true },
-        lastPayment: { date: "2026-02-11", amount: 63000 },
-        expiryDate: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0],
-      },
-      {
-        id: 3,
-        fullName: "Carlos López (EN REGLA)",
-        dni: "28.333.444",
-        phone: "381-8889999",
-        address: "Belgrano 1200",
-        city: "Tafí Viejo",
-        dob: "1985-03-22",
-        hasProfessor: true,
-        schedule: {
-          "Lunes-11:00": true,
-          "Martes-11:00": true,
-          "Miércoles-11:00": true,
-        },
-        lastPayment: { date: "2026-02-25", amount: 80000 },
-        expiryDate: "2026-03-27",
-      },
-    ];
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.length > 0) return parsed;
+  const [studentsData, setStudentsData] = useState<StudentData[]>([]);
+  const [professors, setProfessors] = useState<Professor[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const { data: students, error: sError } = await supabase
+        .from("students")
+        .select("*");
+      if (sError) throw sError;
+
+      const mappedStudents: StudentData[] = (students || []).map((s: any) => ({
+        ...s,
+        fullName: s.full_name,
+        hasProfessor: s.has_professor,
+        lastPayment: s.last_payment,
+        expiryDate: s.expiry_date,
+      }));
+      setStudentsData(mappedStudents);
+
+      const { data: profs, error: pError } = await supabase
+        .from("professors")
+        .select("*");
+      if (pError) throw pError;
+
+      const mappedProfs: Professor[] = (profs || []).map((p: any) => ({
+        ...p,
+        className: p.class_name,
+      }));
+      setProfessors(mappedProfs);
+    } catch (error) {
+      console.error("Error fetching data from Supabase:", error);
+    } finally {
+      setLoading(false);
     }
-    return mockStudents;
-  });
+  };
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      const saved = localStorage.getItem("seccional_students");
-      if (saved) setStudentsData(JSON.parse(saved));
-    };
-    window.addEventListener("storage", handleStorageChange);
-    // Personalize event for local updates
-    window.addEventListener("students_updated", handleStorageChange);
+    fetchData();
+
+    // Subscribe to changes
+    const studentsChannel = supabase
+      .channel("students_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "students" },
+        fetchData,
+      )
+      .subscribe();
+
+    const profsChannel = supabase
+      .channel("profs_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "professors" },
+        fetchData,
+      )
+      .subscribe();
+
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("students_updated", handleStorageChange);
+      supabase.removeChannel(studentsChannel);
+      supabase.removeChannel(profsChannel);
     };
   }, []);
-
-  const [professors, setProfessors] = useState<Professor[]>(() => {
-    const saved = localStorage.getItem("seccional_professors");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed.map((p: any) => ({ ...p, schedule: p.schedule || {} }));
-    }
-    return [
-      { id: 1, name: "Profesor Asignado", specialty: "Adultos", schedule: {} },
-      { id: 2, name: "Pileta Libre", specialty: "Adultos", schedule: {} },
-    ];
-  });
 
   const [openProfDialog, setOpenProfDialog] = useState(false);
   const [profFormData, setProfFormData] = useState<Professor>({
@@ -146,55 +131,60 @@ export default function PoolSchoolGrid() {
     schedule: {},
   });
 
-  useEffect(() => {
-    localStorage.setItem("seccional_professors", JSON.stringify(professors));
-  }, [professors]);
-
   const theme = useTheme();
 
-  const handleSaveProfessor = () => {
+  const handleSaveProfessor = async () => {
     if (!profFormData.name) return;
 
-    const newProf = {
-      ...profFormData,
-      id: profFormData.id || Date.now(),
-    };
+    try {
+      const profToSave = {
+        name: profFormData.name,
+        specialty: profFormData.specialty,
+        class_name: profFormData.className,
+        schedule: profFormData.schedule,
+      };
 
-    setProfessors((prev) => {
-      const exists = prev.find((p) => p.id === newProf.id);
-      if (exists) return prev.map((p) => (p.id === newProf.id ? newProf : p));
-      return [...prev, newProf];
-    });
-
-    // If it's a Class, register it in Accounts
-    if (newProf.specialty === "Clase" && newProf.className) {
-      const savedAccounts = JSON.parse(
-        localStorage.getItem("seccional_accounts") || "[]",
-      );
-      if (!savedAccounts.some((a: any) => a.name === newProf.className)) {
-        const newAccount = {
-          id: Date.now(),
-          name: newProf.className,
-          type: "Ingreso",
-          balance: 0,
-          color: theme.palette.secondary.main,
-        };
-        localStorage.setItem(
-          "seccional_accounts",
-          JSON.stringify([...savedAccounts, newAccount]),
-        );
-        window.dispatchEvent(new Event("seccional_accounts_updated"));
+      if (profFormData.id) {
+        const { error } = await supabase
+          .from("professors")
+          .update(profToSave)
+          .eq("id", profFormData.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("professors").insert(profToSave);
+        if (error) throw error;
       }
-    }
 
-    setOpenProfDialog(false);
-    setProfFormData({
-      id: 0,
-      name: "",
-      specialty: "Adultos",
-      className: "",
-      schedule: {},
-    });
+      // If it's a Class, register it in Accounts
+      if (profFormData.specialty === "Clase" && profFormData.className) {
+        const { data: existingAccounts } = await supabase
+          .from("accounts")
+          .select("id")
+          .eq("name", profFormData.className);
+
+        if (!existingAccounts || existingAccounts.length === 0) {
+          const { error: accError } = await supabase.from("accounts").insert({
+            name: profFormData.className,
+            type: "Ingreso",
+            balance: 0,
+            color: theme.palette.secondary.main,
+          });
+          if (accError) throw accError;
+        }
+      }
+
+      setOpenProfDialog(false);
+      setProfFormData({
+        id: 0,
+        name: "",
+        specialty: "Adultos",
+        className: "",
+        schedule: {},
+      });
+      fetchData();
+    } catch (error) {
+      console.error("Error saving professor:", error);
+    }
   };
 
   const isExpired = (expiryDate?: string) => {

@@ -15,6 +15,7 @@ import {
   useTheme,
   Button,
   Chip,
+  TextField,
 } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
@@ -60,7 +61,7 @@ export default function InventoryManager({
 
   const totalInventoryValue = items.reduce((acc, item) => {
     const final = calculateFinal(item);
-    return acc + (final * (item.price || 0));
+    return acc + final * (item.price || 0);
   }, 0);
 
   return (
@@ -92,14 +93,22 @@ export default function InventoryManager({
             py: 1,
             borderRadius: 3,
             bgcolor: alpha(theme.palette.success.main, 0.05),
-            borderColor: 'success.main',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end'
+            borderColor: "success.main",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
           }}
         >
-          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>VALOR TOTAL STOCk</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 900, color: 'success.dark' }}>
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 700, color: "text.secondary" }}
+          >
+            VALOR TOTAL STOCk
+          </Typography>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 900, color: "success.dark" }}
+          >
             ${totalInventoryValue.toLocaleString()}
           </Typography>
         </Paper>
@@ -115,7 +124,9 @@ export default function InventoryManager({
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Producto</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Categoría</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700 }}>Precio</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700 }}>
+                Precio
+              </TableCell>
               <TableCell
                 align="center"
                 sx={{
@@ -174,12 +185,44 @@ export default function InventoryManager({
                     <Chip
                       label={item.category}
                       size="small"
-                      sx={{ fontWeight: 700, fontSize: '0.65rem' }}
-                      color={item.category === 'Bebidas' ? 'primary' : 'warning'}
+                      sx={{ fontWeight: 700, fontSize: "0.65rem" }}
+                      color={
+                        item.category === "Bebidas" ? "primary" : "warning"
+                      }
                     />
                   </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary' }}>
-                    ${(item.price || 0).toLocaleString()}
+                  <TableCell align="right">
+                    <TextField
+                      type="number"
+                      size="small"
+                      value={item.price || 0}
+                      onChange={(e) => {
+                        const newPrice = parseFloat(e.target.value) || 0;
+                        onUpdateItems(
+                          items.map((i) =>
+                            i.id === item.id ? { ...i, price: newPrice } : i,
+                          ),
+                        );
+                      }}
+                      sx={{ width: 80 }}
+                      inputProps={{
+                        style: {
+                          textAlign: "right",
+                          fontWeight: 700,
+                          fontSize: "0.875rem",
+                        },
+                      }}
+                      InputProps={{
+                        startAdornment: (
+                          <Typography
+                            variant="caption"
+                            sx={{ mr: 0.5, fontWeight: 700 }}
+                          >
+                            $
+                          </Typography>
+                        ),
+                      }}
+                    />
                   </TableCell>
                   <TableCell align="center">
                     <Typography sx={{ fontWeight: 600 }}>
@@ -248,7 +291,10 @@ export default function InventoryManager({
                       {finalStock}
                     </Typography>
                   </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800, color: 'success.dark' }}>
+                  <TableCell
+                    align="right"
+                    sx={{ fontWeight: 800, color: "success.dark" }}
+                  >
                     ${itemValue.toLocaleString()}
                   </TableCell>
                 </TableRow>

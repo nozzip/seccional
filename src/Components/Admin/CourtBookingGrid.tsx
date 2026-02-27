@@ -195,8 +195,8 @@ const BookingDialog = ({
                     Reserva Semanal Permanente
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Se repetirá todos los {selectedSlot?.dayName}s automáticamente para
-                    siempre.
+                    Se repetirá todos los {selectedSlot?.dayName}s
+                    automáticamente para siempre.
                   </Typography>
                 </Box>
               }
@@ -221,6 +221,8 @@ const BookingDialog = ({
   );
 };
 
+import { supabase } from "../../supabaseClient";
+
 export default function CourtBookingGrid() {
   const [court, setCourt] = useState(0);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -230,10 +232,7 @@ export default function CourtBookingGrid() {
     return new Date(today.setDate(diff));
   });
 
-  const [bookings, setBookings] = useState<CourtBooking[]>(() => {
-    const saved = localStorage.getItem("seccional_court_bookings");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [bookings, setBookings] = useState<CourtBooking[]>([]);
 
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{
@@ -247,26 +246,46 @@ export default function CourtBookingGrid() {
 
   const hasSubCourts = () => court !== 2; // Fútbol 5 has only 1 court for now
 
-  // Persistencia
-  useEffect(() => {
-    localStorage.setItem("seccional_court_bookings", JSON.stringify(bookings));
-    // Disparar un evento personalizado para que CashFlowManager sepa que hubo cambios
-    window.dispatchEvent(new Event("court_bookings_updated"));
-  }, [bookings]);
+  const fetchData = async () => {
+    try {
+      const { data, error } = await supabase.from("court_bookings").select("*");
+      if (error) throw error;
+      setBookings(
+        (data || []).map((b: any) => ({
+          id: b.id,
+          courtType: b.court_type,
+          courtSubNumber: b.court_sub_number,
+          dayName: b.day_name,
+          startTime: b.start_time,
+          duration: b.duration,
+          user: b.user_name,
+          isWeekly: b.is_weekly,
+          date: b.booking_date,
+          status: b.status,
+        })),
+      );
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+    }
+  };
 
-  // Escuchar actualizaciones externas (ej: desde CashFlowManager al cobrar)
   useEffect(() => {
-    const handleUpdates = () => {
-      const saved = localStorage.getItem("seccional_court_bookings");
-      if (saved) {
-        const updated = JSON.parse(saved);
-        // Solo actualizar si realmente hay cambios para evitar bucles infinitos
-        setBookings(updated);
-      }
+    fetchData();
+
+    const subscription = supabase
+      .channel("court_bookings_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "court_bookings" },
+        () => {
+          fetchData();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
     };
-    window.addEventListener("court_bookings_updated", handleUpdates);
-    return () =>
-      window.removeEventListener("court_bookings_updated", handleUpdates);
   }, []);
 
   const getWeekdayDates = (start: Date) => {
@@ -296,31 +315,49 @@ export default function CourtBookingGrid() {
     setOpenDialog(true);
   };
 
-  const handleSaveBooking = (data: { user: string; duration: number; isWeekly: boolean }) => {
+  const handleSaveBooking = async (data: {
+    user: string;
+    duration: number;
+    isWeekly: boolean;
+  }) => {
     if (!selectedSlot || !data.user) return;
 
-    const newBooking: CourtBooking = {
-      id: Date.now(),
-      courtType: court,
-      courtSubNumber: selectedSlot.subNumber,
-      dayName: selectedSlot.dayName,
-      startTime: selectedSlot.time,
-      duration: data.duration,
-      user: data.user,
-      isWeekly: data.isWeekly,
-      date: data.isWeekly ? undefined : selectedSlot.date,
-      status: "Pendiente",
-    };
+    try {
+      const { error } = await supabase.from("court_bookings").insert({
+        court_type: court,
+        court_sub_number: selectedSlot.subNumber,
+        day_name: selectedSlot.dayName,
+        start_time: selectedSlot.time,
+        duration: data.duration,
+        user_name: data.user,
+        is_weekly: data.isWeekly,
+        booking_date: data.isWeekly ? null : selectedSlot.date,
+        status: "Pendiente",
+      });
 
-    setBookings([...bookings, newBooking]);
-    setOpenDialog(false);
-    setSelectedSlot(null);
+      if (error) throw error;
+      setOpenDialog(false);
+      setSelectedSlot(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error saving booking:", error);
+    }
   };
 
-  const handleDeleteBooking = (id: number) => {
+  const handleDeleteBooking = async (id: number) => {
     const booking = bookings.find((b) => b.id === id);
-    if (booking?.status === "Pagado") return; // Seguridad extra
-    setBookings(bookings.filter((b) => b.id !== id));
+    if (booking?.status === "Pagado") return;
+
+    try {
+      const { error } = await supabase
+        .from("court_bookings")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting booking:", error);
+    }
   };
 
   const bookingsMap = useMemo(() => {

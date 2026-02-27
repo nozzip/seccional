@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -27,15 +27,36 @@ import {
   Autocomplete,
   FormControlLabel,
   Checkbox,
+  IconButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DownloadIcon from "@mui/icons-material/Download";
 import SearchIcon from "@mui/icons-material/Search";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { OptimizedTextField } from "../common/OptimizedTextField";
 
 interface Transaction {
   id: number;
@@ -80,15 +101,6 @@ interface StaffRoster {
   };
 }
 
-const defaultRoster: StaffRoster = {
-  Lunes: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
-  Martes: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
-  Miércoles: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
-  Jueves: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
-  Viernes: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
-  Sábado: { morning: "Juan (Admin)", afternoon: "María (Admin)" },
-};
-
 interface Account {
   id: number;
   name: string;
@@ -96,65 +108,6 @@ interface Account {
   balance: number;
   color: string;
 }
-
-const initialAccountsData: Account[] = [
-  {
-    id: 1,
-    name: "Cuota Pileta",
-    type: "Ingreso",
-    balance: 0,
-    color: "#4caf50",
-  },
-  { id: 2, name: "Kiosco", type: "Ingreso", balance: 0, color: "#2196f3" },
-  {
-    id: 3,
-    name: "Venta Bebidas",
-    type: "Ingreso",
-    balance: 0,
-    color: "#ff9800",
-  },
-  { id: 4, name: "Limpieza", type: "Egreso", balance: 0, color: "#f44336" },
-];
-
-const initialTransactions: Transaction[] = [
-  {
-    id: 1,
-    date: new Date().toISOString().split("T")[0],
-    type: "Ingreso",
-    category: "Venta Bebidas",
-    amount: 4500,
-    paymentMethod: "Efectivo",
-    description: "Coca-cola y Aguas",
-  },
-  {
-    id: 2,
-    date: new Date().toISOString().split("T")[0],
-    type: "Ingreso",
-    category: "Canchas",
-    amount: 12000,
-    paymentMethod: "Transferencia",
-    description: "Turnos Paddle 18hs/19hs",
-  },
-  {
-    id: 3,
-    date: new Date().toISOString().split("T")[0],
-    type: "Egreso",
-    category: "Limpieza",
-    amount: 3500,
-    paymentMethod: "Efectivo",
-    invoice: "A001-00045",
-    description: "Compra de artículos de limpieza",
-  },
-  {
-    id: 4,
-    date: "2026-02-20",
-    type: "Ingreso",
-    category: "Natación",
-    amount: 8500,
-    paymentMethod: "Tarjeta",
-    description: "Inscripción - Juan Pérez",
-  },
-];
 
 import CashRegistry from "./CashRegistry";
 import InventoryManager from "./InventoryManager";
@@ -164,307 +117,461 @@ import { Tabs, Tab, InputBase, Tooltip } from "@mui/material";
 import StudentRegistrationDialog, {
   StudentData,
 } from "./StudentRegistrationDialog";
+import { supabase } from "../../supabaseClient";
 
 const toTitleCase = (str: string) => {
   return str.replace(
     /\w\S*/g,
-    (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()
+    (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase(),
   );
 };
 
-export default function CashFlowManager() {
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem("seccional_transactions");
-    return saved ? JSON.parse(saved) : initialTransactions;
-  });
+// --- Memoized UI Components to prevent lag ---
 
-  const [accountsData, setAccountsData] = useState<Account[]>(() => {
-    const saved = localStorage.getItem("seccional_accounts");
-    return saved ? JSON.parse(saved) : initialAccountsData;
-  });
+const MemoizedSummary = React.memo(
+  ({ data, totalIncomes, totalExpenses, balance }: any) => {
+    const theme = useTheme();
+    // ... (Summary rendering logic moved here)
+    return (
+      <Box sx={{ mt: 4 }}>
+        <Grid container spacing={4}>
+          {/* Statistics Cards */}
+          <Grid item xs={12} md={4}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: alpha(theme.palette.success.main, 0.05),
+              }}
+            >
+              <Stack spacing={1}>
+                <Typography
+                  variant="overline"
+                  sx={{ fontWeight: 800, color: "success.main" }}
+                >
+                  INGRESOS TOTALES
+                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 900 }}>
+                  ${totalIncomes.toLocaleString()}
+                </Typography>
+                <TrendingUpIcon
+                  sx={{ color: "success.main", fontSize: 40, opacity: 0.3 }}
+                />
+              </Stack>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: alpha(theme.palette.error.main, 0.05),
+              }}
+            >
+              <Stack spacing={1}>
+                <Typography
+                  variant="overline"
+                  sx={{ fontWeight: 800, color: "error.main" }}
+                >
+                  EGRESOS TOTALES
+                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 900 }}>
+                  ${totalExpenses.toLocaleString()}
+                </Typography>
+                <TrendingDownIcon
+                  sx={{ color: "error.main", fontSize: 40, opacity: 0.3 }}
+                />
+              </Stack>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: alpha(theme.palette.primary.main, 0.05),
+              }}
+            >
+              <Stack spacing={1}>
+                <Typography
+                  variant="overline"
+                  sx={{ fontWeight: 800, color: "primary.main" }}
+                >
+                  BALANCE NETO
+                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 900 }}>
+                  ${balance.toLocaleString()}
+                </Typography>
+                <AccountBalanceWalletIcon
+                  sx={{ color: "primary.main", fontSize: 40, opacity: 0.3 }}
+                />
+              </Stack>
+            </Paper>
+          </Grid>
+
+          {/* Dynamic Insights */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3, borderRadius: 4 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>
+                Dinámica Diaria (Ingresos vs Egresos)
+              </Typography>
+              <Box sx={{ height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.dailyDynamics}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="date" fontSize={12} />
+                    <YAxis fontSize={12} />
+                    <RechartsTooltip />
+                    <Legend />
+                    <Bar
+                      dataKey="ingreso"
+                      fill={theme.palette.success.main}
+                      radius={[4, 4, 0, 0]}
+                      name="Ingresos"
+                    />
+                    <Bar
+                      dataKey="egreso"
+                      fill={theme.palette.error.main}
+                      radius={[4, 4, 0, 0]}
+                      name="Egresos"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3, borderRadius: 4 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>
+                Ingresos por Categoría
+              </Typography>
+              <Box
+                sx={{
+                  height: 300,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={data.incomeByAccount}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {data.incomeByAccount.map((entry: any, index: number) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={
+                            ["#1a5f7a", "#c39534", "#159895", "#fb2576"][
+                              index % 4
+                            ]
+                          }
+                        />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  },
+);
+
+const MemoizedTransactionsTable = React.memo(
+  ({ transactions, onDelete, accountsData }: any) => {
+    const getAccountColor = (accountName: string) => {
+      const acc = accountsData?.find((a: any) => a.name === accountName);
+      return acc?.color || "#94a3b8";
+    };
+    return (
+      <TableContainer
+        component={Paper}
+        elevation={0}
+        sx={{ borderRadius: 4, border: "1px solid", borderColor: "divider" }}
+      >
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 800 }}>Fecha</TableCell>
+              <TableCell sx={{ fontWeight: 800 }}>Tipo</TableCell>
+              <TableCell sx={{ fontWeight: 800 }}>Categoría</TableCell>
+              <TableCell sx={{ fontWeight: 800 }}>Descripción</TableCell>
+              <TableCell sx={{ fontWeight: 800 }} align="right">
+                Monto
+              </TableCell>
+              <TableCell sx={{ fontWeight: 800 }}>Pago</TableCell>
+              <TableCell sx={{ fontWeight: 800 }} align="center">
+                Acciones
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {transactions.map((t: any) => (
+              <TableRow key={t.id} hover>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>{t.date}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={t.type}
+                    size="small"
+                    sx={{
+                      fontWeight: 700,
+                      bgcolor:
+                        t.type === "Ingreso" ? "success.light" : "error.light",
+                      color:
+                        t.type === "Ingreso" ? "success.dark" : "error.dark",
+                    }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        bgcolor: getAccountColor(t.category),
+                      }}
+                    />
+                    <Typography sx={{ fontWeight: 500 }}>
+                      {t.category}
+                    </Typography>
+                  </Stack>
+                </TableCell>
+                <TableCell
+                  sx={{
+                    maxWidth: 250,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    color: "text.secondary",
+                  }}
+                >
+                  {t.description}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontWeight: 900,
+                    color: t.type === "Ingreso" ? "success.main" : "error.main",
+                  }}
+                >
+                  ${t.amount.toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  <Stack spacing={0.5}>
+                    <Chip
+                      label={t.paymentMethod || "S/M"}
+                      variant="outlined"
+                      size="small"
+                      sx={{ fontWeight: 700, fontSize: "0.65rem" }}
+                    />
+                    {t.invoice && (
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 800,
+                            color: "text.secondary",
+                            fontSize: "0.6rem",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Cpd:
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 800,
+                            color: "primary.main",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          {t.invoice}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Stack>
+                </TableCell>
+                <TableCell align="center">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => onDelete(t.id)}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  },
+);
+
+const MemoizedCashRegistry = React.memo(CashRegistry);
+const MemoizedInventoryManager = React.memo(InventoryManager);
+
+export default function CashFlowManager() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [accountsData, setAccountsData] = useState<Account[]>([]);
+  const [students, setStudents] = useState<StudentData[]>([]);
+  const [staffRoster, setStaffRoster] = useState<StaffRoster>({});
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [archivedDays, setArchivedDays] = useState<ArchivedDay[]>([]);
+  const [productsPrices, setProductsPrices] = useState<any[]>([]);
+  const [swimmingPrices, setSwimmingPrices] = useState<any>({});
+  const [courtPrices, setCourtPrices] = useState<any>({});
+  const [courtBookings, setCourtBookings] = useState<any[]>([]);
+  const [promotions, setPromotions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchEverything = async () => {
+    setLoading(true);
+    try {
+      const { data: txs } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("date", { ascending: false });
+      setTransactions(
+        (txs || []).map((t: any) => ({
+          ...t,
+          paymentMethod: t.payment_method, // Map database snake_case to camelCase
+        })),
+      );
+
+      const { data: accs } = await supabase.from("accounts").select("*");
+      setAccountsData(accs || []);
+
+      const { data: inv } = await supabase.from("inventory").select("*");
+      setInventoryItems(
+        (inv || []).map((i: any) => ({
+          ...i,
+          initialStock: i.initial_stock,
+        })),
+      );
+
+      const { data: arch } = await supabase.from("archived_days").select("*");
+      setArchivedDays(arch || []);
+
+      const { data: prices } = await supabase
+        .from("products_prices")
+        .select("*");
+      setProductsPrices(prices || []);
+
+      const { data: configs } = await supabase
+        .from("system_configs")
+        .select("*");
+      const swimming =
+        configs?.find((c) => c.key === "swimming_prices")?.value || {};
+      setSwimmingPrices(swimming);
+
+      const courtPricesConfig =
+        configs?.find((c) => c.key === "court_prices")?.value || {};
+      setCourtPrices(courtPricesConfig);
+
+      const roster =
+        configs?.find((c) => c.key === "staff_roster")?.value || {};
+      setStaffRoster(roster);
+
+      const { data: bookings } = await supabase
+        .from("court_bookings")
+        .select("*");
+      setCourtBookings(
+        (bookings || []).map((b: any) => ({
+          id: b.id,
+          courtType: b.court_type,
+          courtSubNumber: b.court_sub_number,
+          dayName: b.day_name,
+          startTime: b.start_time,
+          duration: b.duration,
+          user: b.user_name,
+          isWeekly: b.is_weekly,
+          date: b.booking_date,
+          status: b.status,
+        })),
+      );
+
+      const { data: promos } = await supabase.from("promotions").select("*");
+      const today = new Date().toISOString().split("T")[0];
+      setPromotions(
+        (promos || []).filter(
+          (p: any) =>
+            p.active &&
+            (!p.start_date || p.start_date <= today) &&
+            (!p.end_date || p.end_date >= today),
+        ),
+      );
+
+      const { data: stds } = await supabase.from("students").select("*");
+      setStudents(
+        (stds || []).map((s: any) => ({
+          ...s,
+          fullName: s.full_name,
+          hasProfessor: s.has_professor,
+          lastPayment: s.last_payment,
+          expiryDate: s.expiry_date,
+        })),
+      );
+    } catch (error) {
+      console.error("Error loading Supabase data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEverything();
+
+    const channel = supabase
+      .channel("cashflow_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "transactions" },
+        fetchEverything,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const [open, setOpen] = useState(false);
   const [openAccountDialog, setOpenAccountDialog] = useState(false);
   const [openRosterDialog, setOpenRosterDialog] = useState(false);
-  const [view, setView] = useState(0); // 0: Flow, 1: Registry, 2: Inventory, 3: Accounts
+  const [openSummaryExport, setOpenSummaryExport] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [view, setView] = useState(0); // 0: Flow, 1: Registry, 2: Inventory, 3: Accounts, 4: Resumen
+  const [summaryMonth, setSummaryMonth] = useState(new Date().getMonth() + 1);
+  const [summaryYear, setSummaryYear] = useState(new Date().getFullYear());
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const [students, setStudents] = useState<StudentData[]>(() => {
-    const saved = localStorage.getItem("seccional_students");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [staffRoster, setStaffRoster] = useState<StaffRoster>(() => {
-    const saved = localStorage.getItem("seccional_staff_roster");
-    return saved ? JSON.parse(saved) : defaultRoster;
-  });
-
-  const [inventoryItems, setInventoryItems] = useState(() => {
-    const saved = localStorage.getItem("seccional_inventory");
-    if (saved) return JSON.parse(saved);
-
-    // Default items based on the user's price list and categorization rules
-    return [
-      {
-        id: 1,
-        name: "Agua chica",
-        category: "Bebidas",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 1000,
-      },
-      {
-        id: 2,
-        name: "Agua grande",
-        category: "Bebidas",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 2000,
-      },
-      {
-        id: 3,
-        name: "Aquarius 1500cc",
-        category: "Bebidas",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 3000,
-      },
-      {
-        id: 4,
-        name: "Aquarius 500cc",
-        category: "Bebidas",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 2000,
-      },
-      {
-        id: 5,
-        name: "Coca Cola 1500cc",
-        category: "Bebidas",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 3000,
-      },
-      {
-        id: 6,
-        name: "Coca Coca 500cc",
-        category: "Bebidas",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 2000,
-      },
-      {
-        id: 7,
-        name: "Powerade 500cc",
-        category: "Bebidas",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 3000,
-      },
-      {
-        id: 8,
-        name: "Monster",
-        category: "Bebidas",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 4000,
-      },
-      {
-        id: 9,
-        name: "Heineken",
-        category: "Bebidas",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 8000,
-      },
-      {
-        id: 10,
-        name: "Cereales",
-        category: "Snacks",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 3000,
-      },
-      {
-        id: 11,
-        name: "Papas fritas 20grs",
-        category: "Snacks",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 2000,
-      },
-      {
-        id: 12,
-        name: "Papas fritas 40grs",
-        category: "Snacks",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 3000,
-      },
-      {
-        id: 13,
-        name: "Manies-Palitos-Chizitos",
-        category: "Snacks",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 3000,
-      },
-      {
-        id: 14,
-        name: "Barra cereal",
-        category: "Snacks",
-        initialStock: 10,
-        entries: 0,
-        exits: 0,
-        price: 2000,
-      },
-    ];
-  });
-
-  const [archivedDays, setArchivedDays] = useState<ArchivedDay[]>(() => {
-    const saved = localStorage.getItem("seccional_archived_days");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Persistence Effects
-  useEffect(() => {
-    localStorage.setItem(
-      "seccional_transactions",
-      JSON.stringify(transactions),
-    );
-  }, [transactions]);
-
-  useEffect(() => {
-    localStorage.setItem("seccional_accounts", JSON.stringify(accountsData));
-  }, [accountsData]);
-
-  useEffect(() => {
-    localStorage.setItem("seccional_inventory", JSON.stringify(inventoryItems));
-  }, [inventoryItems]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "seccional_archived_days",
-      JSON.stringify(archivedDays),
-    );
-  }, [archivedDays]);
-
-  useEffect(() => {
-    localStorage.setItem("seccional_staff_roster", JSON.stringify(staffRoster));
-  }, [staffRoster]);
-
-  useEffect(() => {
-    localStorage.setItem("seccional_students", JSON.stringify(students));
-  }, [students]);
-
-  // Precios globales de productos para sincronizar con Inventario
-  const [productsPrices, setProductsPrices] = useState(() => {
-    const saved = localStorage.getItem("seccional_products_prices");
-    return saved
-      ? JSON.parse(saved)
-      : [
-        { id: 1, name: "Agua chica", price: 1000 },
-        { id: 2, name: "Agua grande", price: 2000 },
-        { id: 3, name: "Aquarius 1500cc", price: 3000 },
-        { id: 4, name: "Aquarius 500cc", price: 2000 },
-        { id: 5, name: "Coca Cola 1500cc", price: 3000 },
-        { id: 6, name: "Coca Coca 500cc", price: 2000 },
-        { id: 7, name: "Powerade 500cc", price: 3000 },
-        { id: 8, name: "Monster", price: 4000 },
-        { id: 9, name: "Heineken", price: 8000 },
-        { id: 10, name: "Cereales", price: 3000 },
-        { id: 11, name: "Papas fritas 20grs", price: 2000 },
-        { id: 12, name: "Papas fritas 40grs", price: 3000 },
-        { id: 13, name: "Manies-Palitos-Chizitos", price: 3000 },
-        { id: 14, name: "Barra cereal", price: 2000 },
-      ];
-  });
-
-  // --- NUEVOS ESTADOS COMPARTIDOS PARA INTEGRACIÓN NATACIÓN/FINANZAS ---
-
-  // Precios de Natación (Extraídos de PriceManager e inicializados aquí)
-  const [swimmingPrices, setSwimmingPrices] = useState(() => {
-    const saved = localStorage.getItem("seccional_swimming_prices");
-    return saved
-      ? JSON.parse(saved)
-      : {
-        conProfesor: {
-          v2: { total: 70000, club: 50000, prof: 20000 },
-          v3: { total: 80000, club: 53000, prof: 27000 },
-          v5: { total: 94000, club: 60000, prof: 34000 },
-        },
-        libre: {
-          v2: 63000,
-          v3: 70000,
-          v5: 86000,
-        },
-        porClase: { total: 15000, club: 10000, prof: 5000 },
-        porDiaLibre: 12000,
-        matronatacion: { total: 48000, club: 30000, prof: 18000 },
-        plantel: { total: 63000, club: 42000, prof: 21000 },
-      };
-  });
-
-  // Sync inventory items with centralized productsPrices
-  useEffect(() => {
-    setInventoryItems((prev: any[]) => {
-      // 1. Map existing items to update prices
-      const updatedExisting = prev.map((item) => {
-        const globalInfo = productsPrices.find(
-          (p: any) => p.name === item.name,
-        );
-        return globalInfo ? { ...item, price: globalInfo.price } : item;
-      });
-
-      // 2. Identify and add missing products from global list
-      const missingProducts = productsPrices
-        .filter((gp: any) => !prev.some((item) => item.name === gp.name))
-        .map((gp: any) => ({
-          id: gp.id,
-          name: gp.name,
-          category:
-            gp.name.toLowerCase().includes("agua") ||
-              gp.name.toLowerCase().includes("coca") ||
-              gp.name.toLowerCase().includes("aquarius") ||
-              gp.name.toLowerCase().includes("powerade") ||
-              gp.name.toLowerCase().includes("monster") ||
-              gp.name.toLowerCase().includes("heineken")
-              ? "Bebidas"
-              : "Snacks",
-          initialStock: 0,
-          entries: 0,
-          exits: 0,
-          price: gp.price,
-        }));
-
-      // Only updating if there are missing products or price changes to avoid infinite loop
-      // (React's setState with function handles this mostly, but we are returning a new array)
-      if (missingProducts.length === 0) {
-        // Check if prices actually changed to decide if we return new array
-        const pricesChanged = updatedExisting.some(
-          (item, idx) => item.price !== prev[idx]?.price,
-        );
-        if (!pricesChanged) return prev;
-      }
-
-      return [...updatedExisting, ...missingProducts];
-    });
-  }, [productsPrices]);
 
   const [formData, setFormData] = useState({
     type: "Ingreso",
@@ -488,6 +595,8 @@ export default function CashFlowManager() {
     search: "",
     type: "Todos",
     category: "Todas",
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
   });
 
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
@@ -521,52 +630,9 @@ export default function CashFlowManager() {
     formData.type === "Ingreso" &&
     formData.category.toLowerCase().includes("cancha");
 
-  const [courtBookings, setCourtBookings] = useState<any[]>([]);
   const [selectedBookingId, setSelectedBookingId] = useState<number | null>(
     null,
   );
-
-  const [promotions, setPromotions] = useState<any[]>(() => {
-    const saved = localStorage.getItem("seccional_promotions");
-    if (!saved) return [];
-    const parsed = JSON.parse(saved);
-    const today = new Date().toISOString().split("T")[0];
-    return parsed.filter((p: any) => p.active && (!p.startDate || p.startDate <= today) && (!p.endDate || p.endDate >= today));
-  });
-
-  useEffect(() => {
-    const loadBookings = () => {
-      const saved = localStorage.getItem("seccional_court_bookings");
-      if (saved) setCourtBookings(JSON.parse(saved));
-    };
-    const loadPrices = () => {
-      const savedProducts = localStorage.getItem("seccional_products_prices");
-      if (savedProducts) setProductsPrices(JSON.parse(savedProducts));
-      const savedSwimming = localStorage.getItem("seccional_swimming_prices");
-      if (savedSwimming) setSwimmingPrices(JSON.parse(savedSwimming));
-    };
-    const loadPromos = () => {
-      const saved = localStorage.getItem("seccional_promotions");
-      if (!saved) return;
-      const parsed = JSON.parse(saved);
-      const today = new Date().toISOString().split("T")[0];
-      setPromotions(parsed.filter((p: any) => p.active && (!p.startDate || p.startDate <= today) && (!p.endDate || p.endDate >= today)));
-    };
-
-    loadBookings();
-    loadPrices();
-    loadPromos();
-
-    window.addEventListener("court_bookings_updated", loadBookings);
-    window.addEventListener("prices_updated", loadPrices);
-    window.addEventListener("promotions_updated", loadPromos);
-
-    return () => {
-      window.removeEventListener("court_bookings_updated", loadBookings);
-      window.removeEventListener("prices_updated", loadPrices);
-      window.removeEventListener("promotions_updated", loadPromos);
-    };
-  }, []);
 
   const isAutoInvoice =
     formData.type === "Ingreso" &&
@@ -579,23 +645,66 @@ export default function CashFlowManager() {
     (formData.category.toLowerCase().includes("bebida") ||
       formData.category.toLowerCase().includes("snack"));
 
+  // Sync inventory items with centralized productsPrices
+  useEffect(() => {
+    if (productsPrices.length === 0) return;
+    setInventoryItems((prev: any[]) => {
+      // 1. Map existing items to update prices
+      const updatedExisting = prev.map((item) => {
+        const globalInfo = productsPrices.find(
+          (p: any) => p.name === item.name,
+        );
+        return globalInfo ? { ...item, price: globalInfo.price } : item;
+      });
+
+      // 2. Identify and add missing products from global list
+      const missingProducts = productsPrices
+        .filter((gp: any) => !prev.some((item) => item.name === gp.name))
+        .map((gp: any) => ({
+          name: gp.name,
+          category:
+            gp.name.toLowerCase().includes("agua") ||
+            gp.name.toLowerCase().includes("coca") ||
+            gp.name.toLowerCase().includes("aquarius") ||
+            gp.name.toLowerCase().includes("powerade") ||
+            gp.name.toLowerCase().includes("monster") ||
+            gp.name.toLowerCase().includes("heineken")
+              ? "Bebidas"
+              : "Snacks",
+          initialStock: 0,
+          entries: 0,
+          exits: 0,
+          price: gp.price,
+        }));
+
+      if (missingProducts.length === 0) {
+        const pricesChanged = updatedExisting.some(
+          (item, idx) => item.price !== prev[idx]?.price,
+        );
+        if (!pricesChanged) return prev;
+      }
+
+      return [...updatedExisting, ...missingProducts];
+    });
+  }, [productsPrices]);
+
   // Efecto para calcular el precio de Club automáticamente para Natación
   useEffect(() => {
-    if (isPileta) {
+    if (isPileta && swimmingPrices && Object.keys(swimmingPrices).length > 0) {
       let baseClubPrice = 0;
       const { planType, frequency } = swimmingSelection;
 
       if (planType === "conProfesor") {
         baseClubPrice =
-          (swimmingPrices.conProfesor as any)[frequency]?.club || 0;
+          (swimmingPrices.conProfesor as any)?.[frequency]?.club || 0;
       } else if (planType === "libre") {
-        baseClubPrice = (swimmingPrices.libre as any)[frequency] || 0;
+        baseClubPrice = (swimmingPrices.libre as any)?.[frequency] || 0;
       } else if (planType === "porDiaLibre") {
-        baseClubPrice = swimmingPrices.porDiaLibre;
+        baseClubPrice = swimmingPrices.porDiaLibre || 0;
       } else {
         baseClubPrice =
-          (swimmingPrices as any)[planType]?.club ||
-          (swimmingPrices as any)[planType] ||
+          (swimmingPrices as any)?.[planType]?.club ||
+          (swimmingPrices as any)?.[planType] ||
           0;
       }
 
@@ -630,7 +739,7 @@ export default function CashFlowManager() {
         planNames[swimmingSelection.planType] || swimmingSelection.planType;
       const freq =
         swimmingSelection.planType === "conProfesor" ||
-          swimmingSelection.planType === "libre"
+        swimmingSelection.planType === "libre"
           ? ` (${freqLabels[swimmingSelection.frequency] || ""})`
           : "";
       const period =
@@ -690,12 +799,12 @@ export default function CashFlowManager() {
     return `${prefix}${nextNumber.toString().padStart(8, "0")}`;
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!formData.category || !formData.amount) return;
 
     const formattedCategory = toTitleCase(formData.category.trim());
 
-    let finalInvoice = undefined;
+    let finalInvoice: string | undefined = undefined;
     if (isAutoInvoice) {
       finalInvoice = generateAutoInvoice();
     } else if (invoiceData.letter || invoiceData.num1 || invoiceData.num2) {
@@ -703,106 +812,78 @@ export default function CashFlowManager() {
 
       const isDuplicate = transactions.some((t) => t.invoice === finalInvoice);
       if (isDuplicate) {
-        setErrorMessage("Ya existe un movimiento con este número de comprobante/factura.");
+        setErrorMessage(
+          "Ya existe un movimiento con este número de comprobante/factura.",
+        );
         setShowError(true);
         return;
       }
     }
 
     let finalDesc = formData.description;
-    if (isPileta && !formData.description) {
-      const planNames: { [key: string]: string } = {
-        conProfesor: "Con Profesor",
-        libre: "Pileta Libre",
-        matronatacion: "Matronatación",
-        plantel: "Plantel",
-        porClase: "Clase Suelta",
-        porDiaLibre: "Día Libre",
-      };
-      const freqLabels: { [key: string]: string } = {
-        v2: "2 veces p/semana",
-        v3: "3 veces p/semana",
-        v5: "5 veces p/semana",
-      };
+    let studentToUpsert: any = null;
 
-      const studentName =
-        isCreatingStudent && newStudentData.fullName
-          ? newStudentData.fullName
-          : selectedStudent?.fullName || "Alumno";
-      const plan =
-        planNames[swimmingSelection.planType] || swimmingSelection.planType;
-      const freq =
-        swimmingSelection.planType === "conProfesor" ||
-          swimmingSelection.planType === "libre"
-          ? ` (${freqLabels[swimmingSelection.frequency] || ""})`
-          : "";
-      const period =
-        renewalDays === 30 ? "Mes" : renewalDays === 15 ? "Quincena" : "Semana";
+    // Automatic Description Logic
+    if (!finalDesc) {
+      if (isPileta) {
+        const studentName =
+          isCreatingStudent && newStudentData.fullName
+            ? newStudentData.fullName
+            : selectedStudent?.fullName || "Alumno";
 
-      finalDesc = `${plan}${freq} - ${studentName} (Periodo: ${period})`;
-    }
+        const period =
+          renewalDays === 30
+            ? "Mes"
+            : renewalDays === 15
+              ? "Quincena"
+              : "Semana";
 
-    const newTransaction: Transaction = {
-      id: Date.now(),
-      date: new Date().toISOString().split("T")[0],
-      type: formData.type as "Ingreso" | "Egreso",
-      category: formattedCategory,
-      amount: parseFloat(formData.amount),
-      paymentMethod: formData.paymentMethod as any,
-      invoice: finalInvoice,
-      description: finalDesc,
-    };
-
-    setTransactions([newTransaction, ...transactions]);
-
-    // Update account balance or create if missing
-    setAccountsData((prev) => {
-      const exists = prev.find((a) => a.name.toLowerCase() === formattedCategory.toLowerCase());
-      if (exists) {
-        return prev.map((acc) => {
-          if (acc.name.toLowerCase() === formattedCategory.toLowerCase()) {
-            return {
-              ...acc,
-              balance:
-                acc.balance +
-                (formData.type === "Ingreso"
-                  ? parseFloat(formData.amount)
-                  : -parseFloat(formData.amount)),
-            };
-          }
-          return acc;
-        });
-      } else {
-        // Create new account automatically
-        const newAcc: Account = {
-          id: Date.now(),
-          name: formattedCategory,
-          type: "Mixto",
-          balance:
-            formData.type === "Ingreso"
-              ? parseFloat(formData.amount)
-              : -parseFloat(formData.amount),
-          color: theme.palette.primary.main,
+        const planNames: { [key: string]: string } = {
+          conProfesor: "Con Profesor",
+          libre: "Pileta Libre",
+          matronatacion: "Matronatación",
+          plantel: "Plantel",
+          porClase: "Clase Suelta",
+          porDiaLibre: "Día Libre",
         };
-        return [...prev, newAcc];
-      }
-    });
+        const freqLabels: { [key: string]: string } = {
+          v2: "2 veces p/semana",
+          v3: "3 veces p/semana",
+          v5: "5 veces p/semana",
+        };
+        const plan =
+          planNames[swimmingSelection.planType] || swimmingSelection.planType;
+        const freq =
+          swimmingSelection.planType === "conProfesor" ||
+          swimmingSelection.planType === "libre"
+            ? ` (${freqLabels[swimmingSelection.frequency] || ""})`
+            : "";
 
-    // Handle Inventory Discount
-    if (shouldDiscountStock && selectedStockProduct) {
-      setInventoryItems((prev: any[]) =>
-        prev.map((item: any) =>
-          item.id === selectedStockProduct.id
-            ? { ...item, exits: item.exits + discountQuantity }
-            : item,
-        ),
-      );
+        finalDesc = `Renovación: ${studentName} - ${plan}${freq} (${period})`;
+      } else if (isInventoryCategory && selectedStockProduct) {
+        finalDesc = `Venta: ${selectedStockProduct.name} (x${discountQuantity})`;
+      } else if (isCourtCategory && selectedBookingId) {
+        const booking = courtBookings.find((b) => b.id === selectedBookingId);
+        if (booking) {
+          finalDesc = `Reserva Cancha: ${booking.user} (${booking.dayName} ${booking.startTime}hs)`;
+        } else {
+          finalDesc = `Pago de Cancha (${formattedCategory})`;
+        }
+      } else if (formattedCategory.toLowerCase().includes("kiosco")) {
+        finalDesc = "Venta Kiosco";
+      } else {
+        // Fallback description based on category if still empty
+        finalDesc = `${formattedCategory}`;
+      }
     }
 
-    // Handle Student Enrollment/Renewal
-    if (isPileta && selectedStudent) {
-      setStudents((prev) => {
-        const student = prev.find((s) => s.dni === selectedStudent.dni);
+    if (isPileta) {
+      if (selectedStudent || isCreatingStudent) {
+        const student = students.find(
+          (s) =>
+            s.dni ===
+            (isCreatingStudent ? newStudentData.dni : selectedStudent.dni),
+        );
         const today = new Date();
         const baseDate =
           student && student.expiryDate && new Date(student.expiryDate) > today
@@ -812,79 +893,77 @@ export default function CashFlowManager() {
         const newExpiry = new Date(baseDate);
         newExpiry.setDate(newExpiry.getDate() + renewalDays);
 
-        const updatedData = {
-          ...selectedStudent,
-          lastPayment: {
+        studentToUpsert = {
+          full_name: isCreatingStudent
+            ? newStudentData.fullName
+            : selectedStudent.fullName,
+          dni: isCreatingStudent ? newStudentData.dni : selectedStudent.dni,
+          phone: isCreatingStudent
+            ? newStudentData.phone
+            : selectedStudent.phone,
+          last_payment: {
             date: today.toISOString().split("T")[0],
             amount: parseFloat(formData.amount),
           },
-          expiryDate: newExpiry.toISOString().split("T")[0],
+          expiry_date: newExpiry.toISOString().split("T")[0],
         };
-
-        if (student) {
-          return prev.map((s) => (s.dni === student.dni ? updatedData : s));
-        } else {
-          return [...prev, { ...updatedData, id: Date.now() }];
-        }
-      });
+      }
     }
 
-    // Handle Court Booking Payment
-    if (selectedBookingId) {
-      const savedBookings = JSON.parse(
-        localStorage.getItem("seccional_court_bookings") || "[]",
-      );
-      const updatedBookings = savedBookings.map((b: any) =>
-        b.id === selectedBookingId ? { ...b, status: "Pagado" } : b,
-      );
-      localStorage.setItem(
-        "seccional_court_bookings",
-        JSON.stringify(updatedBookings),
-      );
-      window.dispatchEvent(new Event("court_bookings_updated"));
-      setSelectedBookingId(null);
-    }
-
-    setShowSuccess(true);
-    setFormData({
-      ...formData,
-      amount: "",
-      description: "",
-    });
-    setInvoiceData({ letter: "", num1: "", num2: "" });
-    setSelectedStudent(null);
-    setIsCreatingStudent(false);
-    setNewStudentData({ fullName: "", dni: "", phone: "" });
-
-    // Reset stock discount states
-    setShouldDiscountStock(false);
-    setSelectedStockProduct(null);
-    setDiscountQuantity(1);
-  };
-
-  const handleCreateAccount = () => {
-    if (!accountFormData.name) return;
-
-    const formattedName = toTitleCase(accountFormData.name.trim());
-
-    // Validate uniqueness
-    const exists = accountsData.some(a => a.name.toLowerCase() === formattedName.toLowerCase());
-    if (exists) {
-      setErrorMessage("Ya existe una cuenta con ese nombre.");
+    const parsedAmount = parseFloat(formData.amount);
+    if (isNaN(parsedAmount)) {
+      setErrorMessage("El monto ingresado no es un número válido.");
       setShowError(true);
       return;
     }
 
-    const newAcc: Account = {
-      id: Date.now(),
-      name: formattedName,
-      type: accountFormData.type as any,
-      balance: parseFloat(accountFormData.balance) || 0,
-      color: theme.palette.primary.main,
-    };
-    setAccountsData([...accountsData, newAcc]);
-    setOpenAccountDialog(false);
-    setAccountFormData({ name: "", type: "Ingreso", balance: "0" });
+    try {
+      const { error: txError } = await supabase.from("transactions").insert({
+        date: new Date().toISOString().split("T")[0],
+        type: formData.type,
+        category: formattedCategory,
+        amount: parsedAmount,
+        payment_method: formData.paymentMethod,
+        invoice: finalInvoice,
+        description: finalDesc,
+      });
+
+      if (txError) throw txError;
+
+      if (studentToUpsert) {
+        const { error: studentError } = await supabase
+          .from("students")
+          .upsert(studentToUpsert, { onConflict: "dni" });
+        if (studentError) throw studentError;
+      }
+
+      if (shouldDiscountStock && selectedStockProduct) {
+        const { error: invError } = await supabase
+          .from("inventory")
+          .update({
+            exits: (selectedStockProduct.exits || 0) + discountQuantity,
+          })
+          .eq("id", selectedStockProduct.id);
+        if (invError) throw invError;
+      }
+
+      if (selectedBookingId) {
+        const { error: bookingError } = await supabase
+          .from("court_bookings")
+          .update({ status: "Pagado" })
+          .eq("id", selectedBookingId);
+        if (bookingError) throw bookingError;
+      }
+
+      setShowSuccess(true);
+      fetchEverything();
+      handleCloseDialog();
+    } catch (error: any) {
+      console.error("Error in handleRegister:", error);
+      const detail = error.message || error.details || "Error desconocido";
+      setErrorMessage(`Error al registrar: ${detail}`);
+      setShowError(true);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -906,25 +985,644 @@ export default function CashFlowManager() {
     setDiscountQuantity(1);
   };
 
-  const filteredTransactions = transactions.filter((t) => {
-    const matchesSearch =
-      t.category.toLowerCase().includes(filters.search.toLowerCase()) ||
-      t.description.toLowerCase().includes(filters.search.toLowerCase());
-    const matchesType = filters.type === "Todos" || t.type === filters.type;
-    const matchesCategory =
-      filters.category === "Todas" || t.category === filters.category;
-    return matchesSearch && matchesType && matchesCategory;
-  });
+  const handleCreateAccount = async () => {
+    if (!accountFormData.name) return;
 
-  const categories = ["Todas", ...new Set(transactions.map((t) => t.category))];
+    const formattedName = toTitleCase(accountFormData.name.trim());
 
-  const totalIncomes = filteredTransactions
-    .filter((t) => t.type === "Ingreso")
-    .reduce((acc, t) => acc + t.amount, 0);
-  const totalExpenses = filteredTransactions
-    .filter((t) => t.type === "Egreso")
-    .reduce((acc, t) => acc + t.amount, 0);
-  const balance = totalIncomes - totalExpenses;
+    // Validate uniqueness
+    const exists = accountsData.some(
+      (a) => a.name.toLowerCase() === formattedName.toLowerCase(),
+    );
+    if (exists) {
+      setErrorMessage("Ya existe una cuenta con ese nombre.");
+      setShowError(true);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from("accounts").insert({
+        name: formattedName,
+        type: accountFormData.type,
+        balance: parseFloat(accountFormData.balance) || 0,
+        color: theme.palette.primary.main,
+      });
+
+      if (error) throw error;
+
+      setShowSuccess(true);
+      setOpenAccountDialog(false);
+      setAccountFormData({ name: "", type: "Ingreso", balance: "0" });
+      fetchEverything();
+    } catch (error) {
+      console.error("Error creating account:", error);
+      setErrorMessage("Error al crear la cuenta.");
+      setShowError(true);
+    }
+  };
+
+  const handleUpdateInventory = async (items: any[]) => {
+    setInventoryItems(items);
+    try {
+      // 1. Update inventory tracking
+      const { error: invError } = await supabase.from("inventory").upsert(
+        items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          initial_stock: item.initialStock,
+          entries: item.entries,
+          exits: item.exits,
+          price: item.price,
+        })),
+      );
+      if (invError) throw invError;
+
+      // 2. Sync global prices
+      const { error: priceError } = await supabase
+        .from("products_prices")
+        .upsert(
+          items.map((item) => ({
+            name: item.name,
+            price: item.price,
+          })),
+          { onConflict: "name" },
+        );
+      if (priceError) throw priceError;
+    } catch (error) {
+      console.error("Error updating inventory/prices:", error);
+    }
+  };
+
+  const handleArchiveDay = async (newDay: any) => {
+    try {
+      const { error } = await supabase.from("archived_days").insert({
+        date: newDay.date,
+        shifts: newDay.shifts,
+        total_balance: newDay.totalBalance,
+        movements: newDay.movements,
+      });
+      if (error) throw error;
+      fetchEverything();
+      setShowSuccess(true);
+    } catch (error) {
+      console.error("Error archiving day:", error);
+      setErrorMessage("Error al archivar la jornada.");
+      setShowError(true);
+    }
+  };
+
+  const handleSaveRoster = async () => {
+    try {
+      const { error } = await supabase
+        .from("system_configs")
+        .upsert(
+          { key: "staff_roster", value: staffRoster },
+          { onConflict: "key" },
+        );
+      if (error) throw error;
+      setOpenRosterDialog(false);
+      setShowSuccess(true);
+    } catch (error) {
+      console.error("Error saving roster:", error);
+      setErrorMessage("Error al guardar la configuración de personal.");
+      setShowError(true);
+    }
+  };
+
+  const handleDeleteTransaction = async (id: number) => {
+    if (
+      !window.confirm(
+        "¿Estás seguro de que deseas eliminar este movimiento? Esta acción no se puede deshacer y también eliminará las reservas de cancha asociadas.",
+      )
+    )
+      return;
+
+    try {
+      const txToDelete = transactions.find((t) => t.id === id);
+
+      const { error } = await supabase
+        .from("transactions")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      if (txToDelete && txToDelete.category?.toLowerCase().includes("cancha")) {
+        const descMatch = txToDelete.description.match(
+          /(?:Reserva|Pago) Cancha: (.*?) \((.*?) (.*?)hs\)/,
+        );
+        if (descMatch) {
+          const matchedUser = descMatch[1].trim();
+          const matchedDayName = descMatch[2].trim();
+          const matchedStartTime = descMatch[3].trim();
+
+          await supabase.from("court_bookings").delete().match({
+            user_name: matchedUser,
+            day_name: matchedDayName,
+            start_time: matchedStartTime,
+            status: "Pagado",
+          });
+        }
+      }
+
+      setErrorMessage("Movimiento eliminado correctamente.");
+      setShowSuccess(true);
+      fetchEverything();
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      setErrorMessage("Error al eliminar el movimiento.");
+      setShowError(true);
+    }
+  };
+
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((t) => {
+      const matchesSearch =
+        t.category.toLowerCase().includes(filters.search.toLowerCase()) ||
+        t.description.toLowerCase().includes(filters.search.toLowerCase());
+      const matchesType = filters.type === "Todos" || t.type === filters.type;
+      const matchesCategory =
+        filters.category === "Todas" || t.category === filters.category;
+      const matchesDate =
+        (!filters.startDate || t.date >= filters.startDate) &&
+        (!filters.endDate || t.date <= filters.endDate);
+      return matchesSearch && matchesType && matchesCategory && matchesDate;
+    });
+  }, [transactions, filters]);
+
+  const categories = useMemo(() => {
+    return ["Todas", ...new Set(transactions.map((t) => t.category))];
+  }, [transactions]);
+
+  const accountOptions = useMemo(() => {
+    return accountsData.map((a) => a.name);
+  }, [accountsData]);
+
+  const handleExportPDF = async () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Title
+    doc.setFontSize(20);
+    doc.setTextColor(26, 95, 122);
+    doc.text("Reporte de Flujo de Caja", 14, 22);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(
+      `Periodo: ${filters.startDate || "Inicio"} al ${filters.endDate || "Hoy"}`,
+      14,
+      35,
+    );
+
+    // Summary Box
+    doc.setDrawColor(230);
+    doc.setFillColor(245, 247, 250);
+    doc.roundedRect(14, 42, pageWidth - 28, 30, 2, 2, "F");
+
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text("Resumen del Periodo", 20, 50);
+
+    doc.setFontSize(10);
+    doc.text(`Total Ingresos: $${totalIncomes.toLocaleString()}`, 20, 58);
+    doc.text(`Total Egresos: $${totalExpenses.toLocaleString()}`, 20, 64);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Balance Neto: $${balance.toLocaleString()}`, pageWidth - 70, 64);
+    doc.setFont("helvetica", "normal");
+
+    // Capture Chart if exists
+    const chartElement = document.getElementById("cashflow-charts");
+    if (chartElement) {
+      const canvas = await html2canvas(chartElement, { scale: 2 });
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = pageWidth - 28;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      doc.addImage(imgData, "PNG", 14, 78, imgWidth, imgHeight);
+
+      // Start table after chart
+      autoTable(doc, {
+        startY: 78 + imgHeight + 10,
+        head: [
+          ["Fecha", "Tipo", "Categoría", "Descripción", "Monto", "Método"],
+        ],
+        body: filteredTransactions.map((t) => [
+          t.date,
+          t.type,
+          t.category,
+          t.description,
+          `$${t.amount.toLocaleString()}`,
+          t.paymentMethod,
+        ]),
+        headStyles: { fillColor: [26, 95, 122] },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+      });
+    } else {
+      autoTable(doc, {
+        startY: 78,
+        head: [
+          ["Fecha", "Tipo", "Categoría", "Descripción", "Monto", "Método"],
+        ],
+        body: filteredTransactions.map((t) => [
+          t.date,
+          t.type,
+          t.category,
+          t.description,
+          `$${t.amount.toLocaleString()}`,
+          t.paymentMethod,
+        ]),
+        headStyles: { fillColor: [26, 95, 122] },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+      });
+    }
+
+    doc.save(`Reporte_Caja_${filters.startDate}_v_${filters.endDate}.pdf`);
+  };
+
+  const handleExportCSV = () => {
+    const headers = [
+      "Fecha",
+      "Tipo",
+      "Categoría",
+      "Descripción",
+      "Monto",
+      "Método",
+      "Factura",
+    ];
+    const rows = filteredTransactions.map((t) => [
+      t.date,
+      t.type,
+      t.category,
+      t.description,
+      t.amount.toString(),
+      t.paymentMethod,
+      t.invoice || "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `flujo_caja_${filters.startDate}_al_${filters.endDate}.csv`,
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportSummaryPDF = async () => {
+    const monthNames = [
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
+    ];
+    const monthName = monthNames[summaryMonth - 1];
+
+    const monthlyTxs = transactions.filter((t) => {
+      const d = new Date(t.date);
+      return (
+        d.getMonth() + 1 === summaryMonth && d.getFullYear() === summaryYear
+      );
+    });
+    setOpenSummaryExport(false);
+    setIsGeneratingPDF(true);
+
+    try {
+      // Use landscape for better layout on a single page
+      const doc = new jsPDF("l", "pt", "a4");
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // compact Header
+      doc.setFillColor(26, 95, 122);
+      doc.rect(0, 0, pageWidth, 50, "F");
+      doc.setFontSize(22);
+      doc.setTextColor(255);
+      doc.setFont("helvetica", "bold");
+      doc.text("INFORME DE GESTIÓN MENSUAL", 30, 32);
+      doc.setFontSize(14);
+      doc.text(
+        `${monthName.toUpperCase()} ${summaryYear}`,
+        pageWidth - 30,
+        32,
+        { align: "right" },
+      );
+
+      // Stats Grid - Row 1
+      const mIncomes = monthlyTxs
+        .filter((t) => t.type === "Ingreso")
+        .reduce((acc, t) => acc + t.amount, 0);
+      const mExpenses = monthlyTxs
+        .filter((t) => t.type === "Egreso")
+        .reduce((acc, t) => acc + t.amount, 0);
+
+      doc.setTextColor(40);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("INGRESOS TOTALES", 40, 75);
+      doc.text("EGRESOS TOTALES", 200, 75);
+      doc.text("RESULTADO NETO", 360, 75);
+
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(46, 125, 50); // green
+      doc.text(`$${mIncomes.toLocaleString()}`, 40, 95);
+      doc.setTextColor(211, 47, 47); // red
+      doc.text(`$${mExpenses.toLocaleString()}`, 200, 95);
+      doc.setTextColor(26, 95, 122); // blue
+      doc.text(`$${(mIncomes - mExpenses).toLocaleString()}`, 360, 95);
+
+      // Main Content: Table (Left) + Charts (Right)
+      const cats: { [key: string]: number } = {};
+      monthlyTxs
+        .filter((t) => t.type === "Ingreso")
+        .forEach(
+          (t) => (cats[t.category] = (cats[t.category] || 0) + t.amount),
+        );
+
+      autoTable(doc, {
+        startY: 120,
+        margin: { left: 30 },
+        tableWidth: 350,
+        head: [["Categoría de Ingreso", "Importe"]],
+        body: Object.entries(cats).map(([name, val]) => [
+          name,
+          `$${val.toLocaleString()}`,
+        ]),
+        theme: "striped",
+        headStyles: { fillColor: [26, 95, 122], fontSize: 9 },
+        bodyStyles: { fontSize: 8 },
+      });
+
+      const chartElement = document.getElementById("cashflow-charts");
+      if (chartElement) {
+        const canvas = await html2canvas(chartElement, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+        });
+        const imgData = canvas.toDataURL("image/png");
+
+        // Fit charts on the right side of the page
+        const chartX = 400;
+        const chartWidth = pageWidth - 430;
+        const chartHeight = (canvas.height * chartWidth) / canvas.width;
+
+        doc.addImage(imgData, "PNG", chartX, 120, chartWidth, chartHeight);
+      }
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(
+        `Generado automáticamente el ${new Date().toLocaleString()}`,
+        30,
+        pageHeight - 20,
+      );
+
+      doc.save(`Resumen_${monthName}_${summaryYear}.pdf`);
+      setShowSuccess(true);
+    } catch (error) {
+      console.error("PDF Error:", error);
+      setErrorMessage("Error al generar el PDF. Reintentando...");
+      setShowError(true);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const chartData = useMemo(() => {
+    const daily: { [key: string]: any } = {};
+    filteredTransactions.forEach((t) => {
+      if (!daily[t.date])
+        daily[t.date] = { date: t.date, ingreso: 0, egreso: 0 };
+      if (t.type === "Ingreso") daily[t.date].ingreso += t.amount;
+      else daily[t.date].egreso += t.amount;
+    });
+    return Object.values(daily).sort((a, b) => a.date.localeCompare(b.date));
+  }, [filteredTransactions]);
+
+  const pieData = useMemo(() => {
+    const cats: { [key: string]: number } = {};
+    filteredTransactions
+      .filter((t) => t.type === "Ingreso")
+      .forEach((t) => {
+        cats[t.category] = (cats[t.category] || 0) + t.amount;
+      });
+    return Object.entries(cats).map(([name, value]) => ({ name, value }));
+  }, [filteredTransactions]);
+
+  const COLORS = [
+    "#1a5f7a",
+    "#c1121f",
+    "#ffb703",
+    "#8ecae6",
+    "#4caf50",
+    "#9c27b0",
+  ];
+
+  const dashboardData = useMemo(() => {
+    const monthlyTxs = transactions.filter((t) => {
+      const d = new Date(t.date);
+      return (
+        d.getMonth() + 1 === summaryMonth && d.getFullYear() === summaryYear
+      );
+    });
+
+    const income = monthlyTxs
+      .filter((t) => t.type === "Ingreso")
+      .reduce((acc, t) => acc + t.amount, 0);
+    const expense = monthlyTxs
+      .filter((t) => t.type === "Egreso")
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const daily: { [key: string]: any } = {};
+    const methodMap: { [key: string]: number } = {};
+    const weekdayMap: { [key: string]: number } = {
+      Lunes: 0,
+      Martes: 0,
+      Miércoles: 0,
+      Jueves: 0,
+      Viernes: 0,
+      Sábado: 0,
+      Domingo: 0,
+    };
+    const daysArr = [
+      "Domingo",
+      "Lunes",
+      "Martes",
+      "Miércoles",
+      "Jueves",
+      "Viernes",
+      "Sábado",
+    ];
+
+    const categoryStats: {
+      [key: string]: { income: number; expense: number };
+    } = {};
+
+    const studentRank: { [key: string]: number } = {};
+    const productSales: { [key: string]: number } = {};
+
+    monthlyTxs.forEach((t) => {
+      // Daily dynamics
+      if (!daily[t.date])
+        daily[t.date] = { date: t.date, ingreso: 0, egreso: 0 };
+      if (t.type === "Ingreso") daily[t.date].ingreso += t.amount;
+      else daily[t.date].egreso += t.amount;
+
+      // Method distribution
+      methodMap[t.paymentMethod] = (methodMap[t.paymentMethod] || 0) + t.amount;
+
+      // Weekday activity (Concurrence proxy)
+      const dayName = daysArr[new Date(t.date).getDay()];
+      weekdayMap[dayName]++;
+
+      // Category breakdown
+      if (!categoryStats[t.category])
+        categoryStats[t.category] = { income: 0, expense: 0 };
+      if (t.type === "Ingreso") categoryStats[t.category].income += t.amount;
+      else categoryStats[t.category].expense += t.amount;
+
+      // Student activity extraction
+      if (
+        t.category.toLowerCase().includes("pileta") ||
+        t.category.toLowerCase().includes("natación")
+      ) {
+        const parts = t.description.split(" - ");
+        const name = parts[1] || parts[0];
+        if (name && name !== "N/A" && name.length > 3) {
+          studentRank[name] = (studentRank[name] || 0) + 1;
+        }
+      }
+
+      // Product sales volume
+      if (
+        t.category.toLowerCase().includes("bebida") ||
+        t.category.toLowerCase().includes("snack")
+      ) {
+        productSales[t.description] = (productSales[t.description] || 0) + 1;
+      }
+    });
+
+    const incomeCats = Object.entries(categoryStats)
+      .filter(([_, v]) => v.income > 0)
+      .sort((a, b) => b[1].income - a[1].income);
+    const expenseCats = Object.entries(categoryStats)
+      .filter(([_, v]) => v.expense > 0)
+      .sort((a, b) => b[1].expense - a[1].expense);
+
+    // Annual Concurrence Trend
+    const monthNames = [
+      "Ene",
+      "Feb",
+      "Mar",
+      "Abr",
+      "May",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dic",
+    ];
+    const annualTrend = monthNames.map((name, i) => {
+      const ops = transactions.filter((t) => {
+        const d = new Date(t.date);
+        return d.getMonth() === i && d.getFullYear() === summaryYear;
+      }).length;
+      return { name, concurrencia: ops };
+    });
+
+    // Stock vs Sales Data
+    const stockVsSales = inventoryItems
+      .slice(0, 10)
+      .map((item) => ({
+        name: item.name,
+        stock:
+          (item.initialStock || 0) + (item.entries || 0) - (item.exits || 0),
+        ventasMes: productSales[item.name] || 0,
+      }))
+      .sort((a, b) => b.ventasMes - a.ventasMes);
+
+    return {
+      monthlyTxs,
+      income,
+      expense,
+      net: income - expense,
+      topIncomeCat: incomeCats[0] ? incomeCats[0][0] : "N/A",
+      topExpenseCat: expenseCats[0] ? expenseCats[0][0] : "N/A",
+      dailyChart: Object.values(daily).sort((a, b) =>
+        a.date.localeCompare(b.date),
+      ),
+      pieChart: incomeCats.map(([name, v]) => ({ name, value: v.income })),
+      methodChart: Object.entries(methodMap).map(([name, value]) => ({
+        name,
+        value,
+      })),
+      activityChart: Object.entries(weekdayMap).map(([name, value]) => ({
+        name,
+        value,
+      })),
+      studentRanking: Object.entries(studentRank)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5),
+      annualTrend,
+      stockVsSales,
+    };
+  }, [transactions, summaryMonth, summaryYear, inventoryItems]);
+
+  const accountsSummary = useMemo(() => {
+    return accountsData.map((acc) => {
+      const accIncomes = transactions
+        .filter((t) => t.category === acc.name && t.type === "Ingreso")
+        .reduce((sum, t) => sum + t.amount, 0);
+      const accExpenses = transactions
+        .filter((t) => t.category === acc.name && t.type === "Egreso")
+        .reduce((sum, t) => sum + t.amount, 0);
+      return {
+        ...acc,
+        accIncomes,
+        accExpenses,
+        accBalance: accIncomes - accExpenses,
+      };
+    });
+  }, [accountsData, transactions]);
+
+  const { totalIncomes, totalExpenses, balance } = useMemo(() => {
+    const income = filteredTransactions
+      .filter((t) => t.type === "Ingreso")
+      .reduce((acc, t) => acc + t.amount, 0);
+    const expense = filteredTransactions
+      .filter((t) => t.type === "Egreso")
+      .reduce((acc, t) => acc + t.amount, 0);
+    return {
+      totalIncomes: income,
+      totalExpenses: expense,
+      balance: income - expense,
+    };
+  }, [filteredTransactions]);
   return (
     <Box>
       <Box
@@ -969,6 +1667,12 @@ export default function CashFlowManager() {
             iconPosition="start"
             sx={{ minHeight: 40 }}
           />
+          <Tab
+            icon={<AssessmentIcon sx={{ fontSize: 20 }} />}
+            label="Resumen"
+            iconPosition="start"
+            sx={{ minHeight: 40 }}
+          />
         </Tabs>
 
         <Typography
@@ -984,46 +1688,31 @@ export default function CashFlowManager() {
       </Box>
 
       {view === 0 && (
-        <Box sx={{ mb: 4 }}>
-          <Button
-            variant="contained"
-            fullWidth
-            size="large"
-            startIcon={<AddIcon sx={{ fontSize: 24 }} />}
-            onClick={() => setOpen(true)}
-            sx={{
-              py: 2,
-              fontSize: "1.1rem",
-              fontWeight: 900,
-              borderRadius: 3,
-              boxShadow: theme.shadows[4],
-              "&:hover": {
-                boxShadow: theme.shadows[8],
-                transform: "translateY(-2px)",
-              },
-              transition: "all 0.2s",
-            }}
-          >
-            REGISTRAR NUEVO MOVIMIENTO
-          </Button>
-        </Box>
-      )}
-
-      <Box sx={{ mb: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
-        {view === 3 && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setOpenAccountDialog(true)}
-          >
-            Nueva Cuenta
-          </Button>
-        )}
-      </Box>
-
-      {view === 0 && (
         <>
-          {/* Filters Row */}
+          <Box sx={{ mb: 4 }}>
+            <Button
+              variant="contained"
+              fullWidth
+              size="large"
+              startIcon={<AddIcon sx={{ fontSize: 24 }} />}
+              onClick={() => setOpen(true)}
+              sx={{
+                py: 2,
+                fontSize: "1.1rem",
+                fontWeight: 900,
+                borderRadius: 3,
+                boxShadow: theme.shadows[4],
+                "&:hover": {
+                  boxShadow: theme.shadows[8],
+                  transform: "translateY(-2px)",
+                },
+                transition: "all 0.2s",
+              }}
+            >
+              REGISTRAR NUEVO MOVIMIENTO
+            </Button>
+          </Box>
+
           <Paper
             elevation={0}
             sx={{
@@ -1036,7 +1725,7 @@ export default function CashFlowManager() {
             }}
           >
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <Box
                   sx={{
                     display: "flex",
@@ -1049,17 +1738,23 @@ export default function CashFlowManager() {
                   }}
                 >
                   <SearchIcon color="action" fontSize="small" />
-                  <InputBase
-                    placeholder="Buscar descripción o categoría..."
-                    sx={{ ml: 1, flex: 1, fontSize: "0.9rem", py: 0.5 }}
+                  <OptimizedTextField
+                    placeholder="Buscar..."
+                    sx={{ ml: 1, flex: 1 }}
+                    InputProps={{
+                      sx: {
+                        fontSize: "0.9rem",
+                        py: 0.5,
+                        "& fieldset": { border: "none" },
+                      },
+                    }}
                     value={filters.search}
-                    onChange={(e) =>
-                      setFilters({ ...filters, search: e.target.value })
-                    }
+                    debounceMs={300}
+                    onChange={(val) => setFilters({ ...filters, search: val })}
                   />
                 </Box>
               </Grid>
-              <Grid item xs={6} md={2}>
+              <Grid item xs={6} md={1.5}>
                 <TextField
                   select
                   size="small"
@@ -1070,12 +1765,12 @@ export default function CashFlowManager() {
                   }
                   InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
                 >
-                  <MenuItem value="Todos">Todos los tipos</MenuItem>
+                  <MenuItem value="Todos">Todos</MenuItem>
                   <MenuItem value="Ingreso">Ingresos</MenuItem>
                   <MenuItem value="Egreso">Egresos</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={6} md={2}>
+              <Grid item xs={6} md={1.5}>
                 <TextField
                   select
                   size="small"
@@ -1093,28 +1788,57 @@ export default function CashFlowManager() {
                   ))}
                 </TextField>
               </Grid>
+              <Grid item xs={6} md={2}>
+                <TextField
+                  type="date"
+                  label="Desde"
+                  size="small"
+                  fullWidth
+                  value={filters.startDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, startDate: e.target.value })
+                  }
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
+                />
+              </Grid>
+              <Grid item xs={6} md={2}>
+                <TextField
+                  type="date"
+                  label="Hasta"
+                  size="small"
+                  fullWidth
+                  value={filters.endDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, endDate: e.target.value })
+                  }
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
+                />
+              </Grid>
               <Grid
                 item
                 xs={12}
-                md={4}
+                md={2}
                 sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}
               >
                 <Button
                   startIcon={<DownloadIcon />}
-                  variant="outlined"
+                  variant="contained"
+                  fullWidth
+                  onClick={handleExportCSV}
                   sx={{
                     borderRadius: 2,
                     fontWeight: 700,
                     textTransform: "none",
                   }}
                 >
-                  Exportar
+                  EXP. EXCEL/CSV
                 </Button>
               </Grid>
             </Grid>
           </Paper>
 
-          {/* Summary Grid */}
           <Grid container spacing={2} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={3}>
               <Paper
@@ -1135,7 +1859,7 @@ export default function CashFlowManager() {
                       variant="caption"
                       sx={{ fontWeight: 700, color: "success.main" }}
                     >
-                      INGRESOS (ESTE DÍA)
+                      INGRESOS (RANGO)
                     </Typography>
                     <Typography variant="h5" sx={{ fontWeight: 800 }}>
                       ${(totalIncomes || 0).toLocaleString()}
@@ -1163,7 +1887,7 @@ export default function CashFlowManager() {
                       variant="caption"
                       sx={{ fontWeight: 700, color: "error.main" }}
                     >
-                      EGRESOS (ESTE DÍA)
+                      EGRESOS (RANGO)
                     </Typography>
                     <Typography variant="h5" sx={{ fontWeight: 800 }}>
                       ${(totalExpenses || 0).toLocaleString()}
@@ -1191,7 +1915,7 @@ export default function CashFlowManager() {
                       variant="caption"
                       sx={{ fontWeight: 700, color: "primary.main" }}
                     >
-                      BALANCE (ESTE DÍA)
+                      BALANCE (RANGO)
                     </Typography>
                     <Typography variant="h5" sx={{ fontWeight: 800 }}>
                       ${(balance || 0).toLocaleString()}
@@ -1200,178 +1924,15 @@ export default function CashFlowManager() {
                 </Stack>
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: 3,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  height: "100%",
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 800,
-                    color: "text.secondary",
-                    display: "block",
-                    mb: 1.5,
-                  }}
-                >
-                  INGRESOS POR MÉTODO (HOY)
-                </Typography>
-                <Stack spacing={1}>
-                  {["Efectivo", "Transferencia"].map((method) => {
-                    const mappedName =
-                      method === "Efectivo"
-                        ? "Caja Azucena (Efvo)"
-                        : "Banco Ficticio (Transf)";
-                    const amount = filteredTransactions
-                      .filter(
-                        (t) =>
-                          t.type === "Ingreso" && t.paymentMethod === method,
-                      )
-                      .reduce((acc, t) => acc + t.amount, 0);
-                    const percentage =
-                      totalIncomes > 0 ? (amount / totalIncomes) * 100 : 0;
-
-                    return (
-                      <Box key={method}>
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          sx={{ mb: 0.5 }}
-                        >
-                          <Typography
-                            sx={{ fontSize: "0.75rem", fontWeight: 700 }}
-                          >
-                            {mappedName}
-                          </Typography>
-                          <Typography
-                            sx={{ fontSize: "0.75rem", fontWeight: 800 }}
-                          >
-                            ${(amount || 0).toLocaleString()}
-                          </Typography>
-                        </Stack>
-                        <Box
-                          sx={{
-                            height: 4,
-                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                            borderRadius: 1,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              height: "100%",
-                              width: `${percentage}%`,
-                              bgcolor: "primary.main",
-                              borderRadius: 1,
-                            }}
-                          />
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              </Paper>
-            </Grid>
           </Grid>
 
-          <TableContainer
-            component={Paper}
-            elevation={0}
-            sx={{
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 3,
-            }}
-          >
-            <Table>
-              <TableHead
-                sx={{ bgcolor: alpha(theme.palette.primary.main, 0.02) }}
-              >
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Fecha</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Tipo</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Categoría</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Descripción</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Método</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Comprobante</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>
-                    Importe
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredTransactions.map((t) => (
-                  <TableRow key={t.id} hover>
-                    <TableCell sx={{ fontSize: "0.85rem", fontWeight: 600 }}>
-                      {t.date}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={t.type}
-                        size="small"
-                        color={t.type === "Ingreso" ? "success" : "error"}
-                        variant="outlined"
-                        sx={{ fontWeight: 700, fontSize: "0.7rem" }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: "0.85rem",
-                          color: "primary.main",
-                        }}
-                      >
-                        {t.category}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ fontSize: "0.85rem" }}>
-                      {t.description}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={t.paymentMethod}
-                        size="small"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: "0.7rem",
-                          bgcolor: alpha(theme.palette.primary.main, 0.1),
-                          color: "primary.dark",
-                          border: "none",
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontSize: "0.85rem", color: "text.secondary" }}
-                    >
-                      {t.invoice || "-"}
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography
-                        sx={{
-                          fontWeight: 800,
-                          color:
-                            t.type === "Ingreso"
-                              ? "success.main"
-                              : "error.main",
-                        }}
-                      >
-                        {t.type === "Ingreso" ? "+" : "-"}$
-                        {(t.amount || 0).toLocaleString()}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
+          <Box sx={{ mt: 4 }}>
+            <MemoizedTransactionsTable
+              transactions={filteredTransactions}
+              onDelete={handleDeleteTransaction}
+              accountsData={accountsData}
+            />
+          </Box>
           <Dialog
             open={open}
             onClose={handleCloseDialog}
@@ -1425,7 +1986,7 @@ export default function CashFlowManager() {
                 <Box>
                   <Autocomplete
                     freeSolo
-                    options={accountsData.map((a) => a.name)}
+                    options={accountOptions}
                     value={formData.category}
                     onInputChange={(_, newValue) =>
                       setFormData({ ...formData, category: newValue })
@@ -1548,26 +2109,26 @@ export default function CashFlowManager() {
 
                         {(swimmingSelection.planType === "conProfesor" ||
                           swimmingSelection.planType === "libre") && (
-                            <Grid item xs={12} sm={6}>
-                              <TextField
-                                select
-                                label="Frecuencia"
-                                fullWidth
-                                size="small"
-                                value={swimmingSelection.frequency}
-                                onChange={(e) =>
-                                  setSwimmingSelection({
-                                    ...swimmingSelection,
-                                    frequency: e.target.value,
-                                  })
-                                }
-                              >
-                                <MenuItem value="v2">2 veces p/semana</MenuItem>
-                                <MenuItem value="v3">3 veces p/semana</MenuItem>
-                                <MenuItem value="v5">5 veces p/semana</MenuItem>
-                              </TextField>
-                            </Grid>
-                          )}
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              select
+                              label="Frecuencia"
+                              fullWidth
+                              size="small"
+                              value={swimmingSelection.frequency}
+                              onChange={(e) =>
+                                setSwimmingSelection({
+                                  ...swimmingSelection,
+                                  frequency: e.target.value,
+                                })
+                              }
+                            >
+                              <MenuItem value="v2">2 veces p/semana</MenuItem>
+                              <MenuItem value="v3">3 veces p/semana</MenuItem>
+                              <MenuItem value="v5">5 veces p/semana</MenuItem>
+                            </TextField>
+                          </Grid>
+                        )}
 
                         <Grid item xs={12}>
                           <TextField
@@ -1642,11 +2203,11 @@ export default function CashFlowManager() {
                       initialData={
                         studentSearchInput
                           ? ({
-                            fullName: studentSearchInput,
-                            dni: "",
-                            phone: "",
-                            schedule: {},
-                          } as any)
+                              fullName: studentSearchInput,
+                              dni: "",
+                              phone: "",
+                              schedule: {},
+                            } as any)
                           : null
                       }
                       onSave={(student) => {
@@ -1719,10 +2280,21 @@ export default function CashFlowManager() {
                         onChange={(_, newValue) => {
                           setSelectedBookingId(newValue ? newValue.id : null);
                           if (newValue) {
-                            // Si se selecciona una reserva, se podría sugerir el precio, por ahora permitimos que sigan usando el default o lo ingresen
+                            // Calculate price based on courtPrices and duration
+                            // Note: We use Math.ceil to allow for increments or fractional hour pricing if needed, usually duration is in minutes. 1 hour = 60 mins.
+                            const durationInHours = newValue.duration / 60;
+                            const courtPricePerHour =
+                              courtPrices[newValue.courtType] || 0;
+                            const totalToPay =
+                              courtPricePerHour > 0
+                                ? courtPricePerHour * Math.ceil(durationInHours)
+                                : 0;
+
                             setFormData((prev) => ({
                               ...prev,
                               description: `Pago Cancha: ${newValue.user} (${newValue.dayName} ${newValue.startTime}hs)`,
+                              amount:
+                                totalToPay > 0 ? totalToPay.toString() : "",
                             }));
                           }
                         }}
@@ -1833,14 +2405,12 @@ export default function CashFlowManager() {
                   </Paper>
                 )}
 
-                <TextField
+                <OptimizedTextField
                   label="Importe"
                   fullWidth
                   type="number"
                   value={formData.amount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, amount: e.target.value })
-                  }
+                  onChange={(val) => setFormData({ ...formData, amount: val })}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">$</InputAdornment>
@@ -1858,7 +2428,7 @@ export default function CashFlowManager() {
                   </Typography>
                   <Grid container spacing={1}>
                     <Grid item xs={3}>
-                      <TextField
+                      <OptimizedTextField
                         placeholder="A"
                         disabled={isAutoInvoice}
                         inputProps={{
@@ -1869,13 +2439,11 @@ export default function CashFlowManager() {
                           },
                         }}
                         value={isAutoInvoice ? "C" : invoiceData.letter}
-                        onChange={(e) =>
-                          handleInvoiceChange("letter", e.target.value)
-                        }
+                        onChange={(val) => handleInvoiceChange("letter", val)}
                       />
                     </Grid>
                     <Grid item xs={4}>
-                      <TextField
+                      <OptimizedTextField
                         id="invoice-num1"
                         placeholder="0001"
                         disabled={isAutoInvoice}
@@ -1884,13 +2452,11 @@ export default function CashFlowManager() {
                           style: { textAlign: "center" },
                         }}
                         value={isAutoInvoice ? "0100" : invoiceData.num1}
-                        onChange={(e) =>
-                          handleInvoiceChange("num1", e.target.value)
-                        }
+                        onChange={(val) => handleInvoiceChange("num1", val)}
                       />
                     </Grid>
                     <Grid item xs={5}>
-                      <TextField
+                      <OptimizedTextField
                         id="invoice-num2"
                         placeholder={isAutoInvoice ? "AUTO" : "00000000"}
                         disabled={isAutoInvoice}
@@ -1899,9 +2465,7 @@ export default function CashFlowManager() {
                           style: { textAlign: "center" },
                         }}
                         value={isAutoInvoice ? "" : invoiceData.num2}
-                        onChange={(e) =>
-                          handleInvoiceChange("num2", e.target.value)
-                        }
+                        onChange={(val) => handleInvoiceChange("num2", val)}
                         helperText={isAutoInvoice ? "Asignado por sistema" : ""}
                         FormHelperTextProps={{
                           sx: { fontWeight: 700, color: "primary.main" },
@@ -1911,14 +2475,14 @@ export default function CashFlowManager() {
                   </Grid>
                 </Box>
 
-                <TextField
+                <OptimizedTextField
                   label="Descripción"
                   fullWidth
                   multiline
                   rows={2}
                   value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
+                  onChange={(val) =>
+                    setFormData({ ...formData, description: val })
                   }
                 />
               </Stack>
@@ -1939,23 +2503,23 @@ export default function CashFlowManager() {
         </>
       )}
       {view === 1 && (
-        <CashRegistry
+        <MemoizedCashRegistry
           transactions={transactions}
           inventoryItems={inventoryItems}
-          onUpdateInventory={setInventoryItems}
+          onUpdateInventory={handleUpdateInventory}
           archivedDays={archivedDays}
-          onArchiveDay={(newDay: ArchivedDay) =>
-            setArchivedDays([newDay, ...archivedDays])
-          }
+          onArchiveDay={handleArchiveDay}
           staffRoster={staffRoster}
           onOpenRoster={() => setOpenRosterDialog(true)}
         />
       )}
       {view === 2 && (
-        <InventoryManager
-          items={inventoryItems}
-          onUpdateItems={setInventoryItems}
-        />
+        <Box sx={{ mt: 4 }}>
+          <MemoizedInventoryManager
+            items={inventoryItems}
+            onUpdateItems={handleUpdateInventory}
+          />
+        </Box>
       )}
       {view === 3 && (
         <TableContainer
@@ -1967,6 +2531,17 @@ export default function CashFlowManager() {
             borderRadius: 3,
           }}
         >
+          <Box
+            sx={{ mb: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}
+          >
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setOpenAccountDialog(true)}
+            >
+              Nueva Cuenta
+            </Button>
+          </Box>
           <Table>
             <TableHead
               sx={{ bgcolor: alpha(theme.palette.primary.main, 0.02) }}
@@ -1989,17 +2564,7 @@ export default function CashFlowManager() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {accountsData.map((acc) => {
-                const accIncomes = transactions
-                  .filter(
-                    (t) => t.category === acc.name && t.type === "Ingreso",
-                  )
-                  .reduce((sum, t) => sum + t.amount, 0);
-                const accExpenses = transactions
-                  .filter((t) => t.category === acc.name && t.type === "Egreso")
-                  .reduce((sum, t) => sum + t.amount, 0);
-                const accBalance = accIncomes - accExpenses;
-
+              {accountsSummary.map((acc) => {
                 return (
                   <TableRow key={acc.id} hover>
                     <TableCell>
@@ -2029,12 +2594,12 @@ export default function CashFlowManager() {
                       <Typography
                         sx={{ fontWeight: 700, color: "success.main" }}
                       >
-                        ${(accIncomes || 0).toLocaleString()}
+                        ${(acc.accIncomes || 0).toLocaleString()}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
                       <Typography sx={{ fontWeight: 700, color: "error.main" }}>
-                        ${(accExpenses || 0).toLocaleString()}
+                        ${(acc.accExpenses || 0).toLocaleString()}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
@@ -2042,10 +2607,10 @@ export default function CashFlowManager() {
                         sx={{
                           fontWeight: 900,
                           color:
-                            accBalance >= 0 ? "primary.main" : "error.main",
+                            acc.accBalance >= 0 ? "primary.main" : "error.main",
                         }}
                       >
-                        ${(accBalance || 0).toLocaleString()}
+                        ${(acc.accBalance || 0).toLocaleString()}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
@@ -2067,6 +2632,76 @@ export default function CashFlowManager() {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {view === 4 && (
+        <Box sx={{ mt: 4 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 4,
+            }}
+          >
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                Dashboard:
+              </Typography>
+              <TextField
+                select
+                size="small"
+                value={summaryMonth}
+                onChange={(e) => setSummaryMonth(parseInt(e.target.value))}
+                sx={{ width: 150 }}
+              >
+                {[
+                  "Enero",
+                  "Febrero",
+                  "Marzo",
+                  "Abril",
+                  "Mayo",
+                  "Junio",
+                  "Julio",
+                  "Agosto",
+                  "Septiembre",
+                  "Octubre",
+                  "Noviembre",
+                  "Diciembre",
+                ].map((m, i) => (
+                  <MenuItem key={m} value={i + 1}>
+                    {m}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                type="number"
+                size="small"
+                value={summaryYear}
+                onChange={(e) => setSummaryYear(parseInt(e.target.value))}
+                sx={{ width: 100 }}
+              />
+            </Stack>
+            <Button
+              variant="contained"
+              startIcon={<AssessmentIcon />}
+              disabled={isGeneratingPDF}
+              onClick={() => setOpenSummaryExport(true)}
+              sx={{ fontWeight: 700, borderRadius: 2 }}
+            >
+              {isGeneratingPDF
+                ? "Generando..."
+                : "Exportar Reporte Mensual PDF"}
+            </Button>
+          </Box>
+
+          <MemoizedSummary
+            data={dashboardData}
+            totalIncomes={totalIncomes}
+            totalExpenses={totalExpenses}
+            balance={balance}
+          />
+        </Box>
       )}
 
       {/* Account Dialog */}
@@ -2224,11 +2859,82 @@ export default function CashFlowManager() {
         <DialogActions sx={{ p: 3 }}>
           <Button
             onClick={() => setOpenRosterDialog(false)}
+            variant="outlined"
+            sx={{ fontWeight: 800 }}
+          >
+            CANCELAR
+          </Button>
+          <Button
+            onClick={handleSaveRoster}
             variant="contained"
-            fullWidth
             sx={{ fontWeight: 800 }}
           >
             GUARDAR CONFIGURACIÓN
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={openSummaryExport}
+        onClose={() => setOpenSummaryExport(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>
+          Presentación de Resumen
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Seleccione el periodo para generar el reporte de presentación en
+            PDF.
+          </Typography>
+          <Stack spacing={2}>
+            <TextField
+              select
+              label="Mes"
+              fullWidth
+              value={summaryMonth}
+              onChange={(e) => setSummaryMonth(parseInt(e.target.value))}
+            >
+              {[
+                "Enero",
+                "Febrero",
+                "Marzo",
+                "Abril",
+                "Mayo",
+                "Junio",
+                "Julio",
+                "Agosto",
+                "Septiembre",
+                "Octubre",
+                "Noviembre",
+                "Diciembre",
+              ].map((m, i) => (
+                <MenuItem key={m} value={i + 1}>
+                  {m}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              type="number"
+              label="Año"
+              fullWidth
+              value={summaryYear}
+              onChange={(e) => setSummaryYear(parseInt(e.target.value))}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpenSummaryExport(false)} color="inherit">
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<DownloadIcon />}
+            onClick={handleExportSummaryPDF}
+            sx={{ fontWeight: 700, borderRadius: 2 }}
+          >
+            Exportar Presentación
           </Button>
         </DialogActions>
       </Dialog>
