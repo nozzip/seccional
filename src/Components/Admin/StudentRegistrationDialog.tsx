@@ -78,6 +78,8 @@ export default function StudentRegistrationDialog({
         city: initialData?.city || "",
         hasProfessor: initialData?.hasProfessor ?? true,
         schedule: initialData?.schedule || {},
+        lastPayment: initialData?.lastPayment,
+        expiryDate: initialData?.expiryDate,
       });
     }
   }, [open, initialData]);

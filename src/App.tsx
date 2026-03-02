@@ -1,22 +1,22 @@
-import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
-import { CssBaseline, Box } from '@mui/material';
-import { HelmetProvider } from 'react-helmet-async';
-import { ColorModeProvider } from './ColorModeContext';
-import Navbar from './Components/Navbar/Navbar';
-import FooterElements from './Components/Footer/FooterElements';
-import Inicio from './Pages/Inicio';
-import Beneficios from './Pages/Beneficios';
-import Prensa from './Pages/Prensa';
-import Galeria from './Pages/Galeria';
-import Gremio from './Pages/Gremio';
-import Login from './Pages/Login';
-import Servicios from './Components/Servicios/Servicios';
-import AdminDashboard from './Pages/Admin/AdminDashboard';
+import { createHashRouter, RouterProvider, Outlet } from "react-router-dom";
+import { CssBaseline, Box } from "@mui/material";
+import { HelmetProvider } from "react-helmet-async";
+import { ColorModeProvider } from "./ColorModeContext";
+import Navbar from "./Components/Navbar/Navbar";
+import FooterElements from "./Components/Footer/FooterElements";
+import Inicio from "./Pages/Inicio";
+import Beneficios from "./Pages/Beneficios";
+import Prensa from "./Pages/Prensa";
+import Galeria from "./Pages/Galeria";
+import Gremio from "./Pages/Gremio";
+import Login from "./Pages/Login";
+import Servicios from "./Components/Servicios/Servicios";
+import AdminDashboard from "./Pages/Admin/AdminDashboard";
 
 const Layout = () => (
   <ColorModeProvider>
     <CssBaseline />
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Navbar />
       <Box component="main" sx={{ flexGrow: 1 }}>
         <Outlet />
@@ -26,9 +26,9 @@ const Layout = () => (
   </ColorModeProvider>
 );
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
-    path: '/',
+    path: "/",
     element: <Layout />,
     children: [
       {
@@ -36,31 +36,31 @@ const router = createBrowserRouter([
         element: <Inicio />,
       },
       {
-        path: 'beneficios',
+        path: "beneficios",
         element: <Beneficios />,
       },
       {
-        path: 'prensa',
+        path: "prensa",
         element: <Prensa />,
       },
       {
-        path: 'galeria',
+        path: "galeria",
         element: <Galeria />,
       },
       {
-        path: 'gremio',
+        path: "gremio",
         element: <Gremio />,
       },
       {
-        path: 'login',
+        path: "login",
         element: <Login />,
       },
       {
-        path: 'servicios',
+        path: "servicios",
         element: <Servicios />,
       },
       {
-        path: 'admin',
+        path: "admin",
         element: <AdminDashboard />,
       },
     ],

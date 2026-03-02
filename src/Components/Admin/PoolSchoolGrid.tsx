@@ -35,6 +35,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PersonIcon from "@mui/icons-material/Person";
+import TableChartIcon from "@mui/icons-material/TableChart";
 
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import StudentManager from "./StudentManager";
@@ -42,7 +43,7 @@ import { StudentData } from "./StudentRegistrationDialog";
 import { supabase } from "../../supabaseClient";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-const HOURS = Array.from({ length: 14 }, (_, i) => `${i + 8}:00`);
+const HOURS = Array.from({ length: 18 }, (_, i) => `${i + 7}:00`);
 
 interface Professor {
   id: number;
@@ -65,7 +66,8 @@ export default function PoolSchoolGrid() {
     try {
       const { data: students, error: sError } = await supabase
         .from("students")
-        .select("*");
+        .select("*")
+        .is("deleted_at", null);
       if (sError) throw sError;
 
       const mappedStudents: StudentData[] = (students || []).map((s: any) => ({
@@ -131,6 +133,12 @@ export default function PoolSchoolGrid() {
     schedule: {},
   });
 
+  const [selectedSlot, setSelectedSlot] = useState<{
+    day: string;
+    hour: string;
+    students: any[];
+  } | null>(null);
+
   const theme = useTheme();
 
   const handleSaveProfessor = async () => {
@@ -189,7 +197,8 @@ export default function PoolSchoolGrid() {
 
   const isExpired = (expiryDate?: string) => {
     if (!expiryDate) return true;
-    return new Date(expiryDate) < new Date();
+    const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD format
+    return expiryDate < todayStr;
   };
 
   const activeStudents = studentsData.filter(
@@ -253,13 +262,25 @@ export default function PoolSchoolGrid() {
 
   const poolData: SlotData = {};
   activeStudents.forEach((student: StudentData) => {
+    if (!student.schedule) return;
     Object.keys(student.schedule).forEach((slotKey) => {
+      if (!student.schedule[slotKey]) return;
       if (!poolData[slotKey]) poolData[slotKey] = [];
+
+      // Find if any professor is teaching in this specific slot
+      const matchingProf = professors.find(
+        (p) => p.schedule && p.schedule[slotKey],
+      );
+
       poolData[slotKey].push({
         id: student.id || 0,
         name: student.fullName.split(" ")[0],
         lastName: student.fullName.split(" ").slice(1).join(" "),
-        professor: student.hasProfessor ? "Profesor Asignado" : "Pileta Libre",
+        professor: matchingProf
+          ? matchingProf.name
+          : student.hasProfessor
+            ? "Sin Profesor Asignado"
+            : "Pileta Libre",
       });
     });
   });
@@ -268,15 +289,27 @@ export default function PoolSchoolGrid() {
 
   const getSummaryByProfessor = () => {
     const summary: { [key: string]: any[] } = {};
-    // Initialize summary with all professors to show empty cards if needed
+    const seenInProf: { [key: string]: Set<number> } = {};
+
+    // Initialize with known professors
     professors.forEach((p) => {
       summary[p.name] = [];
+      seenInProf[p.name] = new Set();
     });
 
-    Object.values(poolData).forEach((students) => {
-      students.forEach((student) => {
-        if (!summary[student.professor]) summary[student.professor] = [];
-        summary[student.professor].push(student);
+    Object.values(poolData).forEach((slotStudents) => {
+      slotStudents.forEach((student) => {
+        const profName = student.professor;
+        if (!summary[profName]) {
+          summary[profName] = [];
+          seenInProf[profName] = new Set();
+        }
+
+        // Only add unique students to each professor's count
+        if (!seenInProf[profName].has(student.id)) {
+          summary[profName].push(student);
+          seenInProf[profName].add(student.id);
+        }
       });
     });
     return summary;
@@ -293,12 +326,12 @@ export default function PoolSchoolGrid() {
           flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
           alignItems: { sm: "center" },
-          gap: 2,
+          gap: 1,
         }}
       >
         <Box>
           <Typography
-            variant="h5"
+            variant="h6"
             sx={{ fontWeight: 800, color: "primary.main" }}
           >
             Escuela de Natación
@@ -306,19 +339,25 @@ export default function PoolSchoolGrid() {
           <Tabs
             value={view}
             onChange={(_, v) => setView(v)}
-            sx={{ minHeight: 40, mt: 1 }}
+            sx={{ minHeight: 32, mt: 0.5 }}
           >
             <Tab
-              icon={<DescriptionIcon sx={{ fontSize: 20 }} />}
+              icon={<DescriptionIcon sx={{ fontSize: 18 }} />}
               label="Resumen Profesores"
               iconPosition="start"
-              sx={{ minHeight: 40 }}
+              sx={{ minHeight: 32, fontSize: "0.75rem" }}
             />
             <Tab
-              icon={<PersonIcon sx={{ fontSize: 20 }} />}
+              icon={<PersonIcon sx={{ fontSize: 18 }} />}
               label="Gestión de Alumnos"
               iconPosition="start"
-              sx={{ minHeight: 40 }}
+              sx={{ minHeight: 32, fontSize: "0.75rem" }}
+            />
+            <Tab
+              icon={<TableChartIcon sx={{ fontSize: 18 }} />}
+              label="Ocupación Semanal"
+              iconPosition="start"
+              sx={{ minHeight: 32, fontSize: "0.75rem" }}
             />
           </Tabs>
         </Box>
@@ -436,6 +475,153 @@ export default function PoolSchoolGrid() {
             );
           })}
         </Grid>
+      )}
+
+      {view === 2 && (
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 4,
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+          }}
+        >
+          <TableContainer sx={{ overflow: "visible" }}>
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    sx={{
+                      bgcolor: "background.paper",
+                      fontWeight: 900,
+                      width: 60,
+                      fontSize: "0.7rem",
+                      zIndex: 3,
+                      borderBottom: "1.5px solid",
+                      borderRight: "2.5px solid",
+                      borderColor: alpha(theme.palette.divider, 0.4),
+                      py: 0.5,
+                    }}
+                  >
+                    HORA
+                  </TableCell>
+                  {DAYS.map((day, idx) => (
+                    <TableCell
+                      key={day}
+                      align="center"
+                      sx={{
+                        bgcolor: "background.paper",
+                        fontWeight: 900,
+                        minWidth: 80,
+                        fontSize: "0.7rem",
+                        zIndex: 2,
+                        borderBottom: "1.5px solid",
+                        borderRight:
+                          idx % 2 === 1 ? "2.5px solid" : "1px solid",
+                        borderColor: alpha(theme.palette.divider, 0.4),
+                        py: 0.5,
+                      }}
+                    >
+                      {day.toUpperCase()}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {HOURS.map((hour) => (
+                  <TableRow key={hour}>
+                    <TableCell
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: "0.7rem",
+                        bgcolor: alpha(theme.palette.primary.main, 0.02),
+                        position: "sticky",
+                        left: 0,
+                        zIndex: 1,
+                        py: 0,
+                        height: 32,
+                        borderBottom: "1.5px solid",
+                        borderRight: "2.5px solid",
+                        borderColor: alpha(theme.palette.divider, 0.4),
+                      }}
+                    >
+                      {hour}
+                    </TableCell>
+                    {DAYS.map((day, idx) => {
+                      const slotKey = `${day}-${hour}`;
+                      const students = poolData[slotKey] || [];
+                      const count = students.length;
+
+                      // Heatmap color intensity
+                      const getBgColor = (c: number) => {
+                        if (c === 0) return "transparent";
+                        if (c <= 2) return alpha(theme.palette.info.light, 0.2);
+                        if (c <= 5) return alpha(theme.palette.info.main, 0.4);
+                        return alpha(theme.palette.info.dark, 0.6);
+                      };
+
+                      return (
+                        <TableCell
+                          key={day}
+                          align="center"
+                          onClick={() =>
+                            count > 0 &&
+                            setSelectedSlot({ day, hour, students })
+                          }
+                          sx={{
+                            bgcolor: getBgColor(count),
+                            cursor: count > 0 ? "pointer" : "default",
+                            transition: "all 0.2s",
+                            "&:hover": {
+                              bgcolor:
+                                count > 0
+                                  ? alpha(theme.palette.primary.main, 0.1)
+                                  : "transparent",
+                            },
+                            borderBottom: "1.5px solid",
+                            borderRight:
+                              idx % 2 === 1 ? "2.5px solid" : "1px solid",
+                            borderColor: alpha(theme.palette.divider, 0.4),
+                            height: 32,
+                            py: 0,
+                          }}
+                        >
+                          {count > 0 && (
+                            <Box>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 900,
+                                  color: "text.primary",
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {count}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontWeight: 800,
+                                  color: "text.secondary",
+                                  fontSize: "0.5rem",
+                                  display: "block",
+                                  lineHeight: 1,
+                                }}
+                              >
+                                ALUMNOS
+                              </Typography>
+                            </Box>
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
       )}
 
       {view === 1 && <StudentManager />}
@@ -556,6 +742,69 @@ export default function PoolSchoolGrid() {
           <Button onClick={() => setOpenProfDialog(false)}>Cancelar</Button>
           <Button variant="contained" onClick={handleSaveProfessor}>
             Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Slot Detail Dialog */}
+      <Dialog
+        open={!!selectedSlot}
+        onClose={() => setSelectedSlot(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
+          Alumnos en Horario:
+          <Typography
+            variant="subtitle1"
+            color="primary"
+            sx={{ fontWeight: 800 }}
+          >
+            {selectedSlot?.day} - {selectedSlot?.hour}
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          <List sx={{ pt: 0 }}>
+            {selectedSlot?.students.map((s, idx) => (
+              <ListItem key={`${s.id}-${idx}`} sx={{ px: 0 }}>
+                <Avatar
+                  sx={{
+                    mr: 2,
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: "primary.main",
+                    width: 32,
+                    height: 32,
+                    fontSize: "0.9rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  {s.name[0]}
+                </Avatar>
+                <ListItemText
+                  primary={
+                    <Typography sx={{ fontWeight: 700 }}>
+                      {s.name} {s.lastName}
+                    </Typography>
+                  }
+                  secondary={
+                    <Typography variant="caption" color="text.secondary">
+                      {s.professor}
+                    </Typography>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={() => setSelectedSlot(null)}
+            sx={{ fontWeight: 700 }}
+          >
+            Entendido
           </Button>
         </DialogActions>
       </Dialog>

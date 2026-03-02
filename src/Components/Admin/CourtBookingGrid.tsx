@@ -20,18 +20,30 @@ import {
   Checkbox,
   Stack,
   IconButton,
+  Tooltip,
 } from "@mui/material";
 import SportsTennisIcon from "@mui/icons-material/SportsTennis";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import OutdoorGrillIcon from "@mui/icons-material/OutdoorGrill";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CancelIcon from "@mui/icons-material/Cancel";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PersonIcon from "@mui/icons-material/Person";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import HistoryIcon from "@mui/icons-material/History";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from "@mui/material";
 
 const DAYS_NAMES = [
   "Lunes",
@@ -42,10 +54,11 @@ const DAYS_NAMES = [
   "Sábado",
   "Domingo",
 ];
-// Horarios de 8:00 a 23:30 en intervalos de 30 minutos
-const HOURS = Array.from({ length: 32 }, (_, i) => {
-  const h = Math.floor(i / 2) + 8;
-  const m = i % 2 === 0 ? "00" : "30";
+// Horarios de 7:00 a 24:00 en intervalos de 30 minutos
+const HOURS = Array.from({ length: 35 }, (_, i) => {
+  const totalMinutes = i * 30 + 7 * 60;
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60 === 0 ? "00" : "30";
   return `${h}:${m}`;
 });
 
@@ -346,7 +359,19 @@ export default function CourtBookingGrid() {
 
   const handleDeleteBooking = async (id: number) => {
     const booking = bookings.find((b) => b.id === id);
-    if (booking?.status === "Pagado") return;
+    if (
+      booking?.status === "Pagado" &&
+      !window.confirm(
+        "Esta reserva figura como PAGADA. ¿Estás seguro de que deseas eliminarla? Esto no borrará el movimiento en el flujo de caja.",
+      )
+    )
+      return;
+
+    if (
+      !booking?.status &&
+      !window.confirm("¿Estás seguro de que deseas eliminar esta reserva?")
+    )
+      return;
 
     try {
       const { error } = await supabase
@@ -357,6 +382,19 @@ export default function CourtBookingGrid() {
       fetchData();
     } catch (error) {
       console.error("Error deleting booking:", error);
+    }
+  };
+
+  const handleUpdateStatus = async (id: number, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("court_bookings")
+        .update({ status: newStatus })
+        .eq("id", id);
+      if (error) throw error;
+      fetchData();
+    } catch (error) {
+      console.error("Error updating booking status:", error);
     }
   };
 
@@ -481,153 +519,174 @@ export default function CourtBookingGrid() {
         </Paper>
       </Box>
 
-      <Box sx={{ overflowX: "auto" }}>
-        <Box sx={{ minWidth: 1000 }}>
-          {/* Header */}
-          <Grid container spacing={1} sx={{ mb: 1 }}>
-            <Grid item xs={1}>
-              <Box sx={{ height: 40 }} />
-            </Grid>
-            {weekDates.map((day) => (
-              <Grid item xs={1.5} key={day.dateStr}>
-                <Paper
-                  elevation={0}
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 4,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
+        <TableContainer sx={{ overflow: "visible" }}>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell
                   sx={{
-                    p: 1,
-                    textAlign: "center",
-                    bgcolor: alpha(theme.palette.secondary.main, 0.1),
-                    borderRadius: 2,
+                    bgcolor: "background.paper",
+                    fontWeight: 900,
+                    width: 60,
+                    fontSize: "0.7rem",
+                    zIndex: 3,
+                    borderBottom: "1.5px solid",
+                    borderRight: "2.5px solid",
+                    borderColor: alpha(theme.palette.divider, 0.4),
+                    py: 0.5,
                   }}
                 >
-                  <Typography
+                  HORA
+                </TableCell>
+                {weekDates.map((day) => (
+                  <TableCell
+                    key={day.dateStr}
+                    align="center"
+                    sx={{
+                      bgcolor: "background.paper",
+                      fontWeight: 900,
+                      minWidth: 100,
+                      fontSize: "0.7rem",
+                      zIndex: 2,
+                      borderBottom: "1.5px solid",
+                      borderRight: "2.5px solid",
+                      borderColor: alpha(theme.palette.divider, 0.4),
+                      py: 0.5,
+                    }}
+                  >
+                    <Box>
+                      <Typography sx={{ fontWeight: 800, fontSize: "0.75rem" }}>
+                        {day.name.toUpperCase()}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 700,
+                          color: "text.secondary",
+                          fontSize: "0.6rem",
+                        }}
+                      >
+                        {day.displayDate}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {HOURS.map((hour) => (
+                <TableRow key={hour}>
+                  <TableCell
                     sx={{
                       fontWeight: 800,
-                      color: "secondary.dark",
-                      fontSize: "0.9rem",
+                      fontSize: "0.7rem",
+                      bgcolor: alpha(theme.palette.primary.main, 0.02),
+                      position: "sticky",
+                      left: 0,
+                      zIndex: 1,
+                      py: 0,
+                      height: 32,
+                      borderBottom: "1.5px solid",
+                      borderRight: "2.5px solid",
+                      borderColor: alpha(theme.palette.divider, 0.4),
                     }}
                   >
-                    {day.name}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ fontWeight: 700, color: "text.secondary" }}
-                  >
-                    {day.displayDate}
-                  </Typography>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
+                    {hour}
+                  </TableCell>
+                  {weekDates.map((day) => {
+                    const subNumbers = hasSubCourts() ? [1, 2] : [1];
+                    return (
+                      <TableCell
+                        key={day.dateStr}
+                        sx={{
+                          p: 0,
+                          borderBottom: "1.5px solid",
+                          borderRight: "2.5px solid",
+                          borderColor: alpha(theme.palette.divider, 0.4),
+                          height: 32,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            width: "100%",
+                            height: "100%",
+                          }}
+                        >
+                          {subNumbers.map((subNum) => {
+                            const booking = getBookingInSlot(
+                              day.name,
+                              hour,
+                              day.dateStr,
+                              subNum,
+                            );
+                            const isStart = booking?.startTime === hour;
 
-          {/* Body */}
-          <Box sx={{ maxHeight: "70vh", overflowY: "auto", pr: 1 }}>
-            {HOURS.map((hour) => (
-              <Grid container spacing={1} key={hour} sx={{ mb: 1 }}>
-                <Grid item xs={1}>
-                  <Box
-                    sx={{
-                      height: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{ fontWeight: 700, color: "text.secondary" }}
-                    >
-                      {hour}
-                    </Typography>
-                  </Box>
-                </Grid>
-                {weekDates.map((day) => {
-                  const subNumbers = hasSubCourts() ? [1, 2] : [1];
-
-                  return (
-                    <Grid item xs={1.5} key={day.dateStr}>
-                      <Box sx={{ display: "flex", gap: 0.5, height: "100%" }}>
-                        {subNumbers.map((subNum) => {
-                          const booking = getBookingInSlot(
-                            day.name,
-                            hour,
-                            day.dateStr,
-                            subNum,
-                          );
-                          const isStart = booking?.startTime === hour;
-
-                          return (
-                            <Paper
-                              key={subNum}
-                              elevation={0}
-                              onDoubleClick={() => {
-                                if (!booking)
-                                  handleDoubleClick(
-                                    day.name,
-                                    hour,
-                                    day.dateStr,
-                                    subNum,
-                                  );
-                              }}
-                              sx={{
-                                p: 0.3,
-                                flex: 1,
-                                height: 45,
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                border: "1.5px solid",
-                                borderColor: booking
-                                  ? booking.status === "Pagado"
-                                    ? alpha(theme.palette.success.main, 0.6)
-                                    : booking.isWeekly
-                                      ? alpha(theme.palette.secondary.main, 0.4)
-                                      : alpha(theme.palette.primary.main, 0.4)
-                                  : "divider",
-                                borderRadius: 1,
-                                bgcolor: booking
-                                  ? booking.status === "Pagado"
-                                    ? alpha(theme.palette.success.main, 0.1)
-                                    : booking.isWeekly
-                                      ? alpha(theme.palette.secondary.main, 0.1)
-                                      : alpha(theme.palette.primary.main, 0.05)
-                                  : "transparent",
-                                cursor: booking ? "default" : "pointer",
-                                transition: "all 0.1s",
-                                position: "relative",
-                                "&:hover": {
-                                  bgcolor: !booking
-                                    ? alpha(theme.palette.primary.main, 0.1)
-                                    : undefined,
-                                  borderColor: !booking
-                                    ? "primary.main"
-                                    : undefined,
-                                },
-                                overflow: "hidden",
-                              }}
-                            >
-                              {hasSubCourts() && !booking && (
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    position: "absolute",
-                                    top: 0,
-                                    right: 2,
-                                    fontSize: "0.5rem",
-                                    fontWeight: 900,
-                                    color: "divider",
-                                  }}
-                                >
-                                  {subNum}
-                                </Typography>
-                              )}
-                              {booking && isStart ? (
-                                <Box sx={{ width: "100%", px: 0.5 }}>
+                            return (
+                              <Box
+                                key={subNum}
+                                onDoubleClick={() => {
+                                  if (!booking)
+                                    handleDoubleClick(
+                                      day.name,
+                                      hour,
+                                      day.dateStr,
+                                      subNum,
+                                    );
+                                }}
+                                sx={{
+                                  flex: 1,
+                                  height: "100%",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  bgcolor: booking
+                                    ? booking.status === "Pagado"
+                                      ? alpha(theme.palette.success.main, 0.1)
+                                      : booking.isWeekly
+                                        ? alpha(
+                                            theme.palette.secondary.main,
+                                            0.1,
+                                          )
+                                        : alpha(
+                                            theme.palette.primary.main,
+                                            0.05,
+                                          )
+                                    : "transparent",
+                                  cursor: booking ? "default" : "pointer",
+                                  transition: "all 0.1s",
+                                  overflow: "hidden",
+                                  position: "relative",
+                                  "&:hover": {
+                                    bgcolor: !booking
+                                      ? alpha(theme.palette.primary.main, 0.1)
+                                      : undefined,
+                                  },
+                                  borderRight:
+                                    subNumbers.length > 1 && subNum === 1
+                                      ? "1px solid"
+                                      : "none",
+                                  borderColor: "divider",
+                                }}
+                              >
+                                {booking && isStart ? (
                                   <Box
                                     sx={{
+                                      width: "100%",
+                                      px: 0.5,
                                       display: "flex",
-                                      justifyContent: "space-between",
                                       alignItems: "center",
+                                      justifyContent: "space-between",
                                     }}
                                   >
                                     <Typography
@@ -646,82 +705,104 @@ export default function CourtBookingGrid() {
                                     >
                                       {booking.user}
                                     </Typography>
-                                  </Box>
-                                  <Box
-                                    sx={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      alignItems: "center",
-                                      mt: -0.5,
-                                    }}
-                                  >
-                                    <Typography
-                                      variant="caption"
+                                    <Box
                                       sx={{
-                                        fontSize: "0.5rem",
-                                        color: "text.secondary",
+                                        display: "flex",
+                                        alignItems: "center",
                                       }}
                                     >
-                                      {booking.duration}m
-                                    </Typography>
-                                    {booking.status === "Pendiente" ? (
-                                      <IconButton
-                                        size="small"
-                                        sx={{
-                                          p: 0,
-                                          color: "error.main",
-                                          opacity: 0.5,
-                                          "&:hover": { opacity: 1 },
-                                        }}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeleteBooking(booking.id);
-                                        }}
-                                      >
-                                        <DeleteIcon sx={{ fontSize: 10 }} />
-                                      </IconButton>
-                                    ) : (
-                                      <CheckCircleIcon
-                                        sx={{
-                                          fontSize: 10,
-                                          color: "success.main",
-                                        }}
-                                      />
-                                    )}
+                                      {booking.status === "Pendiente" ? (
+                                        <IconButton
+                                          size="small"
+                                          sx={{
+                                            p: 0,
+                                            color: "error.main",
+                                            opacity: 0.5,
+                                            "&:hover": { opacity: 1 },
+                                          }}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteBooking(booking.id);
+                                          }}
+                                        >
+                                          <DeleteIcon sx={{ fontSize: 10 }} />
+                                        </IconButton>
+                                      ) : (
+                                        <Stack direction="row" spacing={0.5}>
+                                          <Tooltip title="Revertir a Pendiente (Liberar)">
+                                            <IconButton
+                                              size="small"
+                                              sx={{
+                                                p: 0,
+                                                color: "warning.main",
+                                                opacity: 0.5,
+                                                "&:hover": { opacity: 1 },
+                                              }}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleUpdateStatus(
+                                                  booking.id,
+                                                  "Pendiente",
+                                                );
+                                              }}
+                                            >
+                                              <HistoryIcon
+                                                sx={{ fontSize: 10 }}
+                                              />
+                                            </IconButton>
+                                          </Tooltip>
+                                          <IconButton
+                                            size="small"
+                                            sx={{
+                                              p: 0,
+                                              color: "error.main",
+                                              opacity: 0.5,
+                                              "&:hover": { opacity: 1 },
+                                            }}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteBooking(booking.id);
+                                            }}
+                                          >
+                                            <DeleteIcon sx={{ fontSize: 10 }} />
+                                          </IconButton>
+                                        </Stack>
+                                      )}
+                                    </Box>
                                   </Box>
-                                </Box>
-                              ) : booking ? (
-                                <Box
-                                  sx={{
-                                    width: "100%",
-                                    height: "100%",
-                                    opacity: 0.2,
-                                  }}
-                                />
-                              ) : (
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: "text.disabled",
-                                    fontSize: "0.6rem",
-                                    fontWeight: 500,
-                                  }}
-                                >
-                                  -
-                                </Typography>
-                              )}
-                            </Paper>
-                          );
-                        })}
-                      </Box>
-                    </Grid>
-                  );
-                })}
-              </Grid>
-            ))}
-          </Box>
-        </Box>
-      </Box>
+                                ) : booking ? (
+                                  <Box
+                                    sx={{
+                                      width: "100%",
+                                      height: "100%",
+                                      opacity: 0.2,
+                                    }}
+                                  />
+                                ) : hasSubCourts() ? (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      fontSize: "0.5rem",
+                                      color: "divider",
+                                      fontWeight: 900,
+                                    }}
+                                  >
+                                    {subNum}
+                                  </Typography>
+                                ) : null}
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
       <BookingDialog
         open={openDialog}

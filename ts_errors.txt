@@ -1,0 +1,43 @@
+src/Components/Admin/CashFlowManager.tsx(724,55): error TS18046: 'error' is of type 'unknown'.
+src/Components/Admin/CashFlowManager.tsx(1225,7): error TS2304: Cannot find name 'fetchEverything'.
+src/Components/Admin/CashFlowManager.tsx(1282,7): error TS2304: Cannot find name 'fetchEverything'.
+src/Components/Admin/CashFlowManager.tsx(1329,5): error TS2304: Cannot find name 'fetchEverything'.
+src/Components/Admin/CashFlowManager.tsx(1408,7): error TS2304: Cannot find name 'fetchEverything'.
+src/Components/Admin/CashFlowManager.tsx(1446,7): error TS2304: Cannot find name 'fetchEverything'.
+src/Components/Admin/CashFlowManager.tsx(1464,7): error TS2304: Cannot find name 'fetchEverything'.
+src/Components/Admin/CashFlowManager.tsx(1549,7): error TS2304: Cannot find name 'fetchEverything'.
+src/Components/Admin/CashFlowManager.tsx(1684,7): error TS2304: Cannot find name 'fetchEverything'.
+src/Components/Admin/CashFlowManager.tsx(1937,9): error TS2304: Cannot find name 'fetchEverything'.
+src/Components/ContentsBeneficios/GridBeneficios.tsx(26,19): error TS7006: Parameter 'provinciaId' implicitly has an 'any' type.
+src/Components/ContentsBeneficios/GridBeneficios.tsx(72,24): error TS7031: Binding element 'item' implicitly has an 'any' type.
+src/Components/ContentsFront/CardNoticias.tsx(26,24): error TS7031: Binding element 'item' implicitly has an 'any' type.
+src/Components/ContentsFront/CardNovedades.tsx(24,24): error TS7031: Binding element 'item' implicitly has an 'any' type.
+src/Components/ContentsFront/CardServicios.tsx(15,25): error TS7031: Binding element 'item' implicitly has an 'any' type.
+src/Components/ContentsFront/Carusel.tsx(35,17): error TS7031: Binding element 'item' implicitly has an 'any' type.
+src/Components/ContentsFront/Caruselsection1.tsx(3,35): error TS2307: Cannot find module '@material-ui/core' or its corresponding type declarations.
+src/Components/ContentsFront/Caruselsection1.tsx(4,9): error TS2305: Module '"../mockData"' has no exported member 'dataCaruselSection1'.
+src/Components/ContentsFront/Caruselsection1.tsx(6,31): error TS7006: Parameter 'theme' implicitly has an 'any' type.
+src/Components/ContentsFront/Caruselsection1.tsx(41,26): error TS7006: Parameter 'props' implicitly has an 'any' type.
+src/Components/ContentsFront/Caruselsection1.tsx(58,33): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/Components/ContentsFront/Caruselsection1.tsx(58,39): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/Components/ContentsFront/Caruselsection1.tsx(65,15): error TS7006: Parameter 'props' implicitly has an 'any' type.
+src/Components/ContentsFront/Twitter.tsx(2,40): error TS2307: Cannot find module '@material-ui/core' or its corresponding type declarations.
+src/Components/ContentsFront/Twitter.tsx(4,31): error TS7006: Parameter 'theme' implicitly has an 'any' type.
+src/Components/ContentsFront/Twitter.tsx(30,13): error TS2322: Type '{ children: string; class: string; "data-width": string; "data-height": string; href: string; }' is not assignable to type 'DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>'.
+  Property 'class' does not exist on type 'DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>'. Did you mean 'className'?
+src/Components/ContentsFront/Twitter.tsx(40,13): error TS2322: Type '{ async: true; src: string; charset: string; }' is not assignable to type 'DetailedHTMLProps<ScriptHTMLAttributes<HTMLScriptElement>, HTMLScriptElement>'.
+  Property 'charset' does not exist on type 'DetailedHTMLProps<ScriptHTMLAttributes<HTMLScriptElement>, HTMLScriptElement>'. Did you mean 'charSet'?
+src/Components/ContentsFront/Twitter.tsx(47,13): error TS2322: Type '{ children: Element; class: string; "data-href": string; "data-tabs": string; "data-width": string; "data-height": string; "data-small-header": string; "data-adapt-container-width": string; "data-hide-cover": string; "data-show-facepile": string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Property 'class' does not exist on type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'. Did you mean 'className'?
+src/Components/ContentsFront/Twitter.tsx(59,15): error TS2322: Type '{ children: Element; cite: string; class: string; }' is not assignable to type 'DetailedHTMLProps<BlockquoteHTMLAttributes<HTMLQuoteElement>, HTMLQuoteElement>'.
+  Property 'class' does not exist on type 'DetailedHTMLProps<BlockquoteHTMLAttributes<HTMLQuoteElement>, HTMLQuoteElement>'. Did you mean 'className'?
+src/Components/LoginForm/FormSignup.tsx(17,23): error TS7031: Binding element 'submitForm' implicitly has an 'any' type.
+src/Components/LoginForm/FormSignup.tsx(27,21): error TS7006: Parameter 'data' implicitly has an 'any' type.
+src/Components/mockData.ts(69,3): error TS2741: Property 'short_description' is missing in type '{ id: number; title: string; thumbnail: string; texto: string; date: string; }' but required in type 'Noticia'.
+src/Components/Navbar/DropDown.tsx(22,24): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/Components/Navbar/Navbar.tsx(21,23): error TS7006: Parameter 'props' implicitly has an 'any' type.
+src/Components/Navbar/Navbar.tsx(32,17): error TS7006: Parameter 'props' implicitly has an 'any' type.
+src/Components/PrensaContents/PrensaCard.tsx(29,21): error TS7031: Binding element 'item' implicitly has an 'any' type.
+src/Pages/Gremio.tsx(43,26): error TS7031: Binding element 'person' implicitly has an 'any' type.
+src/supabaseClient.ts(3,33): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/supabaseClient.ts(4,37): error TS2339: Property 'env' does not exist on type 'ImportMeta'.

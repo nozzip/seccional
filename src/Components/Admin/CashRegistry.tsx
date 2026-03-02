@@ -108,7 +108,11 @@ export default function CashRegistry({
   };
 
   const todayName = getTodaySpanish();
-  const todayStaff = staffRoster[todayName] || staffRoster["Lunes"];
+  const todayStaff = staffRoster[todayName] ||
+    staffRoster["Lunes"] || {
+      morning: "No asignado",
+      afternoon: "No asignado",
+    };
 
   // States for Day Management
   const [dayArchived, setDayArchived] = useState(false);
@@ -767,7 +771,9 @@ export default function CashRegistry({
                             s.difference >= 0 ? "success.main" : "error.main",
                         }}
                       >
-                        {s.difference === 0 ? "OK" : `${s.difference > 0 ? "+" : ""}$${s.difference}`}
+                        {s.difference === 0
+                          ? "OK"
+                          : `${s.difference > 0 ? "+" : ""}$${s.difference}`}
                       </Typography>
                     ) : (
                       "—"
@@ -1294,10 +1300,10 @@ export default function CashRegistry({
                                                 bgcolor:
                                                   ssidx % 2 === 0
                                                     ? alpha(
-                                                      theme.palette.action
-                                                        .hover,
-                                                      0.5,
-                                                    )
+                                                        theme.palette.action
+                                                          .hover,
+                                                        0.5,
+                                                      )
                                                     : "transparent",
                                               }}
                                             >

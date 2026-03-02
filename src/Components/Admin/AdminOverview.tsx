@@ -72,23 +72,26 @@ const StatCard = ({
         p: 3,
         borderRadius: 4,
         border: "1px solid",
-        borderColor: "divider",
+        borderColor: alpha(theme.palette.divider, 0.5),
+        bgcolor: "background.paper",
         display: "flex",
         alignItems: "center",
         gap: 3,
-        transition: "transform 0.2s",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         "&:hover": {
           transform: "translateY(-4px)",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
+          boxShadow: "0 12px 24px rgba(0,0,0,0.06)",
+          borderColor: alpha(theme.palette.primary.main, 0.3),
         },
       }}
     >
       <Avatar
         sx={{
-          bgcolor: alpha(theme.palette.primary.main, 0.1),
+          bgcolor: alpha(theme.palette.primary.main, 0.08),
           color: "primary.main",
-          width: 56,
-          height: 56,
+          width: 64,
+          height: 64,
+          borderRadius: 3,
         }}
       >
         <Icon sx={{ fontSize: 32 }} />
@@ -97,11 +100,20 @@ const StatCard = ({
         <Typography
           variant="body2"
           color="text.secondary"
-          sx={{ fontWeight: 600 }}
+          sx={{
+            fontWeight: 700,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            fontSize: "0.7rem",
+            mb: 0.5,
+          }}
         >
           {title}
         </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}>
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: 900, color: "text.primary" }}
+        >
           {value}
         </Typography>
         {trend && (
@@ -109,9 +121,17 @@ const StatCard = ({
             variant="caption"
             sx={{
               color: isTrendUp ? "success.main" : "error.main",
-              fontWeight: 700,
+              fontWeight: 800,
               display: "flex",
               alignItems: "center",
+              mt: 0.5,
+              bgcolor: isTrendUp
+                ? alpha(theme.palette.success.main, 0.1)
+                : alpha(theme.palette.error.main, 0.1),
+              px: 1,
+              py: 0.25,
+              borderRadius: 1,
+              width: "fit-content",
             }}
           >
             {isTrendUp ? (
@@ -149,17 +169,23 @@ export default function AdminOverview() {
       const currentYear = now.getFullYear();
 
       // 1. Fetch Students
-      const { count: studentCount } = await supabase
+      const { data: stdList } = await supabase
         .from("students")
-        .select("*", { count: "exact", head: true });
+        .select("id")
+        .is("deleted_at", null);
+      const studentCount = stdList?.length || 0;
 
       // 2. Fetch Inventory for Low Stock
-      const { data: invData } = await supabase.from("inventory").select("*");
+      const { data: invData } = await supabase
+        .from("inventory")
+        .select("*")
+        .is("deleted_at", null);
 
-      // 3. Fetch Transactions for Financials
+      // 3. Fetch Transactions for Financials (excluyendo borrados)
       const { data: txs } = await supabase
         .from("transactions")
         .select("*")
+        .is("deleted_at", null)
         .order("date", { ascending: false });
 
       if (txs) {
@@ -240,6 +266,30 @@ export default function AdminOverview() {
 
   React.useEffect(() => {
     fetchData();
+
+    // Subscribe to all relevant tables for real-time updates
+    const channel = supabase
+      .channel("admin_overview_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "students" },
+        fetchData,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "inventory" },
+        fetchData,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "transactions" },
+        fetchData,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchData]);
 
   const handleExportReport = async () => {
@@ -260,10 +310,14 @@ export default function AdminOverview() {
         startY: 40,
         head: [["Métrica", "Valor Actual", "Tendencia"]],
         body: [
-          ["Total Alumnos", "124", "+12%"],
-          ["Ingresos (Ago)", "$210.000", "+8%"],
-          ["Gastos (Ago)", "$115.000", "+5%"],
-          ["Ocupación Canchas", "78%", "Sábados Pico"],
+          ["Total Alumnos", data.totalStudents, "Datos actuales"],
+          [
+            "Ingresos (Mes)",
+            `$${data.incomeMonth.toLocaleString()}`,
+            "Mensual",
+          ],
+          ["Gastos (Mes)", `$${data.expenseMonth.toLocaleString()}`, "Mensual"],
+          ["Stock Bajo", data.lowStock.length, "Precaución"],
         ],
         headStyles: { fillColor: [26, 95, 122] },
       });
@@ -333,7 +387,7 @@ export default function AdminOverview() {
             title="Total Alumnos"
             value={data.totalStudents.toString()}
             icon={PeopleIcon}
-            trend="Datos en tiempo real"
+            trend="Estado mensual"
           />
         </Grid>
         <Grid item xs={12} sm={6} lg={4}>
@@ -341,7 +395,7 @@ export default function AdminOverview() {
             title="Ingresos del Mes"
             value={`$${data.incomeMonth.toLocaleString()}`}
             icon={AccountBalanceWalletIcon}
-            trend="Total acumulado"
+            trend="Total cobrado"
           />
         </Grid>
         <Grid item xs={12} sm={6} lg={4}>

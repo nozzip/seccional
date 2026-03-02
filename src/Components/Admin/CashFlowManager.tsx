@@ -28,6 +28,10 @@ import {
   FormControlLabel,
   Checkbox,
   IconButton,
+  Tabs,
+  Tab,
+  Tooltip,
+  InputBase,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -51,12 +55,20 @@ import {
   Legend,
 } from "recharts";
 
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import PrintIcon from "@mui/icons-material/Print";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import EditIcon from "@mui/icons-material/Edit";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DownloadIcon from "@mui/icons-material/Download";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteIcon from "@mui/icons-material/Delete";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { OptimizedTextField } from "../common/OptimizedTextField";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
+import * as XLSX from "xlsx";
 
 interface Transaction {
   id: number;
@@ -64,9 +76,20 @@ interface Transaction {
   type: "Ingreso" | "Egreso";
   category: string;
   amount: number;
-  paymentMethod: string; // Updated to be dynamic
+  paymentMethod: string;
   invoice?: string;
   description: string;
+  booking_id?: number | null;
+  inventory_id?: number | null;
+  inventory_qty?: number | null;
+  student_dni?: string | null;
+  provider_id?: number | null;
+}
+
+interface Provider {
+  id: number;
+  name: string;
+  cuit: string;
 }
 
 interface Shift {
@@ -111,9 +134,7 @@ interface Account {
 
 import CashRegistry from "./CashRegistry";
 import InventoryManager from "./InventoryManager";
-import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
-import InventoryIcon from "@mui/icons-material/Inventory";
-import { Tabs, Tab, InputBase, Tooltip } from "@mui/material";
+import { OptimizedTextField } from "../common/OptimizedTextField";
 import StudentRegistrationDialog, {
   StudentData,
 } from "./StudentRegistrationDialog";
@@ -128,178 +149,9 @@ const toTitleCase = (str: string) => {
 
 // --- Memoized UI Components to prevent lag ---
 
-const MemoizedSummary = React.memo(
-  ({ data, totalIncomes, totalExpenses, balance }: any) => {
-    const theme = useTheme();
-    // ... (Summary rendering logic moved here)
-    return (
-      <Box sx={{ mt: 4 }}>
-        <Grid container spacing={4}>
-          {/* Statistics Cards */}
-          <Grid item xs={12} md={4}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                borderRadius: 4,
-                border: "1px solid",
-                borderColor: "divider",
-                bgcolor: alpha(theme.palette.success.main, 0.05),
-              }}
-            >
-              <Stack spacing={1}>
-                <Typography
-                  variant="overline"
-                  sx={{ fontWeight: 800, color: "success.main" }}
-                >
-                  INGRESOS TOTALES
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900 }}>
-                  ${totalIncomes.toLocaleString()}
-                </Typography>
-                <TrendingUpIcon
-                  sx={{ color: "success.main", fontSize: 40, opacity: 0.3 }}
-                />
-              </Stack>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                borderRadius: 4,
-                border: "1px solid",
-                borderColor: "divider",
-                bgcolor: alpha(theme.palette.error.main, 0.05),
-              }}
-            >
-              <Stack spacing={1}>
-                <Typography
-                  variant="overline"
-                  sx={{ fontWeight: 800, color: "error.main" }}
-                >
-                  EGRESOS TOTALES
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900 }}>
-                  ${totalExpenses.toLocaleString()}
-                </Typography>
-                <TrendingDownIcon
-                  sx={{ color: "error.main", fontSize: 40, opacity: 0.3 }}
-                />
-              </Stack>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                borderRadius: 4,
-                border: "1px solid",
-                borderColor: "divider",
-                bgcolor: alpha(theme.palette.primary.main, 0.05),
-              }}
-            >
-              <Stack spacing={1}>
-                <Typography
-                  variant="overline"
-                  sx={{ fontWeight: 800, color: "primary.main" }}
-                >
-                  BALANCE NETO
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900 }}>
-                  ${balance.toLocaleString()}
-                </Typography>
-                <AccountBalanceWalletIcon
-                  sx={{ color: "primary.main", fontSize: 40, opacity: 0.3 }}
-                />
-              </Stack>
-            </Paper>
-          </Grid>
-
-          {/* Dynamic Insights */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, borderRadius: 4 }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>
-                Dinámica Diaria (Ingresos vs Egresos)
-              </Typography>
-              <Box sx={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.dailyDynamics}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="date" fontSize={12} />
-                    <YAxis fontSize={12} />
-                    <RechartsTooltip />
-                    <Legend />
-                    <Bar
-                      dataKey="ingreso"
-                      fill={theme.palette.success.main}
-                      radius={[4, 4, 0, 0]}
-                      name="Ingresos"
-                    />
-                    <Bar
-                      dataKey="egreso"
-                      fill={theme.palette.error.main}
-                      radius={[4, 4, 0, 0]}
-                      name="Egresos"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, borderRadius: 4 }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>
-                Ingresos por Categoría
-              </Typography>
-              <Box
-                sx={{
-                  height: 300,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={data.incomeByAccount}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {data.incomeByAccount.map((entry: any, index: number) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={
-                            ["#1a5f7a", "#c39534", "#159895", "#fb2576"][
-                              index % 4
-                            ]
-                          }
-                        />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Box>
-    );
-  },
-);
-
 const MemoizedTransactionsTable = React.memo(
-  ({ transactions, onDelete, accountsData }: any) => {
+  ({ transactions, onDelete, onEdit, accountsData }: any) => {
+    const theme = useTheme();
     const getAccountColor = (accountName: string) => {
       const acc = accountsData?.find((a: any) => a.name === accountName);
       return acc?.color || "#94a3b8";
@@ -308,7 +160,14 @@ const MemoizedTransactionsTable = React.memo(
       <TableContainer
         component={Paper}
         elevation={0}
-        sx={{ borderRadius: 4, border: "1px solid", borderColor: "divider" }}
+        sx={{
+          borderRadius: 4,
+          border: "1px solid",
+          borderColor: alpha(theme.palette.divider, 0.4),
+          "& .MuiTableCell-root": {
+            borderColor: alpha(theme.palette.divider, 0.4),
+          },
+        }}
       >
         <Table stickyHeader>
           <TableHead>
@@ -379,50 +238,65 @@ const MemoizedTransactionsTable = React.memo(
                   ${t.amount.toLocaleString()}
                 </TableCell>
                 <TableCell>
-                  <Stack spacing={0.5}>
-                    <Chip
-                      label={t.paymentMethod || "S/M"}
-                      variant="outlined"
-                      size="small"
-                      sx={{ fontWeight: 700, fontSize: "0.65rem" }}
-                    />
-                    {t.invoice && (
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                  <Stack spacing={0.2} sx={{ minWidth: 90 }}>
+                    {t.invoice ? (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 900,
+                          color: "primary.main",
+                          fontSize: "0.85rem",
+                          display: "block",
+                          lineHeight: 1.2,
+                        }}
                       >
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontWeight: 800,
-                            color: "text.secondary",
-                            fontSize: "0.6rem",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Cpd:
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontWeight: 800,
-                            color: "primary.main",
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          {t.invoice}
-                        </Typography>
-                      </Box>
+                        {t.invoice}
+                      </Typography>
+                    ) : (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 700,
+                          color: "text.disabled",
+                          fontSize: "0.7rem",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        Sin comprobante
+                      </Typography>
                     )}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 800,
+                        color: "text.secondary",
+                        fontSize: "0.6rem",
+                        textTransform: "uppercase",
+                        opacity: 0.7,
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      {t.paymentMethod || "S/M"}
+                    </Typography>
                   </Stack>
                 </TableCell>
                 <TableCell align="center">
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => onDelete(t.id)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
+                  <Stack direction="row" spacing={0.5} justifyContent="center">
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => onEdit(t)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => onDelete(t.id)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
                 </TableCell>
               </TableRow>
             ))}
@@ -436,7 +310,184 @@ const MemoizedTransactionsTable = React.memo(
 const MemoizedCashRegistry = React.memo(CashRegistry);
 const MemoizedInventoryManager = React.memo(InventoryManager);
 
-export default function CashFlowManager() {
+interface TransactionEditDialogProps {
+  open: boolean;
+  onClose: () => void;
+  transaction: Transaction | null;
+  onSave: (updatedTransaction: Transaction) => void;
+  accountsData: Account[];
+}
+
+const TransactionEditDialog: React.FC<TransactionEditDialogProps> = ({
+  open,
+  onClose,
+  transaction,
+  onSave,
+  accountsData,
+}) => {
+  const [editedTransaction, setEditedTransaction] =
+    useState<Transaction | null>(null);
+
+  useEffect(() => {
+    if (transaction) {
+      setEditedTransaction({ ...transaction });
+    }
+  }, [transaction]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditedTransaction((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        [name]: name === "amount" ? parseFloat(value) || 0 : value,
+      };
+    });
+  };
+
+  const handleSave = () => {
+    if (editedTransaction) {
+      onSave(editedTransaction);
+    }
+    onClose();
+  };
+
+  if (!editedTransaction) return null;
+
+  const categories = (accountsData || []).map((acc) => acc.name);
+  const paymentMethods = [
+    "Efectivo",
+    "Transferencia",
+    "Débito",
+    "Crédito",
+    "Mercado Pago",
+  ];
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Editar Transacción</DialogTitle>
+      <DialogContent dividers>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Fecha"
+              type="date"
+              name="date"
+              value={editedTransaction.date}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Tipo"
+              name="type"
+              select
+              value={editedTransaction.type}
+              onChange={handleChange}
+            >
+              <MenuItem value="Ingreso">Ingreso</MenuItem>
+              <MenuItem value="Egreso">Egreso</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid item xs={12}>
+            <Autocomplete
+              freeSolo
+              options={categories}
+              value={editedTransaction.category}
+              onChange={(event, newValue) => {
+                setEditedTransaction((prev) =>
+                  prev ? { ...prev, category: newValue || "" } : null,
+                );
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Categoría"
+                  name="category"
+                  fullWidth
+                />
+              )}
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Descripción"
+              name="description"
+              value={editedTransaction.description}
+              onChange={handleChange}
+              multiline
+              rows={2}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Monto"
+              name="amount"
+              type="number"
+              value={editedTransaction.amount}
+              onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">$</InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Método de Pago"
+              name="paymentMethod"
+              select
+              value={editedTransaction.paymentMethod}
+              onChange={handleChange}
+            >
+              {paymentMethods.map((method) => (
+                <MenuItem key={method} value={method}>
+                  {method}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Comprobante (Opcional)"
+              name="invoice"
+              value={editedTransaction.invoice || ""}
+              onChange={handleChange}
+            />
+          </Grid>
+        </Grid>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} color="inherit">
+          Cancelar
+        </Button>
+        <Button onClick={handleSave} variant="contained" color="primary">
+          Guardar
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// --- Interfaces ---
+
+interface CashFlowManagerProps {
+  hideInventoryAndArqueo?: boolean;
+  branch?: "azucena" | "noroeste";
+}
+
+export default function CashFlowManager({
+  hideInventoryAndArqueo = false,
+  branch = "azucena",
+}: CashFlowManagerProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accountsData, setAccountsData] = useState<Account[]>([]);
   const [students, setStudents] = useState<StudentData[]>([]);
@@ -447,45 +498,130 @@ export default function CashFlowManager() {
   const [swimmingPrices, setSwimmingPrices] = useState<any>({});
   const [courtPrices, setCourtPrices] = useState<any>({});
   const [courtBookings, setCourtBookings] = useState<any[]>([]);
+  const [cabinBookings, setCabinBookings] = useState<any[]>([]);
   const [promotions, setPromotions] = useState<any[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [cabinPrices, setCabinPrices] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
 
-  const fetchEverything = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: txs } = await supabase
+      // 1. Fetch Transactions
+      const { data: transData, error: transErr } = await supabase
         .from("transactions")
         .select("*")
+        .eq("branch", branch)
+        .is("deleted_at", null)
         .order("date", { ascending: false });
+
+      if (transErr) throw transErr;
+
+      // 2. Fetch Accounts
+      const { data: accData, error: accErr } = await supabase
+        .from("accounts")
+        .select("*")
+        .eq("branch", branch)
+        .order("name", { ascending: true });
+
+      if (accErr) throw accErr;
+
+      // 3. Fetch Students & Staff Config (Global)
+      const { data: studData, error: studErr } = await supabase
+        .from("students")
+        .select("*")
+        .is("deleted_at", null);
+      if (studErr) throw studErr;
+
+      const { data: staffData } = await supabase
+        .from("system_configs")
+        .select("value")
+        .eq("key", "staff_roster")
+        .single();
+
+      // 4. Fetch Court Bookings (Global)
+      const { data: courtData, error: courtErr } = await supabase
+        .from("court_bookings")
+        .select("*");
+      if (courtErr) throw courtErr;
+
+      const { data: cabinData, error: cabinErr } = await supabase
+        .from("cabin_bookings")
+        .select("*");
+      if (cabinErr) throw cabinErr;
+
+      // 5. Fetch Inventory
+      const { data: invData, error: invErr } = await supabase
+        .from("inventory")
+        .select("*")
+        .eq("branch", branch)
+        .is("deleted_at", null)
+        .order("name", { ascending: true });
+      if (invErr) throw invErr;
+
+      // 6. Fetch Archived Days
+      const { data: archData, error: archErr } = await supabase
+        .from("archived_days")
+        .select("*")
+        .eq("branch", branch)
+        .order("date", { ascending: false });
+      if (archErr) throw archErr;
+
+      // 7. Fetch Products Prices (Global)
+      const { data: pricesData, error: pricesErr } = await supabase
+        .from("products_prices")
+        .select("*");
+      if (pricesErr) throw pricesErr;
+
+      // 8. Fetch System Configs (Global)
+      const { data: configs, error: configsErr } = await supabase
+        .from("system_configs")
+        .select("*");
+      if (configsErr) throw configsErr;
+
+      // 9. Fetch Promotions (Global)
+      const { data: promosData, error: promosErr } = await supabase
+        .from("promotions")
+        .select("*");
+      if (promosErr) throw promosErr;
+
+      // 10. Fetch Providers (Global)
+      const { data: provData, error: provErr } = await supabase
+        .from("providers")
+        .select("*")
+        .order("name", { ascending: true });
+      if (provErr) throw provErr;
+
+      setProviders(provData || []);
+
       setTransactions(
-        (txs || []).map((t: any) => ({
+        (transData || []).map((t: any) => ({
           ...t,
-          paymentMethod: t.payment_method, // Map database snake_case to camelCase
+          paymentMethod: t.payment_method,
+          booking_id: t.booking_id,
+          inventory_id: t.inventory_id,
+          inventory_qty: t.inventory_qty,
+          student_dni: t.student_dni,
+          provider_id: t.provider_id,
         })),
       );
 
-      const { data: accs } = await supabase.from("accounts").select("*");
-      setAccountsData(accs || []);
+      setAccountsData(accData || []);
 
-      const { data: inv } = await supabase.from("inventory").select("*");
       setInventoryItems(
-        (inv || []).map((i: any) => ({
+        (invData || []).map((i: any) => ({
           ...i,
           initialStock: i.initial_stock,
         })),
       );
 
-      const { data: arch } = await supabase.from("archived_days").select("*");
-      setArchivedDays(arch || []);
+      setArchivedDays(archData || []);
 
-      const { data: prices } = await supabase
-        .from("products_prices")
-        .select("*");
-      setProductsPrices(prices || []);
+      setProductsPrices(pricesData || []);
 
-      const { data: configs } = await supabase
-        .from("system_configs")
-        .select("*");
       const swimming =
         configs?.find((c) => c.key === "swimming_prices")?.value || {};
       setSwimmingPrices(swimming);
@@ -494,15 +630,90 @@ export default function CashFlowManager() {
         configs?.find((c) => c.key === "court_prices")?.value || {};
       setCourtPrices(courtPricesConfig);
 
-      const roster =
-        configs?.find((c) => c.key === "staff_roster")?.value || {};
-      setStaffRoster(roster);
+      const cabinPricesConfig =
+        configs?.find((c) => c.key === "cabin_prices")?.value || {};
+      setCabinPrices(cabinPricesConfig);
 
-      const { data: bookings } = await supabase
-        .from("court_bookings")
-        .select("*");
-      setCourtBookings(
-        (bookings || []).map((b: any) => ({
+      const roster = staffData?.value || {};
+
+      if (Object.keys(roster).length === 0) {
+        setStaffRoster({
+          Lunes: { morning: "No asignado", afternoon: "No asignado" },
+          Martes: { morning: "No asignado", afternoon: "No asignado" },
+          Miércoles: { morning: "No asignado", afternoon: "No asignado" },
+          Jueves: { morning: "No asignado", afternoon: "No asignado" },
+          Viernes: { morning: "No asignado", afternoon: "No asignado" },
+          Sábado: { morning: "No asignado", afternoon: "No asignado" },
+          Domingo: { morning: "No asignado", afternoon: "No asignado" },
+        });
+      } else {
+        setStaffRoster(roster);
+      }
+      const freqCats = configs?.find(
+        (c) => c.key === "frequent_categories",
+      )?.value;
+      if (Array.isArray(freqCats) && freqCats.length > 0) {
+        setFrequentCategories(freqCats);
+      } else {
+        setFrequentCategories(["Pileta", "Cancha", "Bebida", "Snack"]);
+      }
+
+      // Fetch all historical transactions related to courts (linked or by category) to reconcile status
+      const { data: allCourtTxs } = await supabase
+        .from("transactions")
+        .select("id, booking_id, deleted_at, description, category")
+        .eq("branch", branch) // Filter by branch
+        .or(`booking_id.not.is.null,category.ilike.%Cancha%`);
+
+      const activeBookingIds = new Set(
+        (allCourtTxs || [])
+          .filter((t) => t.deleted_at === null && t.booking_id)
+          .map((t) => t.booking_id),
+      );
+
+      // Fallback description matching for legacy/imported transactions
+      const activeCourtTxsWithoutBookingId = (allCourtTxs || []).filter(
+        (t) =>
+          t.deleted_at === null &&
+          !t.booking_id &&
+          t.description &&
+          t.category.toLowerCase().includes("cancha"),
+      );
+
+      const activeBookingDescriptions = activeCourtTxsWithoutBookingId.map(
+        (t) => t.description.toLowerCase(),
+      );
+
+      const formattedBookings = (courtData || []).map((b: any) => {
+        let currentStatus = b.status;
+
+        // Auto-reconciliation: If it's Pagado but no ACTIVE transaction links to it, revert to Pendiente
+        if (currentStatus === "Pagado") {
+          const isLinkedById = activeBookingIds.has(b.id);
+          const isLinkedByDesc = activeBookingDescriptions.some(
+            (desc) =>
+              desc.includes(b.user_name.toLowerCase()) &&
+              desc.includes(b.start_time) &&
+              (desc.includes(b.day_name.toLowerCase()) ||
+                (b.date && desc.includes(b.date))),
+          );
+
+          if (!isLinkedById && !isLinkedByDesc) {
+            currentStatus = "Pendiente";
+            // We'll update the DB silently here or just in the UI.
+            // Silently updating DB ensures the user doesn't see it as "abonada" anymore.
+            supabase
+              .from("court_bookings")
+              .update({ status: "Pendiente" })
+              .eq("id", b.id)
+              .then(({ error }) => {
+                if (error)
+                  console.error("Error auto-reconciling booking:", b.id, error);
+              });
+          }
+        }
+
+        return {
           id: b.id,
           courtType: b.court_type,
           courtSubNumber: b.court_sub_number,
@@ -512,14 +723,17 @@ export default function CashFlowManager() {
           user: b.user_name,
           isWeekly: b.is_weekly,
           date: b.booking_date,
-          status: b.status,
-        })),
-      );
+          status: currentStatus,
+        };
+      });
 
-      const { data: promos } = await supabase.from("promotions").select("*");
+      setCourtBookings(formattedBookings);
+
+      setCabinBookings(cabinData || []);
+
       const today = new Date().toISOString().split("T")[0];
       setPromotions(
-        (promos || []).filter(
+        (promosData || []).filter(
           (p: any) =>
             p.active &&
             (!p.start_date || p.start_date <= today) &&
@@ -527,9 +741,8 @@ export default function CashFlowManager() {
         ),
       );
 
-      const { data: stds } = await supabase.from("students").select("*");
       setStudents(
-        (stds || []).map((s: any) => ({
+        (studData || []).map((s: any) => ({
           ...s,
           fullName: s.full_name,
           hasProfessor: s.has_professor,
@@ -537,29 +750,74 @@ export default function CashFlowManager() {
           expiryDate: s.expiry_date,
         })),
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading Supabase data:", error);
+      setErrorMessage("Error al cargar los datos: " + error.message);
+      setShowError(true);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEverything();
+    fetchData();
 
-    const channel = supabase
-      .channel("cashflow_changes")
+    // Set up Realtime Subscriptions with branch filter
+    const transSubscription = supabase
+      .channel("custom-all-channel")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "transactions" },
-        fetchEverything,
+        {
+          event: "*",
+          schema: "public",
+          table: "transactions",
+          filter: `branch=eq.${branch}`,
+        },
+        (payload) => {
+          fetchData(); // Trigger full refetch to keep dependent computations in sync
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "accounts",
+          filter: `branch=eq.${branch}`,
+        },
+        (payload) => {
+          fetchData();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "inventory",
+          filter: `branch=eq.${branch}`,
+        },
+        (payload) => {
+          fetchData();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "providers",
+        },
+        (payload) => {
+          fetchData();
+        },
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(transSubscription);
     };
-  }, []);
+  }, [branch]);
 
   const [open, setOpen] = useState(false);
   const [openAccountDialog, setOpenAccountDialog] = useState(false);
@@ -602,6 +860,15 @@ export default function CashFlowManager() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [isCreatingStudent, setIsCreatingStudent] = useState(false);
   const [studentSearchInput, setStudentSearchInput] = useState("");
+
+  const [selectedProvider, setSelectedProvider] = useState<any | null>(null);
+  const [providerSearchInput, setProviderSearchInput] = useState("");
+  const [isCreatingProvider, setIsCreatingProvider] = useState(false);
+  const [providerFormData, setProviderFormData] = useState({
+    name: "",
+    cuit: "",
+  });
+
   const [newStudentData, setNewStudentData] = useState({
     fullName: "",
     dni: "",
@@ -617,8 +884,14 @@ export default function CashFlowManager() {
   const [shouldDiscountStock, setShouldDiscountStock] = useState(false);
   const [selectedStockProduct, setSelectedStockProduct] = useState<any>(null);
   const [discountQuantity, setDiscountQuantity] = useState(1);
+  const [inventoryAdjustment, setInventoryAdjustment] = useState<any>(null); // Added this based on handleCloseDialog
 
-  const frequentCategories = ["Pileta", "Bebida", "Snack"];
+  const [frequentCategories, setFrequentCategories] = useState([
+    "Pileta",
+    "Cancha",
+    "Bebida",
+    "Snack",
+  ]);
 
   const isPileta =
     formData.type === "Ingreso" &&
@@ -630,13 +903,22 @@ export default function CashFlowManager() {
     formData.type === "Ingreso" &&
     formData.category.toLowerCase().includes("cancha");
 
+  const isCabinCategory =
+    formData.type === "Ingreso" &&
+    (formData.category.toLowerCase().includes("mollar") ||
+      formData.category.toLowerCase().includes("cabaña") ||
+      formData.category.toLowerCase().includes("cabana"));
+
   const [selectedBookingId, setSelectedBookingId] = useState<number | null>(
     null,
   );
+  const [selectedCabinId, setSelectedCabinId] = useState<number | null>(null);
 
   const isAutoInvoice =
     formData.type === "Ingreso" &&
     (isPileta ||
+      isCourtCategory ||
+      isCabinCategory ||
       formData.category.toLowerCase().includes("bebida") ||
       formData.category.toLowerCase().includes("snack"));
 
@@ -719,7 +1001,10 @@ export default function CashFlowManager() {
 
   // Efecto para autogenerar la descripción para Natación
   useEffect(() => {
-    if (isPileta && selectedStudent) {
+    if (isPileta && (selectedStudent || isCreatingStudent)) {
+      const studentName = isCreatingStudent
+        ? newStudentData.fullName
+        : selectedStudent?.fullName || "";
       const planNames: { [key: string]: string } = {
         conProfesor: "Con Profesor",
         libre: "Pileta Libre",
@@ -747,10 +1032,17 @@ export default function CashFlowManager() {
 
       setFormData((prev) => ({
         ...prev,
-        description: `${plan}${freq} - ${selectedStudent.fullName} (Periodo: ${period})`,
+        description: `${plan}${freq} - ${studentName} (Periodo: ${period})`,
       }));
     }
-  }, [selectedStudent, swimmingSelection, renewalDays, isPileta]);
+  }, [
+    selectedStudent,
+    isCreatingStudent,
+    newStudentData.fullName,
+    swimmingSelection,
+    renewalDays,
+    isPileta,
+  ]);
 
   // Efecto para calcular el precio de Inventario automáticamente (Precio * Cantidad)
   useEffect(() => {
@@ -869,11 +1161,44 @@ export default function CashFlowManager() {
         } else {
           finalDesc = `Pago de Cancha (${formattedCategory})`;
         }
-      } else if (formattedCategory.toLowerCase().includes("kiosco")) {
-        finalDesc = "Venta Kiosco";
       } else {
         // Fallback description based on category if still empty
         finalDesc = `${formattedCategory}`;
+      }
+    } else if (isCabinCategory && selectedCabinId) {
+      const cabin = cabinBookings.find((c) => c.id === selectedCabinId);
+      if (cabin) {
+        finalDesc = `Reserva Cabaña: ${cabin.user_name} (${cabin.start_date})`;
+      } else {
+        finalDesc = `Pago Cabañas El Mollar`;
+      }
+    }
+
+    let providerToLink: number | null = selectedProvider
+      ? selectedProvider.id
+      : null;
+
+    if (
+      formData.type === "Egreso" &&
+      isCreatingProvider &&
+      providerFormData.name
+    ) {
+      try {
+        const { data: provData, error: provError } = await supabase
+          .from("providers")
+          .insert([
+            { name: providerFormData.name, cuit: providerFormData.cuit },
+          ])
+          .select()
+          .single();
+        if (provError) throw provError;
+        if (provData) {
+          providerToLink = provData.id;
+        }
+      } catch (err: any) {
+        setErrorMessage("Error al crear el proveedor en línea.");
+        setShowError(true);
+        return;
       }
     }
 
@@ -901,11 +1226,16 @@ export default function CashFlowManager() {
           phone: isCreatingStudent
             ? newStudentData.phone
             : selectedStudent.phone,
+          schedule: isCreatingStudent ? {} : selectedStudent.schedule || {},
+          has_professor: isCreatingStudent
+            ? true
+            : (selectedStudent.hasProfessor ?? true),
           last_payment: {
             date: today.toISOString().split("T")[0],
             amount: parseFloat(formData.amount),
           },
           expiry_date: newExpiry.toISOString().split("T")[0],
+          deleted_at: null,
         };
       }
     }
@@ -918,23 +1248,56 @@ export default function CashFlowManager() {
     }
 
     try {
-      const { error: txError } = await supabase.from("transactions").insert({
-        date: new Date().toISOString().split("T")[0],
-        type: formData.type,
-        category: formattedCategory,
-        amount: parsedAmount,
-        payment_method: formData.paymentMethod,
-        invoice: finalInvoice,
-        description: finalDesc,
-      });
-
-      if (txError) throw txError;
-
+      // 1. First, Upsert student to satisfy FK constraint
       if (studentToUpsert) {
         const { error: studentError } = await supabase
           .from("students")
           .upsert(studentToUpsert, { onConflict: "dni" });
         if (studentError) throw studentError;
+      }
+
+      // 2. Insert transaction
+      const { data: txData, error: txError } = await supabase
+        .from("transactions")
+        .insert({
+          date: new Date().toISOString().split("T")[0],
+          type: formData.type,
+          category: formattedCategory,
+          amount: parsedAmount,
+          payment_method: formData.paymentMethod,
+          invoice: finalInvoice,
+          description: finalDesc,
+          booking_id: selectedBookingId || selectedCabinId || null,
+          inventory_id:
+            shouldDiscountStock && selectedStockProduct
+              ? selectedStockProduct.id
+              : null,
+          inventory_qty: shouldDiscountStock ? discountQuantity : null,
+          student_dni: studentToUpsert ? studentToUpsert.dni : null,
+          provider_id: providerToLink,
+          branch: branch,
+        })
+        .select()
+        .single();
+
+      if (txError) throw txError;
+
+      // 3. Record in student_payments history
+      if (studentToUpsert && txData) {
+        const { error: historyError } = await supabase
+          .from("student_payments")
+          .insert({
+            student_dni: studentToUpsert.dni,
+            transaction_id: txData.id,
+            amount: parsedAmount,
+            payment_date: new Date().toISOString().split("T")[0],
+            expiry_date: studentToUpsert.expiry_date,
+            plan_details: {
+              ...swimmingSelection,
+              renewalDays,
+            },
+          });
+        if (historyError) throw historyError;
       }
 
       if (shouldDiscountStock && selectedStockProduct) {
@@ -955,8 +1318,16 @@ export default function CashFlowManager() {
         if (bookingError) throw bookingError;
       }
 
+      if (selectedCabinId) {
+        const { error: cabinError } = await supabase
+          .from("cabin_bookings")
+          .update({ status: "Pagado" })
+          .eq("id", selectedCabinId);
+        if (cabinError) throw cabinError;
+      }
+
       setShowSuccess(true);
-      fetchEverything();
+      fetchData();
       handleCloseDialog();
     } catch (error: any) {
       console.error("Error in handleRegister:", error);
@@ -979,10 +1350,15 @@ export default function CashFlowManager() {
     setInvoiceData({ letter: "", num1: "", num2: "" });
     setSelectedStudent(null);
     setIsCreatingStudent(false);
-    setShouldDiscountStock(false);
-    setSelectedStockProduct(null);
+    setErrorMessage("");
+    setShowError(false);
+    setSelectedStudent(null);
+    setStudentSearchInput("");
+    setSelectedProvider(null);
+    setProviderSearchInput("");
     setSelectedBookingId(null);
-    setDiscountQuantity(1);
+    setSelectedCabinId(null);
+    setInventoryAdjustment(null);
   };
 
   const handleCreateAccount = async () => {
@@ -1006,6 +1382,7 @@ export default function CashFlowManager() {
         type: accountFormData.type,
         balance: parseFloat(accountFormData.balance) || 0,
         color: theme.palette.primary.main,
+        branch: branch,
       });
 
       if (error) throw error;
@@ -1013,11 +1390,69 @@ export default function CashFlowManager() {
       setShowSuccess(true);
       setOpenAccountDialog(false);
       setAccountFormData({ name: "", type: "Ingreso", balance: "0" });
-      fetchEverything();
+      fetchData();
     } catch (error) {
       console.error("Error creating account:", error);
       setErrorMessage("Error al crear la cuenta.");
       setShowError(true);
+    }
+  };
+
+  const handleAddFrequentCategory = async () => {
+    if (!formData.category) return;
+    const formattedName = toTitleCase(formData.category.trim());
+
+    // 1. Add as account if it doesn't exist
+    const accountExists = accountsData.some(
+      (a) => a.name.toLowerCase() === formattedName.toLowerCase(),
+    );
+
+    if (!accountExists) {
+      try {
+        const { error } = await supabase.from("accounts").insert({
+          name: formattedName,
+          type: "Mixto",
+          balance: 0,
+          color: theme.palette.primary.main,
+          branch: branch,
+        });
+        if (error) throw error;
+      } catch (err) {
+        console.error("Error creating account from chip:", err);
+      }
+    }
+
+    // 2. Add to frequent categories list and persist
+    if (!frequentCategories.includes(formattedName)) {
+      const newFreq = [...frequentCategories, formattedName];
+      setFrequentCategories(newFreq);
+      try {
+        await supabase
+          .from("system_configs")
+          .upsert(
+            { key: "frequent_categories", value: newFreq },
+            { onConflict: "key" },
+          );
+      } catch (err) {
+        console.error("Error persisting frequent categories:", err);
+      }
+    }
+
+    fetchData(); // Refresh accounts and configs
+  };
+
+  const handleRemoveFrequentCategory = async (cat: string) => {
+    const newFreq = frequentCategories.filter((c) => c !== cat);
+    setFrequentCategories(newFreq);
+    try {
+      await supabase
+        .from("system_configs")
+        .upsert(
+          { key: "frequent_categories", value: newFreq },
+          { onConflict: "key" },
+        );
+    } catch (err) {
+      console.error("Error removing frequent category:", err);
     }
   };
 
@@ -1026,15 +1461,19 @@ export default function CashFlowManager() {
     try {
       // 1. Update inventory tracking
       const { error: invError } = await supabase.from("inventory").upsert(
-        items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          category: item.category,
-          initial_stock: item.initialStock,
-          entries: item.entries,
-          exits: item.exits,
-          price: item.price,
-        })),
+        items.map((item) => {
+          const mapped: any = {
+            name: item.name,
+            category: item.category,
+            initial_stock: item.initialStock || 0,
+            entries: item.entries || 0,
+            exits: item.exits || 0,
+            price: item.price || 0,
+            branch: branch,
+          };
+          if (item.id) mapped.id = item.id;
+          return mapped;
+        }),
       );
       if (invError) throw invError;
 
@@ -1054,6 +1493,79 @@ export default function CashFlowManager() {
     }
   };
 
+  const handleAddItem = async (newItem: any) => {
+    try {
+      const { error: invError } = await supabase.from("inventory").insert([
+        {
+          name: newItem.name,
+          category: newItem.category,
+          initial_stock: newItem.initialStock,
+          entries: 0,
+          exits: 0,
+          price: newItem.price,
+          branch: branch,
+        },
+      ]);
+      if (invError) throw invError;
+
+      // Also sync to products_prices
+      await supabase.from("products_prices").upsert(
+        [
+          {
+            name: newItem.name,
+            price: newItem.price,
+          },
+        ],
+        { onConflict: "name" },
+      );
+
+      fetchData();
+      setShowSuccess(true);
+    } catch (error) {
+      console.error("Error adding inventory item:", error);
+      setErrorMessage("Error al agregar el producto.");
+      setShowError(true);
+    }
+  };
+
+  const handleDeleteItem = async (target: number | string) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este producto?"))
+      return;
+    try {
+      // Find item in state. Search by id if number, otherwise by name.
+      const itemToDelete = inventoryItems.find((i) =>
+        typeof target === "number" ? i.id === target : i.name === target,
+      );
+      if (!itemToDelete) return;
+
+      // 1. If it has a real DB ID, soft-delete from inventory table
+      if (itemToDelete.id) {
+        const { error: invError } = await supabase
+          .from("inventory")
+          .update({ deleted_at: new Date().toISOString() })
+          .eq("id", itemToDelete.id);
+        if (invError) throw invError;
+      }
+
+      // 2. Remove from products_prices table by name (using the unique product name)
+      const { error: priceError } = await supabase
+        .from("products_prices")
+        .delete()
+        .eq("name", itemToDelete.name);
+
+      if (priceError) {
+        console.warn("Could not delete from products_prices:", priceError);
+      }
+
+      fetchData();
+      setShowSuccess(true);
+    } catch (error) {
+      console.error("Error deleting inventory item:", error);
+      setErrorMessage("Error al eliminar el producto.");
+      setShowError(true);
+    }
+  };
+
   const handleArchiveDay = async (newDay: any) => {
     try {
       const { error } = await supabase.from("archived_days").insert({
@@ -1061,9 +1573,10 @@ export default function CashFlowManager() {
         shifts: newDay.shifts,
         total_balance: newDay.totalBalance,
         movements: newDay.movements,
+        branch: branch,
       });
       if (error) throw error;
-      fetchEverything();
+      fetchData();
       setShowSuccess(true);
     } catch (error) {
       console.error("Error archiving day:", error);
@@ -1090,6 +1603,75 @@ export default function CashFlowManager() {
     }
   };
 
+  const handleEditTransaction = (tx: Transaction) => {
+    setEditingTransaction(tx);
+    setOpenEditDialog(true);
+  };
+
+  const handleSaveEditedTransaction = async (updatedTx: Transaction) => {
+    try {
+      const oldTx = transactions.find((t) => t.id === updatedTx.id);
+      if (!oldTx) throw new Error("Transacción no encontrada");
+
+      // Side-effect: If category changed, check if we need to clear links
+      let booking_id = updatedTx.booking_id;
+      let inventory_id = updatedTx.inventory_id;
+      let inventory_qty = updatedTx.inventory_qty;
+      let student_dni = updatedTx.student_dni;
+
+      const isStillCourt =
+        updatedTx.category.toLowerCase().includes("cancha") ||
+        updatedTx.category.toLowerCase().includes("cabaña") ||
+        updatedTx.category.toLowerCase().includes("mollar");
+      const isStillInventory =
+        updatedTx.category.toLowerCase().includes("bebida") ||
+        updatedTx.category.toLowerCase().includes("snack");
+      const isStillPileta =
+        updatedTx.category.toLowerCase().includes("pileta") ||
+        updatedTx.category.toLowerCase().includes("natación") ||
+        updatedTx.category.toLowerCase().includes("natacion");
+
+      if (!isStillCourt) booking_id = null;
+      if (!isStillInventory) {
+        inventory_id = null;
+        inventory_qty = null;
+      }
+      if (!isStillPileta) student_dni = null;
+
+      const { error } = await supabase
+        .from("transactions")
+        .update({
+          date: updatedTx.date,
+          type: updatedTx.type,
+          category: updatedTx.category,
+          amount: updatedTx.amount,
+          description: updatedTx.description,
+          payment_method: updatedTx.paymentMethod,
+          invoice: updatedTx.invoice,
+          booking_id,
+          inventory_id,
+          inventory_qty,
+          student_dni,
+        })
+        .eq("id", updatedTx.id);
+
+      if (error) throw error;
+
+      // If we cleared a booking_id, the auto-reconciliation in fetchEverything will handle reversion.
+      // If the booking_id remains but details changed, the user said "si se modifica... no debería existir la reserva abonada".
+      // To be safe, if ANY relevant field changed for a court booking, we could force revert.
+      // But let's start with the category change which is the most obvious modification.
+
+      setErrorMessage("Movimiento actualizado correctamente.");
+      setShowSuccess(true);
+      fetchData();
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      setErrorMessage("Error al actualizar el movimiento.");
+      setShowError(true);
+    }
+  };
+
   const handleDeleteTransaction = async (id: number) => {
     if (
       !window.confirm(
@@ -1103,32 +1685,132 @@ export default function CashFlowManager() {
 
       const { error } = await supabase
         .from("transactions")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
 
       if (error) throw error;
 
-      if (txToDelete && txToDelete.category?.toLowerCase().includes("cancha")) {
-        const descMatch = txToDelete.description.match(
-          /(?:Reserva|Pago) Cancha: (.*?) \((.*?) (.*?)hs\)/,
-        );
-        if (descMatch) {
-          const matchedUser = descMatch[1].trim();
-          const matchedDayName = descMatch[2].trim();
-          const matchedStartTime = descMatch[3].trim();
+      // Synchronization logic
+      if (txToDelete) {
+        // 0. Cleanup student_payments history if linked
+        if (txToDelete.student_dni) {
+          // Try to update by transaction_id first
+          const { data: updatedHistory } = await supabase
+            .from("student_payments")
+            .update({ deleted_at: new Date().toISOString() })
+            .eq("transaction_id", id)
+            .select();
 
-          await supabase.from("court_bookings").delete().match({
-            user_name: matchedUser,
-            day_name: matchedDayName,
-            start_time: matchedStartTime,
-            status: "Pagado",
-          });
+          // Fallback for legacy records without transaction_id
+          if (!updatedHistory || updatedHistory.length === 0) {
+            await supabase
+              .from("student_payments")
+              .update({ deleted_at: new Date().toISOString() })
+              .match({
+                student_dni: txToDelete.student_dni,
+                amount: txToDelete.amount,
+                payment_date: txToDelete.date,
+              })
+              .is("deleted_at", null);
+          }
+        }
+
+        // 1. Revert Inventory exit
+        if (txToDelete.inventory_id && txToDelete.inventory_qty) {
+          const invItem = inventoryItems.find(
+            (i) => i.id === txToDelete.inventory_id,
+          );
+          if (invItem) {
+            await supabase
+              .from("inventory")
+              .update({
+                exits: Math.max(
+                  0,
+                  (invItem.exits || 0) - txToDelete.inventory_qty,
+                ),
+              })
+              .eq("id", txToDelete.inventory_id);
+          }
+        }
+
+        // 2. Revert Court Booking or Cabin Booking
+        if (txToDelete.booking_id) {
+          // Check if it's a cabin or court (heuristic by category)
+          if (
+            txToDelete.category?.toLowerCase().includes("cabaña") ||
+            txToDelete.category?.toLowerCase().includes("mollar")
+          ) {
+            await supabase
+              .from("cabin_bookings")
+              .update({ status: "Pendiente" })
+              .eq("id", txToDelete.booking_id);
+          } else {
+            await supabase
+              .from("court_bookings")
+              .update({ status: "Pendiente" })
+              .eq("id", txToDelete.booking_id);
+          }
+        } else if (txToDelete.category?.toLowerCase().includes("cancha")) {
+          // Fallback legacy parsing if booking_id wasn't stored
+          const descMatch = txToDelete.description.match(
+            /(?:Reserva|Pago) Cancha: (.*?) \((.*?) (.*?)hs\)/,
+          );
+          if (descMatch) {
+            const matchedUser = descMatch[1].trim();
+            const matchedDayName = descMatch[2].trim();
+            const matchedStartTime = descMatch[3].trim();
+
+            await supabase
+              .from("court_bookings")
+              .update({ status: "Pendiente" })
+              .match({
+                user_name: matchedUser,
+                day_name: matchedDayName,
+                start_time: matchedStartTime,
+                status: "Pagado",
+              });
+          }
+        }
+
+        // 3. Revert Student payment (Smart Reversion)
+        if (txToDelete.student_dni) {
+          // Find the latest REMAINING payment for this student
+          const { data: history } = await supabase
+            .from("student_payments")
+            .select("*")
+            .eq("student_dni", txToDelete.student_dni)
+            .is("deleted_at", null)
+            .order("expiry_date", { ascending: false })
+            .limit(1);
+
+          if (history && history.length > 0) {
+            const latest = history[0];
+            await supabase
+              .from("students")
+              .update({
+                last_payment: {
+                  date: latest.payment_date,
+                  amount: latest.amount,
+                },
+                expiry_date: latest.expiry_date,
+              })
+              .eq("dni", txToDelete.student_dni);
+          } else {
+            // No history left, clear student status
+            await supabase
+              .from("students")
+              .update({
+                last_payment: null,
+                expiry_date: null,
+              })
+              .eq("dni", txToDelete.student_dni);
+          }
         }
       }
 
       setErrorMessage("Movimiento eliminado correctamente.");
       setShowSuccess(true);
-      fetchEverything();
+      fetchData();
     } catch (error) {
       console.error("Error deleting transaction:", error);
       setErrorMessage("Error al eliminar el movimiento.");
@@ -1242,43 +1924,199 @@ export default function CashFlowManager() {
     doc.save(`Reporte_Caja_${filters.startDate}_v_${filters.endDate}.pdf`);
   };
 
-  const handleExportCSV = () => {
+  const handleExportExcel = () => {
+    // 1. Prepare Summary Data
+    const summaryData = [
+      ["Reporte de Flujo de Caja"],
+      ["Generado el", new Date().toLocaleString()],
+      [
+        "Periodo",
+        `${filters.startDate || "Inicio"} al ${filters.endDate || "Hoy"}`,
+      ],
+      [],
+      ["Resumen del Periodo"],
+      ["Total Ingresos", totalIncomes],
+      ["Total Egresos", totalExpenses],
+      ["Balance Neto", balance],
+    ];
+
+    // 2. Prepare Transactions Data
+    const transactionRows = filteredTransactions.map((t) => ({
+      Fecha: t.date,
+      Tipo: t.type,
+      Categoría: t.category,
+      Descripción: t.description,
+      Monto: t.amount,
+      Método: t.paymentMethod,
+      Comprobante: t.invoice || "",
+    }));
+
+    // 3. Create Workbook and Sheets
+    const wb = XLSX.utils.book_new();
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    const wsDetails = XLSX.utils.json_to_sheet(transactionRows);
+
+    // 4. Append Sheets
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen");
+    XLSX.utils.book_append_sheet(wb, wsDetails, "Movimientos");
+
+    // 5. Save File
+    XLSX.writeFile(
+      wb,
+      `flujo_caja_${filters.startDate || "inicio"}_al_${filters.endDate || "hoy"}.xlsx`,
+    );
+  };
+
+  const handleDownloadTemplate = () => {
     const headers = [
       "Fecha",
       "Tipo",
       "Categoría",
-      "Descripción",
       "Monto",
       "Método",
       "Factura",
+      "Descripción",
     ];
-    const rows = filteredTransactions.map((t) => [
-      t.date,
-      t.type,
-      t.category,
-      t.description,
-      t.amount.toString(),
-      t.paymentMethod,
-      t.invoice || "",
-    ]);
+    const exampleRow = [
+      new Date().toISOString().split("T")[0],
+      "Ingreso",
+      "Pileta",
+      "15000",
+      "Efectivo",
+      "C-0100-00000001",
+      "Importación de prueba",
+    ];
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-    ].join("\n");
+    const csvContent = [headers.join(","), exampleRow.join(",")].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `flujo_caja_${filters.startDate}_al_${filters.endDate}.csv`,
-    );
+    link.setAttribute("download", "plantilla_importacion_caja.csv");
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleImportFile = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        // Skip header row
+        const rows = jsonData.slice(1) as any[][];
+
+        const importedTransactions = rows
+          .map((values) => {
+            if (!values || values.length === 0) return null;
+            return {
+              date: values[0] || new Date().toISOString().split("T")[0],
+              type: values[1] || "Ingreso",
+              category: toTitleCase(String(values[2] || "Otros")),
+              amount: parseFloat(values[3]) || 0,
+              payment_method: values[4] || "Efectivo",
+              invoice: values[5] || "",
+              description: values[6] || "",
+            };
+          })
+          .filter((t): t is any => t !== null && t.amount !== undefined);
+
+        if (importedTransactions.length === 0) {
+          setErrorMessage("No se encontraron datos válidos en el archivo.");
+          setShowError(true);
+          return;
+        }
+
+        const { error } = await supabase
+          .from("transactions")
+          .insert(importedTransactions);
+        if (error) throw error;
+
+        // Automatically create missing accounts
+        const uniqueCats = [
+          ...new Set(importedTransactions.map((t) => t.category)),
+        ];
+        for (const catName of uniqueCats) {
+          const exists = accountsData.some(
+            (a) => a.name.toLowerCase() === catName.toLowerCase(),
+          );
+          if (!exists) {
+            await supabase.from("accounts").insert({
+              name: catName,
+              type: "Mixto",
+              balance: 0,
+              color: theme.palette.primary.main,
+            });
+          }
+        }
+
+        setShowSuccess(true);
+        fetchData();
+        setErrorMessage(
+          `Se importaron ${importedTransactions.length} movimientos.`,
+        );
+      } catch (error: any) {
+        console.error("Error importing file:", error);
+        setErrorMessage("Error al importar el archivo. Verifique el formato.");
+        setShowError(true);
+      }
+    };
+    reader.readAsBinaryString(file);
+    event.target.value = ""; // Reset input
+  };
+
+  const handleDownloadImportGuidePDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.setTextColor(26, 95, 122);
+    doc.text("Guía de Importación Masiva", 14, 22);
+
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text(
+      "Siga estas instrucciones para importar movimientos desde otro sistema:",
+      14,
+      35,
+    );
+
+    const columns = [
+      ["Columna", "Descripción", "Ejemplo"],
+      ["Fecha", "Formato YYYY-MM-DD", "2024-03-24"],
+      ["Tipo", "Ingreso o Egreso", "Ingreso"],
+      ["Categoría", "Nombre de la cuenta", "Venta Bebida"],
+      ["Monto", "Número sin símbolos", "1500.50"],
+      ["Método", "Efectivo o Transferencia", "Efectivo"],
+      ["Factura", "Opcional (Número comprobante)", "C-001-023"],
+      ["Descripción", "Detalle adicional", "Venta coca-cola"],
+    ];
+
+    autoTable(doc, {
+      startY: 45,
+      head: [columns[0]],
+      body: columns.slice(1),
+      headStyles: { fillColor: [26, 95, 122] },
+    });
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(
+      "Nota: El archivo puede ser Excel (.xlsx, .xls) o CSV separado por comas.",
+      14,
+      doc.internal.pageSize.getHeight() - 20,
+    );
+    doc.save("Guia_Importacion_Caja.pdf");
   };
 
   const handleExportSummaryPDF = async () => {
@@ -1413,23 +2251,28 @@ export default function CashFlowManager() {
 
   const chartData = useMemo(() => {
     const daily: { [key: string]: any } = {};
+    const cats: { [key: string]: number } = {};
+
     filteredTransactions.forEach((t) => {
+      // Daily dynamics
       if (!daily[t.date])
         daily[t.date] = { date: t.date, ingreso: 0, egreso: 0 };
-      if (t.type === "Ingreso") daily[t.date].ingreso += t.amount;
-      else daily[t.date].egreso += t.amount;
-    });
-    return Object.values(daily).sort((a, b) => a.date.localeCompare(b.date));
-  }, [filteredTransactions]);
-
-  const pieData = useMemo(() => {
-    const cats: { [key: string]: number } = {};
-    filteredTransactions
-      .filter((t) => t.type === "Ingreso")
-      .forEach((t) => {
+      if (t.type === "Ingreso") {
+        daily[t.date].ingreso += t.amount;
         cats[t.category] = (cats[t.category] || 0) + t.amount;
-      });
-    return Object.entries(cats).map(([name, value]) => ({ name, value }));
+      } else {
+        daily[t.date].egreso += t.amount;
+      }
+    });
+
+    return {
+      dailyDynamics: Object.values(daily).sort((a, b) =>
+        a.date.localeCompare(b.date),
+      ),
+      incomeByAccount: Object.entries(cats)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value),
+    };
   }, [filteredTransactions]);
 
   const COLORS = [
@@ -1594,21 +2437,38 @@ export default function CashFlowManager() {
   }, [transactions, summaryMonth, summaryYear, inventoryItems]);
 
   const accountsSummary = useMemo(() => {
-    return accountsData.map((acc) => {
-      const accIncomes = transactions
-        .filter((t) => t.category === acc.name && t.type === "Ingreso")
-        .reduce((sum, t) => sum + t.amount, 0);
-      const accExpenses = transactions
-        .filter((t) => t.category === acc.name && t.type === "Egreso")
-        .reduce((sum, t) => sum + t.amount, 0);
-      return {
-        ...acc,
-        accIncomes,
-        accExpenses,
-        accBalance: accIncomes - accExpenses,
-      };
-    });
-  }, [accountsData, transactions]);
+    // Get all unique categories from transactions that match current filter (to show relevant ledger)
+    const uniqueCategories = Array.from(
+      new Set(transactions.map((t) => t.category)),
+    );
+
+    // Create a base list of accounts from accountsData, but also add any missing categories
+    const allAccountNames = Array.from(
+      new Set([...accountsData.map((a) => a.name), ...uniqueCategories]),
+    );
+
+    return allAccountNames
+      .map((name) => {
+        const existingAcc = accountsData.find((a) => a.name === name);
+        const accIncomes = filteredTransactions
+          .filter((t) => t.category === name && t.type === "Ingreso")
+          .reduce((sum, t) => sum + t.amount, 0);
+        const accExpenses = filteredTransactions
+          .filter((t) => t.category === name && t.type === "Egreso")
+          .reduce((sum, t) => sum + t.amount, 0);
+
+        return {
+          id: existingAcc?.id || -1,
+          name: name,
+          type: existingAcc?.type || "Mixto",
+          color: existingAcc?.color || theme.palette.divider,
+          accIncomes,
+          accExpenses,
+          accBalance: accIncomes - accExpenses,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [accountsData, transactions, filteredTransactions, theme.palette.divider]);
 
   const { totalIncomes, totalExpenses, balance } = useMemo(() => {
     const income = filteredTransactions
@@ -1648,30 +2508,32 @@ export default function CashFlowManager() {
             label="Flujo de Caja"
             iconPosition="start"
             sx={{ minHeight: 40 }}
+            value={0}
           />
-          <Tab
-            icon={<PointOfSaleIcon sx={{ fontSize: 20 }} />}
-            label="Arqueo de Caja"
-            iconPosition="start"
-            sx={{ minHeight: 40 }}
-          />
-          <Tab
-            icon={<InventoryIcon sx={{ fontSize: 20 }} />}
-            label="Inventario"
-            iconPosition="start"
-            sx={{ minHeight: 40 }}
-          />
+          {!hideInventoryAndArqueo && (
+            <Tab
+              icon={<PointOfSaleIcon sx={{ fontSize: 20 }} />}
+              label="Arqueo de Caja"
+              iconPosition="start"
+              sx={{ minHeight: 40 }}
+              value={1}
+            />
+          )}
+          {!hideInventoryAndArqueo && (
+            <Tab
+              icon={<InventoryIcon sx={{ fontSize: 20 }} />}
+              label="Inventario"
+              iconPosition="start"
+              sx={{ minHeight: 40 }}
+              value={2}
+            />
+          )}
           <Tab
             icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />}
             label="Libro Mayor"
             iconPosition="start"
             sx={{ minHeight: 40 }}
-          />
-          <Tab
-            icon={<AssessmentIcon sx={{ fontSize: 20 }} />}
-            label="Resumen"
-            iconPosition="start"
-            sx={{ minHeight: 40 }}
+            value={3}
           />
         </Tabs>
 
@@ -1687,9 +2549,171 @@ export default function CashFlowManager() {
         </Typography>
       </Box>
 
+      {/* Filters visible in Flow and Ledger views to refine data list */}
+      {(view === 0 || view === 3) && (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            mb: 4,
+            mt: 4,
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: alpha(theme.palette.primary.main, 0.02),
+          }}
+        >
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  bgcolor: "background.paper",
+                  borderRadius: 2,
+                  px: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <SearchIcon color="action" fontSize="small" />
+                <OptimizedTextField
+                  placeholder="Buscar..."
+                  sx={{ ml: 1, flex: 1 }}
+                  InputProps={{
+                    sx: {
+                      fontSize: "0.9rem",
+                      py: 0.5,
+                      "& fieldset": { border: "none" },
+                    },
+                  }}
+                  value={filters.search}
+                  debounceMs={300}
+                  onChange={(val) => setFilters({ ...filters, search: val })}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={6} md={1.5}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                value={filters.type}
+                onChange={(e) =>
+                  setFilters({ ...filters, type: e.target.value })
+                }
+                InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
+              >
+                <MenuItem value="Todos">Todos</MenuItem>
+                <MenuItem value="Ingreso">Ingresos</MenuItem>
+                <MenuItem value="Egreso">Egresos</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={6} md={1.5}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                value={filters.category}
+                onChange={(e) =>
+                  setFilters({ ...filters, category: e.target.value })
+                }
+                InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
+              >
+                {categories.map((c: string) => (
+                  <MenuItem key={c} value={c}>
+                    {c}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={6} md={2}>
+              <TextField
+                type="date"
+                label="Desde"
+                size="small"
+                fullWidth
+                value={filters.startDate}
+                onChange={(e) =>
+                  setFilters({ ...filters, startDate: e.target.value })
+                }
+                InputLabelProps={{ shrink: true }}
+                InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
+              />
+            </Grid>
+            <Grid item xs={6} md={2}>
+              <TextField
+                type="date"
+                label="Hasta"
+                size="small"
+                fullWidth
+                value={filters.endDate}
+                onChange={(e) =>
+                  setFilters({ ...filters, endDate: e.target.value })
+                }
+                InputLabelProps={{ shrink: true }}
+                InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
+              />
+            </Grid>
+            <Grid
+              item
+              xs={12}
+              md={2}
+              sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}
+            >
+              <input
+                type="file"
+                accept=".csv, .xlsx, .xls"
+                style={{ display: "none" }}
+                id="import-csv-input"
+                onChange={handleImportFile}
+              />
+              <Tooltip title="Importación Masiva">
+                <IconButton
+                  color="primary"
+                  onClick={() =>
+                    document.getElementById("import-csv-input")?.click()
+                  }
+                  sx={{
+                    border: "1px solid",
+                    borderColor: alpha(theme.palette.primary.main, 0.2),
+                  }}
+                >
+                  <CloudUploadIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Exportar Excel">
+                <IconButton
+                  color="success"
+                  onClick={handleExportExcel}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: alpha(theme.palette.success.main, 0.2),
+                  }}
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Imprimir PDF">
+                <IconButton
+                  color="info"
+                  onClick={handleExportPDF}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: alpha(theme.palette.info.main, 0.2),
+                  }}
+                >
+                  <PrintIcon />
+                </IconButton>
+              </Tooltip>
+            </Grid>
+          </Grid>
+        </Paper>
+      )}
+
       {view === 0 && (
         <>
-          <Box sx={{ mb: 4 }}>
+          <Box sx={{ mb: 4, mt: 2 }}>
             <Button
               variant="contained"
               fullWidth
@@ -1713,223 +2737,11 @@ export default function CashFlowManager() {
             </Button>
           </Box>
 
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              mb: 4,
-              borderRadius: 3,
-              border: "1px solid",
-              borderColor: "divider",
-              bgcolor: alpha(theme.palette.primary.main, 0.02),
-            }}
-          >
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={3}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    bgcolor: "background.paper",
-                    borderRadius: 2,
-                    px: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
-                  }}
-                >
-                  <SearchIcon color="action" fontSize="small" />
-                  <OptimizedTextField
-                    placeholder="Buscar..."
-                    sx={{ ml: 1, flex: 1 }}
-                    InputProps={{
-                      sx: {
-                        fontSize: "0.9rem",
-                        py: 0.5,
-                        "& fieldset": { border: "none" },
-                      },
-                    }}
-                    value={filters.search}
-                    debounceMs={300}
-                    onChange={(val) => setFilters({ ...filters, search: val })}
-                  />
-                </Box>
-              </Grid>
-              <Grid item xs={6} md={1.5}>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  value={filters.type}
-                  onChange={(e) =>
-                    setFilters({ ...filters, type: e.target.value })
-                  }
-                  InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
-                >
-                  <MenuItem value="Todos">Todos</MenuItem>
-                  <MenuItem value="Ingreso">Ingresos</MenuItem>
-                  <MenuItem value="Egreso">Egresos</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid item xs={6} md={1.5}>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  value={filters.category}
-                  onChange={(e) =>
-                    setFilters({ ...filters, category: e.target.value })
-                  }
-                  InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
-                >
-                  {categories.map((c) => (
-                    <MenuItem key={c} value={c}>
-                      {c}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={6} md={2}>
-                <TextField
-                  type="date"
-                  label="Desde"
-                  size="small"
-                  fullWidth
-                  value={filters.startDate}
-                  onChange={(e) =>
-                    setFilters({ ...filters, startDate: e.target.value })
-                  }
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
-                />
-              </Grid>
-              <Grid item xs={6} md={2}>
-                <TextField
-                  type="date"
-                  label="Hasta"
-                  size="small"
-                  fullWidth
-                  value={filters.endDate}
-                  onChange={(e) =>
-                    setFilters({ ...filters, endDate: e.target.value })
-                  }
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
-                />
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                md={2}
-                sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}
-              >
-                <Button
-                  startIcon={<DownloadIcon />}
-                  variant="contained"
-                  fullWidth
-                  onClick={handleExportCSV}
-                  sx={{
-                    borderRadius: 2,
-                    fontWeight: 700,
-                    textTransform: "none",
-                  }}
-                >
-                  EXP. EXCEL/CSV
-                </Button>
-              </Grid>
-            </Grid>
-          </Paper>
-
-          <Grid container spacing={2} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: 3,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: alpha(theme.palette.success.main, 0.05),
-                  height: "100%",
-                }}
-              >
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <TrendingUpIcon color="success" />
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ fontWeight: 700, color: "success.main" }}
-                    >
-                      INGRESOS (RANGO)
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontWeight: 800 }}>
-                      ${(totalIncomes || 0).toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: 3,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: alpha(theme.palette.error.main, 0.05),
-                  height: "100%",
-                }}
-              >
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <TrendingDownIcon color="error" />
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ fontWeight: 700, color: "error.main" }}
-                    >
-                      EGRESOS (RANGO)
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontWeight: 800 }}>
-                      ${(totalExpenses || 0).toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: 3,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: alpha(theme.palette.primary.main, 0.05),
-                  height: "100%",
-                }}
-              >
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <AccountBalanceWalletIcon color="primary" />
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ fontWeight: 700, color: "primary.main" }}
-                    >
-                      BALANCE (RANGO)
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontWeight: 800 }}>
-                      ${(balance || 0).toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Paper>
-            </Grid>
-          </Grid>
-
           <Box sx={{ mt: 4 }}>
             <MemoizedTransactionsTable
               transactions={filteredTransactions}
               onDelete={handleDeleteTransaction}
+              onEdit={handleEditTransaction}
               accountsData={accountsData}
             />
           </Box>
@@ -1995,7 +2807,7 @@ export default function CashFlowManager() {
                       <TextField
                         {...params}
                         label="Cuenta"
-                        placeholder="Ej: Cuota Pileta, Kiosco..."
+                        placeholder="Ej: Cuota Pileta, Bebida..."
                       />
                     )}
                   />
@@ -2005,19 +2817,46 @@ export default function CashFlowManager() {
                     {frequentCategories.map((cat) => (
                       <Chip
                         key={cat}
-                        label={cat}
+                        label={
+                          cat.charAt(0).toUpperCase() +
+                          cat.slice(1).toLowerCase()
+                        }
                         size="small"
                         onClick={() =>
                           setFormData({ ...formData, category: cat })
                         }
+                        onDelete={() => handleRemoveFrequentCategory(cat)}
                         color={
                           formData.category === cat ? "primary" : "default"
                         }
                         variant={
                           formData.category === cat ? "filled" : "outlined"
                         }
+                        sx={{
+                          fontWeight: 800,
+                          "& .MuiChip-label": {
+                            color:
+                              formData.category === cat
+                                ? "#ffffff"
+                                : "text.primary",
+                          },
+                        }}
                       />
                     ))}
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={handleAddFrequentCategory}
+                      sx={{
+                        border: "1px dashed",
+                        borderColor: "primary.main",
+                        "&:hover": {
+                          bgcolor: alpha(theme.palette.primary.main, 0.1),
+                        },
+                      }}
+                    >
+                      <AddIcon fontSize="small" />
+                    </IconButton>
                   </Box>
 
                   {promotions.length > 0 && (
@@ -2053,12 +2892,141 @@ export default function CashFlowManager() {
                                 ? "filled"
                                 : "outlined"
                             }
+                            sx={{
+                              fontWeight: 800,
+                              "& .MuiChip-label": {
+                                color: "#ffffff",
+                              },
+                            }}
                           />
                         ))}
                       </Box>
                     </Box>
                   )}
                 </Box>
+
+                {formData.type === "Egreso" && (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      bgcolor: alpha(theme.palette.error.main, 0.05),
+                      borderRadius: 2,
+                      border: "1px dashed",
+                      borderColor: "error.main",
+                      mb: 2,
+                    }}
+                  >
+                    <Stack spacing={2}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 800, color: "error.dark" }}
+                      >
+                        Vincular Proveedor (Opcional)
+                      </Typography>
+                      <Autocomplete
+                        options={providers}
+                        getOptionLabel={(option) =>
+                          `${option.name} ${option.cuit ? `(CUIT: ${option.cuit})` : ""}`
+                        }
+                        noOptionsText={
+                          <Button
+                            fullWidth
+                            color="error"
+                            variant="contained"
+                            size="small"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setIsCreatingProvider(true);
+                            }}
+                            startIcon={<AddIcon />}
+                            sx={{ fontWeight: 800 }}
+                          >
+                            Crear Proveedor "{providerSearchInput}"
+                          </Button>
+                        }
+                        inputValue={providerSearchInput}
+                        onInputChange={(_, newValue) =>
+                          setProviderSearchInput(newValue)
+                        }
+                        value={selectedProvider}
+                        onChange={(_, newValue) =>
+                          setSelectedProvider(newValue)
+                        }
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Seleccionar Proveedor"
+                            size="small"
+                          />
+                        )}
+                      />
+                      {isCreatingProvider && (
+                        <Box
+                          sx={{
+                            p: 2,
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: 2,
+                            bgcolor: "background.paper",
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ mb: 1, fontWeight: 700 }}
+                          >
+                            Nuevo Proveedor
+                          </Typography>
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Nombre / Razón Social"
+                                value={providerFormData.name}
+                                onChange={(e) =>
+                                  setProviderFormData({
+                                    ...providerFormData,
+                                    name: e.target.value,
+                                  })
+                                }
+                                autoFocus
+                              />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="CUIT (Opcional)"
+                                value={providerFormData.cuit}
+                                onChange={(e) =>
+                                  setProviderFormData({
+                                    ...providerFormData,
+                                    cuit: e.target.value,
+                                  })
+                                }
+                              />
+                            </Grid>
+                            <Grid
+                              item
+                              xs={12}
+                              display="flex"
+                              justifyContent="flex-end"
+                              gap={1}
+                            >
+                              <Button
+                                size="small"
+                                onClick={() => setIsCreatingProvider(false)}
+                              >
+                                Cancelar
+                              </Button>
+                            </Grid>
+                          </Grid>
+                        </Box>
+                      )}
+                    </Stack>
+                  </Paper>
+                )}
 
                 {isPileta && (
                   <Paper
@@ -2211,6 +3179,13 @@ export default function CashFlowManager() {
                           : null
                       }
                       onSave={(student) => {
+                        if (!student.dni) {
+                          setErrorMessage(
+                            "Es obligatorio ingresar un DNI para el alumno.",
+                          );
+                          setShowError(true);
+                          return;
+                        }
                         setSelectedStudent(student);
                         setIsCreatingStudent(false);
                       }}
@@ -2309,6 +3284,78 @@ export default function CashFlowManager() {
                       <Typography variant="caption" color="text.secondary">
                         Al registrar el ingreso, la reserva se marcará
                         automáticamente como <b>Pagada</b> en el calendario.
+                      </Typography>
+                    </Stack>
+                  </Paper>
+                )}
+
+                {isCabinCategory && branch === "noroeste" && (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      bgcolor: alpha(theme.palette.success.main, 0.05),
+                      borderRadius: 2,
+                      border: "1px dashed",
+                      borderColor: "success.main",
+                    }}
+                  >
+                    <Stack spacing={2}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 800, color: "success.dark" }}
+                      >
+                        Vincular Reserva de Cabaña (El Mollar)
+                      </Typography>
+
+                      <Autocomplete
+                        options={cabinBookings.filter(
+                          (b) => b.status !== "Pagado",
+                        )}
+                        getOptionLabel={(option) =>
+                          `Cabaña U${option.cabin_sub_number} - ${option.user_name} (${option.start_date}) ${option.is_affiliate ? "[Afiliado]" : "[General]"}`
+                        }
+                        onChange={(_, newValue) => {
+                          setSelectedCabinId(newValue ? newValue.id : null);
+                          if (newValue) {
+                            const start = new Date(newValue.start_date);
+                            const end = new Date(newValue.end_date);
+                            const nights = Math.max(
+                              1,
+                              Math.round(
+                                (end.getTime() - start.getTime()) /
+                                  (1000 * 3600 * 24),
+                              ),
+                            );
+
+                            const priceConfig = cabinPrices[
+                              `confort${newValue.cabin_type}`
+                            ] || { general: 0, afiliado: 0 };
+                            const pricePerNight = newValue.is_affiliate
+                              ? priceConfig.afiliado
+                              : priceConfig.general;
+                            const totalToPay = pricePerNight * nights;
+
+                            setFormData((prev) => ({
+                              ...prev,
+                              amount:
+                                totalToPay > 0 ? totalToPay.toString() : "",
+                              description: `Reserva Cabaña: U${newValue.cabin_sub_number} ${newValue.user_name} (${newValue.start_date} al ${newValue.end_date} - ${nights} Noche/s)`,
+                            }));
+                          }
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Seleccionar Reserva Pendiente"
+                            size="small"
+                          />
+                        )}
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        Selecciona la reserva pendiente para vincular el pago y
+                        confirmar la cabaña. Recuerda ingresar el monto
+                        correspondiente según el precio de Administrador.
                       </Typography>
                     </Stack>
                   </Paper>
@@ -2513,11 +3560,14 @@ export default function CashFlowManager() {
           onOpenRoster={() => setOpenRosterDialog(true)}
         />
       )}
+
       {view === 2 && (
         <Box sx={{ mt: 4 }}>
           <MemoizedInventoryManager
             items={inventoryItems}
             onUpdateItems={handleUpdateInventory}
+            onAddItem={handleAddItem}
+            onDeleteItem={handleDeleteItem}
           />
         </Box>
       )}
@@ -2634,76 +3684,6 @@ export default function CashFlowManager() {
         </TableContainer>
       )}
 
-      {view === 4 && (
-        <Box sx={{ mt: 4 }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 4,
-            }}
-          >
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Typography variant="h5" sx={{ fontWeight: 800 }}>
-                Dashboard:
-              </Typography>
-              <TextField
-                select
-                size="small"
-                value={summaryMonth}
-                onChange={(e) => setSummaryMonth(parseInt(e.target.value))}
-                sx={{ width: 150 }}
-              >
-                {[
-                  "Enero",
-                  "Febrero",
-                  "Marzo",
-                  "Abril",
-                  "Mayo",
-                  "Junio",
-                  "Julio",
-                  "Agosto",
-                  "Septiembre",
-                  "Octubre",
-                  "Noviembre",
-                  "Diciembre",
-                ].map((m, i) => (
-                  <MenuItem key={m} value={i + 1}>
-                    {m}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                type="number"
-                size="small"
-                value={summaryYear}
-                onChange={(e) => setSummaryYear(parseInt(e.target.value))}
-                sx={{ width: 100 }}
-              />
-            </Stack>
-            <Button
-              variant="contained"
-              startIcon={<AssessmentIcon />}
-              disabled={isGeneratingPDF}
-              onClick={() => setOpenSummaryExport(true)}
-              sx={{ fontWeight: 700, borderRadius: 2 }}
-            >
-              {isGeneratingPDF
-                ? "Generando..."
-                : "Exportar Reporte Mensual PDF"}
-            </Button>
-          </Box>
-
-          <MemoizedSummary
-            data={dashboardData}
-            totalIncomes={totalIncomes}
-            totalExpenses={totalExpenses}
-            balance={balance}
-          />
-        </Box>
-      )}
-
       {/* Account Dialog */}
       <Dialog
         open={openAccountDialog}
@@ -2725,7 +3705,7 @@ export default function CashFlowManager() {
                   name: e.target.value,
                 })
               }
-              placeholder="Ej: Cuota Pileta, Kiosco, Cantina..."
+              placeholder="Ej: Cuota Pileta, Bebida, Cantina..."
             />
             <TextField
               select
@@ -2938,6 +3918,13 @@ export default function CashFlowManager() {
           </Button>
         </DialogActions>
       </Dialog>
+      <TransactionEditDialog
+        open={openEditDialog}
+        onClose={() => setOpenEditDialog(false)}
+        transaction={editingTransaction}
+        onSave={handleSaveEditedTransaction}
+        accountsData={accountsData}
+      />
     </Box>
   );
 }

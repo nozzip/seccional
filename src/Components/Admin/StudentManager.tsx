@@ -37,6 +37,8 @@ import StudentRegistrationDialog, {
   StudentData,
 } from "./StudentRegistrationDialog";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import MoneyOffIcon from "@mui/icons-material/MoneyOff";
+import HistoryIcon from "@mui/icons-material/History";
 import { supabase } from "../../supabaseClient";
 
 export default function StudentManager() {
@@ -49,6 +51,7 @@ export default function StudentManager() {
       const { data, error } = await supabase
         .from("students")
         .select("*")
+        .is("deleted_at", null)
         .order("full_name", { ascending: true });
 
       if (error) throw error;
@@ -91,23 +94,76 @@ export default function StudentManager() {
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [filterExpiring, setFilterExpiring] = useState(false);
+  const [openHistory, setOpenHistory] = useState(false);
+  const [historyStudent, setHistoryStudent] = useState<StudentData | null>(
+    null,
+  );
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
 
   const isExpired = (expiryDate?: string) => {
     if (!expiryDate) return true;
-    return new Date(expiryDate) < new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const exp = new Date(expiryDate);
+    exp.setHours(23, 59, 59, 999);
+    return exp < today;
   };
 
   const handleDelete = async (studentId: number) => {
-    if (!window.confirm("¿Estás seguro de eliminar este alumno?")) return;
+    if (
+      !window.confirm(
+        "¿Deseas enviar a este alumno a la Papelera? Permanecerá allí por 7 días antes de eliminarse definitivamente.",
+      )
+    )
+      return;
     try {
       const { error } = await supabase
         .from("students")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", studentId);
       if (error) throw error;
       fetchData();
     } catch (error) {
-      console.error("Error deleting student:", error);
+      console.error("Error soft-deleting student:", error);
+    }
+  };
+
+  const handleClearPayment = async (studentId: number) => {
+    if (
+      !window.confirm(
+        "¿Deseas anular el estado de pago de este alumno? El registro del alumno se mantendrá pero figurará como deuda.",
+      )
+    )
+      return;
+    try {
+      const { error } = await supabase
+        .from("students")
+        .update({
+          last_payment: null,
+          expiry_date: null,
+        })
+        .eq("id", studentId);
+      if (error) throw error;
+      fetchData();
+    } catch (error) {
+      console.error("Error clearing payment:", error);
+    }
+  };
+
+  const handleViewHistory = async (student: StudentData) => {
+    setHistoryStudent(student);
+    setOpenHistory(true);
+    setPaymentHistory([]);
+    try {
+      const { data, error } = await supabase
+        .from("student_payments")
+        .select("*")
+        .eq("student_dni", student.dni)
+        .order("payment_date", { ascending: false });
+      if (error) throw error;
+      setPaymentHistory(data || []);
+    } catch (error) {
+      console.error("Error fetching payment history:", error);
     }
   };
 
@@ -329,7 +385,25 @@ export default function StudentManager() {
                   <TableCell align="right">
                     <IconButton
                       size="small"
+                      color="info"
+                      title="Ver Historial de Pagos"
+                      onClick={() => s.id && handleViewHistory(s)}
+                    >
+                      <HistoryIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      color="warning"
+                      title="Limpiar Estado de Pago"
+                      onClick={() => s.id && handleClearPayment(s.id)}
+                      disabled={!s.lastPayment}
+                    >
+                      <MoneyOffIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
                       color="primary"
+                      title="Editar Datos"
                       onClick={() => {
                         setSelectedStudent(s);
                         setOpen(true);
@@ -340,6 +414,7 @@ export default function StudentManager() {
                     <IconButton
                       size="small"
                       color="error"
+                      title="Eliminar Alumno (Baja Definitiva)"
                       onClick={() => s.id && handleDelete(s.id)}
                     >
                       <DeleteIcon fontSize="small" />
@@ -361,13 +436,13 @@ export default function StudentManager() {
               full_name: updatedStudent.fullName,
               dni: updatedStudent.dni,
               phone: updatedStudent.phone,
-              dob: updatedStudent.dob,
+              dob: updatedStudent.dob || null,
               address: updatedStudent.address,
               city: updatedStudent.city,
               has_professor: updatedStudent.hasProfessor,
               schedule: updatedStudent.schedule,
-              last_payment: updatedStudent.lastPayment,
-              expiry_date: updatedStudent.expiryDate,
+              last_payment: updatedStudent.lastPayment || null,
+              expiry_date: updatedStudent.expiryDate || null,
             };
 
             if (selectedStudent?.id) {
@@ -391,6 +466,120 @@ export default function StudentManager() {
           }
         }}
       />
+
+      {/* History Dialog */}
+      <Dialog
+        open={openHistory}
+        onClose={() => setOpenHistory(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>
+          Historial de Pagos: {historyStudent?.fullName}
+        </DialogTitle>
+        <DialogContent>
+          {paymentHistory.length === 0 ? (
+            <Box sx={{ py: 4, textAlign: "center" }}>
+              <Typography color="text.secondary">
+                No hay registros de pagos previos.
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer sx={{ mt: 2 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Fecha Pago</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Vencimiento</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Monto</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Estado</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {paymentHistory.map((h) => {
+                    const isDeleted = !!h.deleted_at;
+                    const expired = isExpired(h.expiry_date);
+                    return (
+                      <TableRow
+                        key={h.id}
+                        sx={{
+                          bgcolor: isDeleted
+                            ? alpha(theme.palette.error.main, 0.05)
+                            : "inherit",
+                          opacity: isDeleted ? 0.8 : 1,
+                        }}
+                      >
+                        <TableCell
+                          sx={{
+                            textDecoration: isDeleted ? "line-through" : "none",
+                            color: isDeleted ? "text.disabled" : "inherit",
+                          }}
+                        >
+                          {new Date(h.payment_date).toLocaleDateString("es-AR")}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            textDecoration: isDeleted ? "line-through" : "none",
+                            color: isDeleted ? "text.disabled" : "inherit",
+                          }}
+                        >
+                          {new Date(h.expiry_date).toLocaleDateString("es-AR")}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 600,
+                            textDecoration: isDeleted ? "line-through" : "none",
+                            color: isDeleted ? "error.light" : "inherit",
+                          }}
+                        >
+                          ${h.amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          {isDeleted ? (
+                            <Chip
+                              label={`ELIMINADO (${new Date(h.deleted_at).toLocaleDateString("es-AR")})`}
+                              size="small"
+                              color="error"
+                              variant="outlined"
+                              sx={{
+                                fontSize: "0.6rem",
+                                fontWeight: 800,
+                                height: 20,
+                              }}
+                            />
+                          ) : (
+                            <Chip
+                              label={expired ? "EXPIRADO" : "VIGENTE"}
+                              size="small"
+                              color={expired ? "warning" : "success"}
+                              variant="outlined"
+                              sx={{
+                                fontSize: "0.6rem",
+                                fontWeight: 800,
+                                height: 20,
+                              }}
+                            />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            variant="contained"
+            onClick={() => setOpenHistory(false)}
+            sx={{ fontWeight: 700, px: 4 }}
+          >
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

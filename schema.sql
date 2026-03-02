@@ -111,3 +111,17 @@ CREATE TABLE IF NOT EXISTS public.promotions (
     config JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Maintenance & Order Management Requests
+CREATE TABLE IF NOT EXISTS public.maintenance_requests (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    user_name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    request_type TEXT NOT NULL, -- 'Reparación', 'Compra', 'Otro'
+    amount NUMERIC,
+    status TEXT DEFAULT 'Pendiente' NOT NULL, -- 'Pendiente', 'Aprobado', 'Completado', 'Rechazado'
+    notes TEXT,
+    archived_at TIMESTAMP WITH TIME ZONE,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
