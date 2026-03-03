@@ -36,6 +36,7 @@ import AdminOverviewNoroeste from "../../Components/Admin/AdminOverviewNoroeste"
 import CabinBookingManager from "../../Components/Admin/CabinBookingManager";
 import PriceManagerNoroeste from "../../Components/Admin/PriceManagerNoroeste";
 import ProvidersManager from "../../Components/Admin/ProvidersManager";
+import AdminCapabilitiesModal from "../../Components/Admin/AdminCapabilitiesModal";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 
 function AdminDashboard() {
@@ -43,10 +44,20 @@ function AdminDashboard() {
     "azucena",
   );
   const [activeTab, setActiveTab] = useState(0);
+  const [showCapabilitiesModal, setShowCapabilitiesModal] = useState(false);
   const theme = useTheme();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
+  };
+
+  React.useEffect(() => {
+    // Show the modal every time the dashboard is loaded
+    setShowCapabilitiesModal(true);
+  }, []);
+
+  const handleCloseModal = () => {
+    setShowCapabilitiesModal(false);
   };
 
   const handleBranchChange = (branch: "azucena" | "noroeste") => {
@@ -444,6 +455,10 @@ function AdminDashboard() {
           </Box>
         </Paper>
       </Container>
+      <AdminCapabilitiesModal
+        open={showCapabilitiesModal}
+        onClose={handleCloseModal}
+      />
     </Box>
   );
 }

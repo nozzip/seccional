@@ -1,17 +1,24 @@
-import { useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
-import { Box, Grid, Typography, Container, Button, useTheme } from '@mui/material';
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import Carusel from '../Components/ContentsFront/Carusel';
-import CardNovedades from '../Components/ContentsFront/CardNovedades';
-import CardNoticias from '../Components/ContentsFront/CardNoticias';
-import CardServicios from '../Components/ContentsFront/CardServicios';
-import { getGlassStyles } from '../theme';
+import { useEffect } from "react";
+import { Helmet } from "react-helmet-async";
+import {
+  Box,
+  Grid,
+  Typography,
+  Container,
+  Button,
+  useTheme,
+  alpha,
+} from "@mui/material";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import BirthdayCarousel from "../Components/ContentsFront/BirthdayCarousel";
+import CardNoticias from "../Components/ContentsFront/CardNoticias";
+import CardServicios from "../Components/ContentsFront/CardServicios";
+import Birthdays from "../Components/ContentsFront/Birthdays";
+import { getGlassStyles } from "../theme";
 
 const MotionBox = motion.create(Box);
 const MotionTypography = motion.create(Typography);
-
 
 function Inicio() {
   const theme = useTheme();
@@ -20,39 +27,45 @@ function Inicio() {
   }, []);
 
   return (
-    <Box sx={{ overflowX: 'hidden' }}>
+    <Box sx={{ overflowX: "hidden" }}>
       <Helmet>
         <title>A.E.F.I.P Seccional Noroeste - Inicio</title>
-        <meta name="description" content="Bienvenido a la Seccional Noroeste de AEFIP. Asociación de Empleados de Fiscalización e Ingresos Públicos." />
+        <meta
+          name="description"
+          content="Bienvenido a la Seccional Noroeste de AEFIP. Asociación de Empleados de Fiscalización e Ingresos Públicos."
+        />
         <meta property="og:title" content="A.E.F.I.P Seccional Noroeste" />
-        <meta property="og:description" content="Gremio de empleados de AFIP - Seccional Noroeste." />
+        <meta
+          property="og:description"
+          content="Gremio de empleados de AFIP - Seccional Noroeste."
+        />
       </Helmet>
       {/* Hero Section */}
       <Box
         sx={{
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          background: 'linear-gradient(135deg, #1a5f7a 0%, #00354e 100%)',
-          position: 'relative',
-          color: 'white',
-          textAlign: 'center',
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+          position: "relative",
+          color: "white",
+          textAlign: "center",
           px: 2,
         }}
       >
         <MotionTypography
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: 'easeOut' }}
+          transition={{ duration: 1, ease: "easeOut" }}
           variant="h1"
           sx={{
-            fontSize: { xs: '2.5rem', md: '5rem' },
+            fontSize: { xs: "2.5rem", md: "5rem" },
             fontWeight: 800,
             mb: 1,
             letterSpacing: -1,
-            color: 'white'
+            color: "white",
           }}
         >
           SECCIONAL NOROESTE
@@ -60,14 +73,14 @@ function Inicio() {
         <MotionTypography
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
+          transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
           variant="h2"
           sx={{
-            fontSize: { xs: '1.5rem', md: '3rem' },
+            fontSize: { xs: "1.5rem", md: "3rem" },
             fontWeight: 400,
             mb: 4,
             opacity: 0.9,
-            color: 'white'
+            color: "white",
           }}
         >
           A.E.F.I.P.
@@ -83,11 +96,14 @@ function Inicio() {
             variant="contained"
             size="large"
             sx={{
-              bgcolor: 'secondary.main',
-              '&:hover': { bgcolor: 'secondary.dark' },
+              bgcolor: "primary.main",
+              "&:hover": { bgcolor: "primary.dark" },
+              color: "white",
               px: { xs: 4, md: 6 },
               py: 2,
-              fontSize: '1.1rem',
+              fontSize: "1.1rem",
+              fontWeight: 800,
+              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.39)}`,
             }}
           >
             Conocenos
@@ -96,7 +112,10 @@ function Inicio() {
       </Box>
 
       {/* Main Content */}
-      <Container maxWidth="xl" sx={{ mt: -10, position: 'relative', zIndex: 2, pb: 10 }}>
+      <Container
+        maxWidth="xl"
+        sx={{ mt: -10, position: "relative", zIndex: 2, pb: 10 }}
+      >
         <Grid container spacing={4}>
           {/* Afiliados Section */}
           <Grid item xs={12}>
@@ -114,15 +133,18 @@ function Inicio() {
                   mb: 6,
                 }}
               >
-                <Typography variant="h3" sx={{ mb: 4, color: 'primary.main', fontWeight: 700 }}>
+                <Typography
+                  variant="h3"
+                  sx={{ mb: 4, color: "primary.main", fontWeight: 700 }}
+                >
                   AFILIADOS
                 </Typography>
-                <Grid container spacing={4} alignItems="center">
-                  <Grid item xs={12} lg={7}>
-                    <Carusel />
+                <Grid container spacing={4}>
+                  <Grid item xs={12} lg={8}>
+                    <BirthdayCarousel />
                   </Grid>
-                  <Grid item xs={12} lg={5}>
-                    <CardNovedades />
+                  <Grid item xs={12} lg={4}>
+                    <Birthdays />
                   </Grid>
                 </Grid>
               </Box>
@@ -132,8 +154,18 @@ function Inicio() {
           {/* Noticias Section */}
           <Grid item xs={12}>
             <Box sx={{ mb: 8 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 4 }}>
-                <Typography variant="h3" sx={{ color: 'primary.main', fontWeight: 700 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-end",
+                  mb: 4,
+                }}
+              >
+                <Typography
+                  variant="h3"
+                  sx={{ color: "primary.main", fontWeight: 700 }}
+                >
                   NOTICIAS
                 </Typography>
                 <Button component={Link} to="/prensa" color="primary">
@@ -150,10 +182,20 @@ function Inicio() {
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              sx={{ textAlign: 'center' }}
+              sx={{ textAlign: "center" }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
-                <Typography variant="h3" sx={{ color: 'primary.main', fontWeight: 700 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-end",
+                  mb: 6,
+                }}
+              >
+                <Typography
+                  variant="h3"
+                  sx={{ color: "primary.main", fontWeight: 700 }}
+                >
                   TURISMO Y SERVICIOS
                 </Typography>
                 <Button component={Link} to="/servicios" color="primary">
@@ -170,4 +212,3 @@ function Inicio() {
 }
 
 export default Inicio;
-

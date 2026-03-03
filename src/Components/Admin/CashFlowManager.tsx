@@ -38,6 +38,8 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import SaveIcon from "@mui/icons-material/Save";
+import CloseIcon from "@mui/icons-material/Close";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
@@ -849,6 +851,21 @@ export default function CashFlowManager({
     num2: "",
   });
 
+  const formatCUIT = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 10) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}-${digits.slice(2, 10)}-${digits.slice(10, 11)}`;
+  };
+
+  const padInvoiceNumbers = () => {
+    setInvoiceData((prev) => ({
+      ...prev,
+      num1: prev.num1 ? prev.num1.padStart(4, "0") : "",
+      num2: prev.num2 ? prev.num2.padStart(8, "0") : "",
+    }));
+  };
+
   const [filters, setFilters] = useState({
     search: "",
     type: "Todos",
@@ -1075,6 +1092,33 @@ export default function CashFlowManager({
     }
   };
 
+  const handleSaveQuickProvider = async () => {
+    if (!providerFormData.name) {
+      setErrorMessage("El nombre del proveedor es obligatorio.");
+      setShowError(true);
+      return;
+    }
+    try {
+      const { data: provData, error: provError } = await supabase
+        .from("providers")
+        .insert([{ name: providerFormData.name, cuit: providerFormData.cuit }])
+        .select()
+        .single();
+      if (provError) throw provError;
+      if (provData) {
+        setProviders((prev) => [...prev, provData]);
+        setSelectedProvider(provData);
+        setIsCreatingProvider(false);
+        setProviderFormData({ name: "", cuit: "" });
+        setErrorMessage("Proveedor guardado correctamente.");
+        setShowSuccess(true);
+      }
+    } catch (err: any) {
+      setErrorMessage("Error al crear el proveedor.");
+      setShowError(true);
+    }
+  };
+
   const theme = useTheme();
 
   const generateAutoInvoice = () => {
@@ -1100,7 +1144,9 @@ export default function CashFlowManager({
     if (isAutoInvoice) {
       finalInvoice = generateAutoInvoice();
     } else if (invoiceData.letter || invoiceData.num1 || invoiceData.num2) {
-      finalInvoice = `${invoiceData.letter || "X"}-${invoiceData.num1 || "0000"}-${invoiceData.num2 || "00000000"}`;
+      const paddedNum1 = invoiceData.num1.padStart(4, "0");
+      const paddedNum2 = invoiceData.num2.padStart(8, "0");
+      finalInvoice = `${invoiceData.letter || "X"}-${paddedNum1}-${paddedNum2}`;
 
       const isDuplicate = transactions.some((t) => t.invoice === finalInvoice);
       if (isDuplicate) {
@@ -2998,11 +3044,12 @@ export default function CashFlowManager({
                                 fullWidth
                                 size="small"
                                 label="CUIT (Opcional)"
+                                placeholder="XX-XXXXXXXX-X"
                                 value={providerFormData.cuit}
                                 onChange={(e) =>
                                   setProviderFormData({
                                     ...providerFormData,
-                                    cuit: e.target.value,
+                                    cuit: formatCUIT(e.target.value),
                                   })
                                 }
                               />
@@ -3016,9 +3063,20 @@ export default function CashFlowManager({
                             >
                               <Button
                                 size="small"
+                                variant="outlined"
                                 onClick={() => setIsCreatingProvider(false)}
                               >
                                 Cancelar
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="error"
+                                startIcon={<SaveIcon />}
+                                onClick={handleSaveQuickProvider}
+                                sx={{ fontWeight: 800 }}
+                              >
+                                Guardar Proveedor
                               </Button>
                             </Grid>
                           </Grid>
@@ -3500,6 +3558,7 @@ export default function CashFlowManager({
                         }}
                         value={isAutoInvoice ? "0100" : invoiceData.num1}
                         onChange={(val) => handleInvoiceChange("num1", val)}
+                        onBlur={padInvoiceNumbers}
                       />
                     </Grid>
                     <Grid item xs={5}>
@@ -3513,6 +3572,7 @@ export default function CashFlowManager({
                         }}
                         value={isAutoInvoice ? "" : invoiceData.num2}
                         onChange={(val) => handleInvoiceChange("num2", val)}
+                        onBlur={padInvoiceNumbers}
                         helperText={isAutoInvoice ? "Asignado por sistema" : ""}
                         FormHelperTextProps={{
                           sx: { fontWeight: 700, color: "primary.main" },
