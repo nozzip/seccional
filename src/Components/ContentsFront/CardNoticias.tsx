@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Grid,
   Card,
   CardActionArea,
   Typography,
@@ -9,7 +8,9 @@ import {
   Skeleton,
   alpha,
   useTheme,
+  Box,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
 import seccionalLogo from "../../../public/seccionalLogo2.png";
 
@@ -28,17 +29,16 @@ function CardNoticias() {
 
   if (loading) {
     return (
-      <Grid container spacing={3}>
-        {[1, 2, 3, 4].map((i) => (
-          <Grid item key={i} xs={12} sm={6} md={3}>
+      <Grid container spacing={4}>
+        {[1, 2, 3].map((i) => (
+          <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
             <Card sx={{ height: "100%", borderRadius: 3 }}>
-              <Skeleton variant="rectangular" height={200} />
-              <CardContent>
-                <Skeleton variant="text" height={24} width="80%" />
+              <Skeleton variant="rectangular" height={240} />
+              <CardContent sx={{ p: 3 }}>
+                <Skeleton variant="text" height={32} width="80%" />
                 <Skeleton variant="text" height={24} width="60%" />
-                <Skeleton variant="text" sx={{ mt: 1 }} />
+                <Skeleton variant="text" sx={{ mt: 2 }} />
                 <Skeleton variant="text" />
-                <Skeleton variant="text" width="90%" />
               </CardContent>
             </Card>
           </Grid>
@@ -48,9 +48,9 @@ function CardNoticias() {
   }
 
   return (
-    <Grid container spacing={3}>
-      {news.slice(0, 4).map((item, i) => (
-        <Grid item key={i} xs={12} sm={6} md={3}>
+    <Grid container spacing={4}>
+      {news.slice(0, 3).map((item, i) => (
+        <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
           <NoticiaItem item={item} />
         </Grid>
       ))}
@@ -66,15 +66,16 @@ function NoticiaItem({ item }: { item: NewsItem }) {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        borderRadius: 3,
+        borderRadius: 4,
         overflow: "hidden",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
         border: "1px solid",
-        borderColor: "divider",
-        transition: "all 0.3s ease",
+        borderColor: alpha(theme.palette.divider, 0.5),
+        transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
         "&:hover": {
-          transform: "translateY(-8px)",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.12)",
+          transform: "translateY(-12px)",
+          boxShadow: `0 20px 40px ${alpha(theme.palette.primary.main, 0.12)}`,
+          borderColor: alpha(theme.palette.primary.main, 0.2),
         },
       }}
     >
@@ -88,36 +89,36 @@ function NoticiaItem({ item }: { item: NewsItem }) {
           alignItems: "stretch",
         }}
       >
-        <CardMedia
-          component="img"
-          image={item.imgUrl || seccionalLogo}
-          alt={item.title}
-          sx={{
-            height: 200,
-            objectFit: item.imgUrl ? "cover" : "contain",
-            bgcolor: item.imgUrl
-              ? "transparent"
-              : alpha(theme.palette.primary.main, 0.05),
-            p: item.imgUrl ? 0 : 3,
-          }}
-          onError={(e) => {
-            e.currentTarget.src = seccionalLogo;
-            e.currentTarget.style.objectFit = "contain";
-            e.currentTarget.style.backgroundColor = alpha(
-              theme.palette.primary.main,
-              0.05,
-            );
-            e.currentTarget.style.padding = "24px";
-          }}
-        />
-        <CardContent sx={{ p: 3, flexGrow: 1 }}>
-          <Typography
-            variant="subtitle1"
+        <Box sx={{ position: "relative", pt: "60%", overflow: "hidden" }}>
+          <CardMedia
+            component="img"
+            image={item.imgUrl || seccionalLogo}
+            alt={item.title}
             sx={{
-              fontWeight: 700,
-              color: "primary.main",
-              lineHeight: 1.3,
-              mb: 1,
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: item.imgUrl ? "cover" : "contain",
+              bgcolor: alpha(theme.palette.primary.main, 0.03),
+              p: item.imgUrl ? 0 : 4,
+            }}
+            onError={(e) => {
+              e.currentTarget.src = seccionalLogo;
+              e.currentTarget.style.objectFit = "contain";
+              e.currentTarget.style.padding = "32px";
+            }}
+          />
+        </Box>
+        <CardContent sx={{ p: 4, flexGrow: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 800,
+              color: "text.primary",
+              lineHeight: 1.2,
+              mb: 2,
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
@@ -134,19 +135,42 @@ function NoticiaItem({ item }: { item: NewsItem }) {
               WebkitLineClamp: 3,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
-              lineHeight: 1.6,
-              mb: 1,
+              lineHeight: 1.7,
+              mb: 3,
+              opacity: 0.8,
             }}
           >
             {item.summary}
           </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ fontWeight: 600 }}
+          <Box
+            sx={{
+              mt: "auto",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
           >
-            {item.date}
-          </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: "primary.main",
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                px: 1.5,
+                py: 0.5,
+                borderRadius: 1,
+              }}
+            >
+              Novedad
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.disabled"
+              sx={{ fontWeight: 600 }}
+            >
+              {item.date}
+            </Typography>
+          </Box>
         </CardContent>
       </CardActionArea>
     </Card>

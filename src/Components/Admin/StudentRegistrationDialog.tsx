@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Typography,
   Paper,
-  Grid,
   TextField,
   Button,
   Table,
@@ -22,6 +21,7 @@ import {
   alpha,
   useTheme,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 
@@ -102,7 +102,7 @@ export default function StudentRegistrationDialog({
       <DialogContent sx={{ px: 4, pb: 4 }}>
         <Grid container spacing={4}>
           {/* Personal Data */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Stack spacing={3}>
               <Typography
                 variant="subtitle2"
@@ -124,7 +124,7 @@ export default function StudentRegistrationDialog({
                 onChange={(e) => handleChange("fullName", e.target.value)}
               />
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <TextField
                     label="DNI"
                     fullWidth
@@ -132,7 +132,7 @@ export default function StudentRegistrationDialog({
                     onChange={(e) => handleChange("dni", e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <TextField
                     label="Fecha de Nacimiento"
                     type="date"
@@ -165,7 +165,7 @@ export default function StudentRegistrationDialog({
           </Grid>
 
           {/* Schedule & Prof */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Stack spacing={3}>
               <Typography
                 variant="subtitle2"

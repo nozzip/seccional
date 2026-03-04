@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Typography,
-  Grid,
   Paper,
   Table,
   TableBody,
@@ -12,27 +11,28 @@ import {
   TableRow,
   Button,
   TextField,
-  Stack,
-  Chip,
-  alpha,
-  useTheme,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  IconButton,
+  Tooltip,
   InputAdornment,
   MenuItem,
+  Chip,
+  alpha,
+  useTheme,
+  Stack,
+  Divider,
   Snackbar,
   Alert,
   Autocomplete,
+  Tab,
+  Tabs,
   FormControlLabel,
   Checkbox,
-  IconButton,
-  Tabs,
-  Tab,
-  Tooltip,
-  InputBase,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import AddIcon from "@mui/icons-material/Add";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
@@ -370,7 +370,7 @@ const TransactionEditDialog: React.FC<TransactionEditDialogProps> = ({
       <DialogTitle>Editar Transacción</DialogTitle>
       <DialogContent dividers>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Fecha"
@@ -381,7 +381,7 @@ const TransactionEditDialog: React.FC<TransactionEditDialogProps> = ({
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Tipo"
@@ -394,7 +394,7 @@ const TransactionEditDialog: React.FC<TransactionEditDialogProps> = ({
               <MenuItem value="Egreso">Egreso</MenuItem>
             </TextField>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Autocomplete
               freeSolo
               options={categories}
@@ -414,7 +414,7 @@ const TransactionEditDialog: React.FC<TransactionEditDialogProps> = ({
               )}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
               label="Descripción"
@@ -425,7 +425,7 @@ const TransactionEditDialog: React.FC<TransactionEditDialogProps> = ({
               rows={2}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Monto"
@@ -440,7 +440,7 @@ const TransactionEditDialog: React.FC<TransactionEditDialogProps> = ({
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Método de Pago"
@@ -456,7 +456,7 @@ const TransactionEditDialog: React.FC<TransactionEditDialogProps> = ({
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
               label="Comprobante (Opcional)"
@@ -963,11 +963,11 @@ export default function CashFlowManager({
           name: gp.name,
           category:
             gp.name.toLowerCase().includes("agua") ||
-            gp.name.toLowerCase().includes("coca") ||
-            gp.name.toLowerCase().includes("aquarius") ||
-            gp.name.toLowerCase().includes("powerade") ||
-            gp.name.toLowerCase().includes("monster") ||
-            gp.name.toLowerCase().includes("heineken")
+              gp.name.toLowerCase().includes("coca") ||
+              gp.name.toLowerCase().includes("aquarius") ||
+              gp.name.toLowerCase().includes("powerade") ||
+              gp.name.toLowerCase().includes("monster") ||
+              gp.name.toLowerCase().includes("heineken")
               ? "Bebidas"
               : "Snacks",
           initialStock: 0,
@@ -1041,7 +1041,7 @@ export default function CashFlowManager({
         planNames[swimmingSelection.planType] || swimmingSelection.planType;
       const freq =
         swimmingSelection.planType === "conProfesor" ||
-        swimmingSelection.planType === "libre"
+          swimmingSelection.planType === "libre"
           ? ` (${freqLabels[swimmingSelection.frequency] || ""})`
           : "";
       const period =
@@ -1193,7 +1193,7 @@ export default function CashFlowManager({
           planNames[swimmingSelection.planType] || swimmingSelection.planType;
         const freq =
           swimmingSelection.planType === "conProfesor" ||
-          swimmingSelection.planType === "libre"
+            swimmingSelection.planType === "libre"
             ? ` (${freqLabels[swimmingSelection.frequency] || ""})`
             : "";
 
@@ -2610,7 +2610,7 @@ export default function CashFlowManager({
           }}
         >
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Box
                 sx={{
                   display: "flex",
@@ -2639,7 +2639,7 @@ export default function CashFlowManager({
                 />
               </Box>
             </Grid>
-            <Grid item xs={6} md={1.5}>
+            <Grid size={{ xs: 6, md: 1.5 }}>
               <TextField
                 select
                 size="small"
@@ -2655,7 +2655,7 @@ export default function CashFlowManager({
                 <MenuItem value="Egreso">Egresos</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={6} md={1.5}>
+            <Grid size={{ xs: 6, md: 1.5 }}>
               <TextField
                 select
                 size="small"
@@ -2673,7 +2673,7 @@ export default function CashFlowManager({
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={6} md={2}>
+            <Grid size={{ xs: 6, md: 2 }}>
               <TextField
                 type="date"
                 label="Desde"
@@ -2687,7 +2687,7 @@ export default function CashFlowManager({
                 InputProps={{ sx: { borderRadius: 2, fontSize: "0.85rem" } }}
               />
             </Grid>
-            <Grid item xs={6} md={2}>
+            <Grid size={{ xs: 6, md: 2 }}>
               <TextField
                 type="date"
                 label="Hasta"
@@ -2702,9 +2702,7 @@ export default function CashFlowManager({
               />
             </Grid>
             <Grid
-              item
-              xs={12}
-              md={2}
+              size={{ xs: 12, md: 2 }}
               sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}
             >
               <input
@@ -2804,7 +2802,7 @@ export default function CashFlowManager({
             <DialogContent>
               <Stack spacing={3} sx={{ mt: 1 }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <TextField
                       select
                       label="Tipo"
@@ -2818,7 +2816,7 @@ export default function CashFlowManager({
                       <MenuItem value="Egreso">Egreso (-)</MenuItem>
                     </TextField>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <TextField
                       select
                       label="Método de Pago"
@@ -3024,7 +3022,7 @@ export default function CashFlowManager({
                             Nuevo Proveedor
                           </Typography>
                           <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
                               <TextField
                                 fullWidth
                                 size="small"
@@ -3039,7 +3037,7 @@ export default function CashFlowManager({
                                 autoFocus
                               />
                             </Grid>
-                            <Grid item xs={12} sm={6}>
+                            <Grid size={{ xs: 12, sm: 6 }}>
                               <TextField
                                 fullWidth
                                 size="small"
@@ -3055,8 +3053,7 @@ export default function CashFlowManager({
                               />
                             </Grid>
                             <Grid
-                              item
-                              xs={12}
+                              size={{ xs: 12 }}
                               display="flex"
                               justifyContent="flex-end"
                               gap={1}
@@ -3106,7 +3103,7 @@ export default function CashFlowManager({
 
                     <Stack spacing={2}>
                       <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                           <TextField
                             select
                             label="Tipo de Plan"
@@ -3135,28 +3132,28 @@ export default function CashFlowManager({
 
                         {(swimmingSelection.planType === "conProfesor" ||
                           swimmingSelection.planType === "libre") && (
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              select
-                              label="Frecuencia"
-                              fullWidth
-                              size="small"
-                              value={swimmingSelection.frequency}
-                              onChange={(e) =>
-                                setSwimmingSelection({
-                                  ...swimmingSelection,
-                                  frequency: e.target.value,
-                                })
-                              }
-                            >
-                              <MenuItem value="v2">2 veces p/semana</MenuItem>
-                              <MenuItem value="v3">3 veces p/semana</MenuItem>
-                              <MenuItem value="v5">5 veces p/semana</MenuItem>
-                            </TextField>
-                          </Grid>
-                        )}
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                              <TextField
+                                select
+                                label="Frecuencia"
+                                fullWidth
+                                size="small"
+                                value={swimmingSelection.frequency}
+                                onChange={(e) =>
+                                  setSwimmingSelection({
+                                    ...swimmingSelection,
+                                    frequency: e.target.value,
+                                  })
+                                }
+                              >
+                                <MenuItem value="v2">2 veces p/semana</MenuItem>
+                                <MenuItem value="v3">3 veces p/semana</MenuItem>
+                                <MenuItem value="v5">5 veces p/semana</MenuItem>
+                              </TextField>
+                            </Grid>
+                          )}
 
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                           <TextField
                             select
                             fullWidth
@@ -3229,11 +3226,11 @@ export default function CashFlowManager({
                       initialData={
                         studentSearchInput
                           ? ({
-                              fullName: studentSearchInput,
-                              dni: "",
-                              phone: "",
-                              schedule: {},
-                            } as any)
+                            fullName: studentSearchInput,
+                            dni: "",
+                            phone: "",
+                            schedule: {},
+                          } as any)
                           : null
                       }
                       onSave={(student) => {
@@ -3382,7 +3379,7 @@ export default function CashFlowManager({
                               1,
                               Math.round(
                                 (end.getTime() - start.getTime()) /
-                                  (1000 * 3600 * 24),
+                                (1000 * 3600 * 24),
                               ),
                             );
 
@@ -3477,7 +3474,7 @@ export default function CashFlowManager({
                         control={
                           <Checkbox
                             checked={shouldDiscountStock}
-                            onChange={(e) =>
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                               setShouldDiscountStock(e.target.checked)
                             }
                             color="success"
@@ -3532,7 +3529,7 @@ export default function CashFlowManager({
                     Nro de Factura / Ticket
                   </Typography>
                   <Grid container spacing={1}>
-                    <Grid item xs={3}>
+                    <Grid size={{ xs: 3 }}>
                       <OptimizedTextField
                         placeholder="A"
                         disabled={isAutoInvoice}
@@ -3547,7 +3544,7 @@ export default function CashFlowManager({
                         onChange={(val) => handleInvoiceChange("letter", val)}
                       />
                     </Grid>
-                    <Grid item xs={4}>
+                    <Grid size={{ xs: 4 }}>
                       <OptimizedTextField
                         id="invoice-num1"
                         placeholder="0001"
@@ -3561,7 +3558,7 @@ export default function CashFlowManager({
                         onBlur={padInvoiceNumbers}
                       />
                     </Grid>
-                    <Grid item xs={5}>
+                    <Grid size={{ xs: 5 }}>
                       <OptimizedTextField
                         id="invoice-num2"
                         placeholder={isAutoInvoice ? "AUTO" : "00000000"}
@@ -3863,7 +3860,7 @@ export default function CashFlowManager({
                   {day}
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <TextField
                       label="Turno Mañana"
                       fullWidth
@@ -3877,7 +3874,7 @@ export default function CashFlowManager({
                       }
                     />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <TextField
                       label="Turno Tarde"
                       fullWidth

@@ -21,7 +21,8 @@ import MoneyOffIcon from "@mui/icons-material/MoneyOff";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import SettingsIcon from "@mui/icons-material/Settings";
 import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
-import { Grid, Card, CardContent, Chip } from "@mui/material";
+import { Card, CardContent, Chip } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 
 import AdminOverview from "../../Components/Admin/AdminOverview";
 import PoolSchoolGrid from "../../Components/Admin/PoolSchoolGrid";
@@ -216,7 +217,7 @@ function AdminDashboard() {
 
       <Container maxWidth="xl">
         <Grid container spacing={3} sx={{ mb: 6 }}>
-          <Grid item xs={12} lg={6}>
+          <Grid size={{ xs: 12, lg: 6 }}>
             <Paper
               elevation={0}
               onClick={() => handleBranchChange("azucena")}
@@ -302,7 +303,7 @@ function AdminDashboard() {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} lg={6}>
+          <Grid size={{ xs: 12, lg: 6 }}>
             <Paper
               elevation={0}
               onClick={() => handleBranchChange("noroeste")}

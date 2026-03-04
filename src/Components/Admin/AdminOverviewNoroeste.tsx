@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Grid,
   Paper,
   Typography,
   Box,
@@ -10,6 +9,7 @@ import {
   Avatar,
   CircularProgress,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import PeopleIcon from "@mui/icons-material/People";
 import ChildCareIcon from "@mui/icons-material/ChildCare";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
@@ -205,7 +205,7 @@ export default function AdminOverviewNoroeste() {
 
       <Grid container spacing={4}>
         {/* Lado Izquierdo: Estadísticas de Personas */}
-        <Grid item xs={12} lg={5}>
+        <Grid size={{ xs: 12, lg: 5 }}>
           <Stack spacing={3}>
             <StatCard
               title="Total Afiliados"
@@ -223,7 +223,7 @@ export default function AdminOverviewNoroeste() {
         </Grid>
 
         {/* Lado Derecho: Finanzas (Caja Central arriba, Banco abajo) */}
-        <Grid item xs={12} lg={7}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <Stack spacing={3} alignItems="flex-end">
             {/* Financial Section - Caja Central */}
             <Paper
@@ -254,7 +254,7 @@ export default function AdminOverviewNoroeste() {
               </Stack>
 
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Box>
                     <Typography
                       variant="caption"
@@ -268,7 +268,7 @@ export default function AdminOverviewNoroeste() {
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Box>
                     <Typography
                       variant="caption"
@@ -282,7 +282,7 @@ export default function AdminOverviewNoroeste() {
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Box
                     sx={{
                       mt: 1,
@@ -303,8 +303,7 @@ export default function AdminOverviewNoroeste() {
                       sx={{
                         fontWeight: 900,
                         color:
-                          stats.cajaCentralIncome - stats.cajaCentralExpense >=
-                          0
+                          stats.cajaCentralIncome - stats.cajaCentralExpense >= 0
                             ? "success.main"
                             : "error.main",
                       }}
@@ -348,7 +347,7 @@ export default function AdminOverviewNoroeste() {
               </Stack>
 
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Box>
                     <Typography
                       variant="caption"
@@ -362,7 +361,7 @@ export default function AdminOverviewNoroeste() {
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Box>
                     <Typography
                       variant="caption"
@@ -376,7 +375,7 @@ export default function AdminOverviewNoroeste() {
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Box
                     sx={{
                       mt: 1,

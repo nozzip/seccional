@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   Button,
   Chip,
   alpha,
@@ -23,6 +22,7 @@ import {
   Tabs,
   Tab,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import AddIcon from "@mui/icons-material/Add";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -392,7 +392,7 @@ export default function OrderManagement() {
   const Column = ({ title, status }: { title: string; status: string }) => {
     const totalAmount = calculateTotal(status);
     return (
-      <Grid item xs={12} sm={6} md={3}>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
           <Paper
             elevation={0}
@@ -565,7 +565,7 @@ export default function OrderManagement() {
         </Grid>
       ) : (
         <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Paper
               sx={{
                 p: 4,
@@ -578,7 +578,7 @@ export default function OrderManagement() {
               </Typography>
               <Grid container spacing={2}>
                 {requests.filter((r) => !!r.archived_at).length === 0 ? (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography
                       color="text.secondary"
                       align="center"
@@ -591,7 +591,7 @@ export default function OrderManagement() {
                   requests
                     .filter((r) => !!r.archived_at)
                     .map((req) => (
-                      <Grid item xs={12} sm={6} md={4} key={req.id}>
+                      <Grid size={{ xs: 12, sm: 6, md: 4 }} key={req.id}>
                         <RequestCard req={req} />
                       </Grid>
                     ))
@@ -636,7 +636,7 @@ export default function OrderManagement() {
               InputProps={{ sx: { borderRadius: 3, fontWeight: 600 } }}
             />
             <Grid container spacing={3}>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   select
                   label="Categoría"
@@ -653,7 +653,7 @@ export default function OrderManagement() {
                   <MenuItem value="Otro">📝 Otro</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   label="Presupuesto $"
                   type="number"

@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Grid,
   Paper,
   Typography,
   Box,
@@ -17,6 +16,7 @@ import {
   Chip,
   Button,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import {
   BarChart,
   Bar,
@@ -96,7 +96,7 @@ const StatCard = ({
       >
         <Icon sx={{ fontSize: 32 }} />
       </Avatar>
-      <Box>
+      <Box sx={{ flex: 1 }}>
         <Typography
           variant="body2"
           color="text.secondary"
@@ -382,7 +382,7 @@ export default function AdminOverview() {
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} lg={4}>
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <StatCard
             title="Total Alumnos"
             value={data.totalStudents.toString()}
@@ -390,7 +390,7 @@ export default function AdminOverview() {
             trend="Estado mensual"
           />
         </Grid>
-        <Grid item xs={12} sm={6} lg={4}>
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <StatCard
             title="Ingresos del Mes"
             value={`$${data.incomeMonth.toLocaleString()}`}
@@ -398,7 +398,7 @@ export default function AdminOverview() {
             trend="Total cobrado"
           />
         </Grid>
-        <Grid item xs={12} sm={6} lg={4}>
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <StatCard
             title="Gastos del Mes"
             value={`$${data.expenseMonth.toLocaleString()}`}
@@ -407,7 +407,7 @@ export default function AdminOverview() {
             trendType="down"
           />
         </Grid>
-        <Grid item xs={12} sm={6} lg={4}>
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <StatCard
             title="Balance Neto"
             value={`$${(data.incomeMonth - data.expenseMonth).toLocaleString()}`}
@@ -415,7 +415,7 @@ export default function AdminOverview() {
             trend="Diferencia mensual"
           />
         </Grid>
-        <Grid item xs={12} sm={6} lg={4}>
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <StatCard
             title="Items Stock Bajo"
             value={data.lowStock.length.toString()}
@@ -424,7 +424,7 @@ export default function AdminOverview() {
             trendType="down"
           />
         </Grid>
-        <Grid item xs={12} sm={6} lg={4}>
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <StatCard
             title="Transacciones"
             value={data.recentTxs.length.toString()}
@@ -435,7 +435,7 @@ export default function AdminOverview() {
       </Grid>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Paper
             elevation={0}
             sx={{
@@ -527,7 +527,7 @@ export default function AdminOverview() {
             </Box>
           </Paper>
         </Grid>
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Stack spacing={3} sx={{ height: "100%" }}>
             <Paper
               elevation={0}

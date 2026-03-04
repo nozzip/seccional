@@ -6,11 +6,11 @@ import {
   Typography,
   alpha,
   useTheme,
-  Grid,
   Chip,
   Button,
   Divider,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import HomeIcon from "@mui/icons-material/Home";
 import KitchenIcon from "@mui/icons-material/Kitchen";
@@ -122,7 +122,7 @@ function Warmi() {
         <Divider sx={{ mb: 3 }} />
 
         <Grid container spacing={4} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Typography
               variant="h6"
               sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}
@@ -142,7 +142,7 @@ function Warmi() {
             </Box>
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Typography
               variant="h6"
               sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}

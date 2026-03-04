@@ -6,11 +6,11 @@ import {
   CardContent,
   CardMedia,
   Button,
-  Grid,
   Skeleton,
   alpha,
   useTheme,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
@@ -48,12 +48,12 @@ export default function PrensaCard() {
 
   return (
     <Box
-      sx={{ display: "flex", flexDirection: "column", gap: { xs: 4, md: 6 } }}
+      sx={{ display: "flex", flexDirection: "column", gap: { xs: 6, md: 10 } }}
     >
       <HeroNewsItem item={hero} />
       <Grid container spacing={4}>
         {restNews.map((item, i) => (
-          <Grid item xs={12} md={6} key={i}>
+          <Grid key={i} size={{ xs: 12, md: 6, lg: 4 }}>
             <StandardNewsItem item={item} />
           </Grid>
         ))}
@@ -70,56 +70,51 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
       sx={{
         display: "flex",
         flexDirection: { xs: "column", md: "row" },
-        borderRadius: 4,
+        borderRadius: 6,
         overflow: "hidden",
-        boxShadow: "0 12px 40px rgba(0,0,0,0.08)",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.08)",
         border: "1px solid",
-        borderColor: "divider",
-        transition: "transform 0.3s ease",
+        borderColor: alpha(theme.palette.divider, 0.5),
+        transition: "all 0.4s ease",
         "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 16px 50px rgba(0,0,0,0.12)",
+          transform: "translateY(-8px)",
+          boxShadow: `0 30px 80px ${alpha(theme.palette.primary.main, 0.12)}`,
         },
       }}
     >
-      <Box sx={{ width: { xs: "100%", md: "55%" }, position: "relative" }}>
+      <Box sx={{ width: { xs: "100%", md: "60%" }, position: "relative" }}>
         <CardMedia
           component="img"
           image={item.imgUrl || seccionalLogo}
           alt={item.title}
           sx={{
             height: { xs: 300, md: "100%" },
-            minHeight: { md: 450 },
+            minHeight: { md: 500 },
             objectFit: item.imgUrl ? "cover" : "contain",
-            bgcolor: item.imgUrl
-              ? "transparent"
-              : alpha(theme.palette.primary.main, 0.05),
-            p: item.imgUrl ? 0 : 4,
+            bgcolor: alpha(theme.palette.primary.main, 0.02),
+            p: item.imgUrl ? 0 : 6,
           }}
           onError={(e) => {
             e.currentTarget.src = seccionalLogo;
             e.currentTarget.style.objectFit = "contain";
-            e.currentTarget.style.backgroundColor = alpha(
-              theme.palette.primary.main,
-              0.05,
-            );
-            e.currentTarget.style.padding = "32px";
+            e.currentTarget.style.padding = "48px";
           }}
         />
         <Box
           sx={{
             position: "absolute",
-            top: 16,
-            left: 16,
+            top: 24,
+            left: 24,
             bgcolor: "secondary.main",
             color: "white",
-            px: 2,
-            py: 0.5,
-            borderRadius: 8,
-            fontWeight: 800,
+            px: 3,
+            py: 1,
+            borderRadius: 10,
+            fontWeight: 900,
             textTransform: "uppercase",
-            fontSize: "0.8rem",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+            fontSize: "0.85rem",
+            letterSpacing: 1,
+            boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
           }}
         >
           Destacado
@@ -128,14 +123,16 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
 
       <Box
         sx={{
-          width: { xs: "100%", md: "45%" },
+          width: { xs: "100%", md: "40%" },
           display: "flex",
           flexDirection: "column",
+          bgcolor: alpha(theme.palette.background.paper, 0.8),
+          backdropFilter: "blur(10px)",
         }}
       >
         <CardContent
           sx={{
-            p: { xs: 4, md: 6 },
+            p: { xs: 4, md: 8 },
             flexGrow: 1,
             display: "flex",
             flexDirection: "column",
@@ -146,32 +143,29 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 1,
-              mb: 2,
-              color: "text.secondary",
+              gap: 1.5,
+              mb: 3,
+              color: "primary.main",
             }}
           >
-            <CalendarTodayIcon sx={{ fontSize: "1rem" }} />
+            <CalendarTodayIcon sx={{ fontSize: "1.2rem" }} />
             <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: 1,
-              }}
+              variant="subtitle2"
+              sx={{ fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.5 }}
             >
               {item.date}
             </Typography>
           </Box>
 
           <Typography
-            variant="h3"
+            variant="h2"
             sx={{
-              fontWeight: 800,
-              color: "primary.main",
-              mb: 3,
-              fontSize: { xs: "1.8rem", md: "2.5rem" },
+              fontWeight: 900,
+              color: "text.primary",
+              mb: 4,
+              fontSize: { xs: "2rem", md: "2.8rem" },
               lineHeight: 1.1,
+              letterSpacing: -1,
             }}
           >
             {item.title}
@@ -181,9 +175,10 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
             variant="body1"
             sx={{
               color: "text.secondary",
-              mb: 4,
-              fontSize: "1.1rem",
-              lineHeight: 1.7,
+              mb: 6,
+              fontSize: "1.2rem",
+              lineHeight: 1.8,
+              opacity: 0.9,
             }}
           >
             {item.summary}
@@ -199,14 +194,15 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
               target="_blank"
               rel="noopener noreferrer"
               sx={{
-                borderRadius: 8,
-                px: 4,
-                py: 1.5,
-                fontWeight: 700,
-                boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.3)}`,
+                borderRadius: 10,
+                px: 6,
+                py: 2.5,
+                fontWeight: 900,
+                fontSize: "1.1rem",
+                boxShadow: `0 12px 24px ${alpha(theme.palette.primary.main, 0.3)}`,
               }}
             >
-              Leer Artículo Completo
+              Leer Más
             </Button>
           </Box>
         </CardContent>
@@ -223,42 +219,43 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        borderRadius: 4,
+        borderRadius: 5,
         overflow: "hidden",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
         border: "1px solid",
-        borderColor: "divider",
-        transition: "transform 0.3s ease, box-shadow 0.3s ease",
+        borderColor: alpha(theme.palette.divider, 0.6),
+        transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
         "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 12px 30px rgba(0,0,0,0.1)",
+          transform: "translateY(-10px)",
+          boxShadow: `0 20px 40px ${alpha(theme.palette.primary.main, 0.1)}`,
+          borderColor: alpha(theme.palette.primary.main, 0.2),
         },
       }}
     >
-      <CardMedia
-        component="img"
-        height="240"
-        image={item.imgUrl || seccionalLogo}
-        alt={item.title}
-        sx={{
-          objectFit: item.imgUrl ? "cover" : "contain",
-          bgcolor: item.imgUrl
-            ? "transparent"
-            : alpha(theme.palette.primary.main, 0.05),
-          p: item.imgUrl ? 0 : 3,
-        }}
-        onError={(e) => {
-          e.currentTarget.src = seccionalLogo;
-          e.currentTarget.style.objectFit = "contain";
-          e.currentTarget.style.backgroundColor = alpha(
-            theme.palette.primary.main,
-            0.05,
-          );
-          e.currentTarget.style.padding = "24px";
-        }}
-      />
+      <Box sx={{ position: "relative", pt: "62%", overflow: "hidden" }}>
+        <CardMedia
+          component="img"
+          image={item.imgUrl || seccionalLogo}
+          alt={item.title}
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: item.imgUrl ? "cover" : "contain",
+            bgcolor: alpha(theme.palette.primary.main, 0.02),
+            p: item.imgUrl ? 0 : 5,
+          }}
+          onError={(e) => {
+            e.currentTarget.src = seccionalLogo;
+            e.currentTarget.style.objectFit = "contain";
+            e.currentTarget.style.padding = "40px";
+          }}
+        />
+      </Box>
       <CardContent
-        sx={{ p: 4, flexGrow: 1, display: "flex", flexDirection: "column" }}
+        sx={{ p: 5, flexGrow: 1, display: "flex", flexDirection: "column" }}
       >
         <Box
           sx={{
@@ -266,13 +263,13 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
             alignItems: "center",
             gap: 1,
             mb: 2,
-            color: "text.secondary",
+            color: "text.disabled",
           }}
         >
           <CalendarTodayIcon sx={{ fontSize: "0.9rem" }} />
           <Typography
             variant="caption"
-            sx={{ fontWeight: 600, textTransform: "uppercase" }}
+            sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}
           >
             {item.date}
           </Typography>
@@ -282,9 +279,9 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
           variant="h5"
           sx={{
             fontWeight: 800,
-            color: "primary.main",
+            color: "text.primary",
             mb: 2,
-            lineHeight: 1.3,
+            lineHeight: 1.2,
             display: "-webkit-box",
             WebkitLineClamp: 3,
             WebkitBoxOrient: "vertical",
@@ -299,8 +296,9 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
           sx={{
             color: "text.secondary",
             mb: 4,
-            lineHeight: 1.6,
+            lineHeight: 1.7,
             flexGrow: 1,
+            opacity: 0.8,
           }}
         >
           {item.summary}
@@ -308,20 +306,21 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
 
         <Button
           variant="outlined"
-          color="secondary"
+          color="primary"
           endIcon={<OpenInNewIcon fontSize="small" />}
           href={item.link}
           target="_blank"
           rel="noopener noreferrer"
           fullWidth
           sx={{
-            borderRadius: 8,
-            fontWeight: 700,
+            borderRadius: 10,
+            fontWeight: 800,
+            py: 1.5,
             borderWidth: 2,
             "&:hover": { borderWidth: 2 },
           }}
         >
-          Leer Más
+          Seguir Leyendo
         </Button>
       </CardContent>
     </Card>
@@ -330,82 +329,16 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
 
 function NewsSkeleton() {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {/* Hero Skeleton */}
-      <Card
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          borderRadius: 4,
-          height: { md: 450 },
-        }}
-      >
-        <Skeleton
-          variant="rectangular"
-          sx={{
-            width: { xs: "100%", md: "55%" },
-            height: { xs: 300, md: "100%" },
-          }}
-        />
-        <CardContent
-          sx={{
-            width: { xs: "100%", md: "45%" },
-            p: 6,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-          }}
-        >
-          <Skeleton variant="text" width="30%" height={24} sx={{ mb: 2 }} />
-          <Skeleton variant="text" width="90%" height={60} />
-          <Skeleton variant="text" width="70%" height={60} sx={{ mb: 3 }} />
-          <Skeleton variant="text" width="100%" height={24} />
-          <Skeleton variant="text" width="100%" height={24} />
-          <Skeleton variant="text" width="80%" height={24} sx={{ mb: 4 }} />
-          <Skeleton
-            variant="rectangular"
-            width="60%"
-            height={48}
-            sx={{ borderRadius: 8, mt: "auto" }}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Grid Skeletons */}
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <Skeleton
+        variant="rectangular"
+        height={500}
+        sx={{ borderRadius: 6, width: "100%" }}
+      />
       <Grid container spacing={4}>
-        {[1, 2, 3, 4].map((i) => (
-          <Grid item xs={12} md={6} key={i}>
-            <Card sx={{ borderRadius: 4, height: 450 }}>
-              <Skeleton variant="rectangular" height={240} />
-              <CardContent sx={{ p: 4 }}>
-                <Skeleton
-                  variant="text"
-                  width="40%"
-                  height={20}
-                  sx={{ mb: 2 }}
-                />
-                <Skeleton variant="text" width="100%" height={32} />
-                <Skeleton
-                  variant="text"
-                  width="80%"
-                  height={32}
-                  sx={{ mb: 3 }}
-                />
-                <Skeleton variant="text" width="100%" height={20} />
-                <Skeleton
-                  variant="text"
-                  width="90%"
-                  height={20}
-                  sx={{ mb: 4 }}
-                />
-                <Skeleton
-                  variant="rectangular"
-                  width="100%"
-                  height={40}
-                  sx={{ borderRadius: 8, mt: "auto" }}
-                />
-              </CardContent>
-            </Card>
+        {[1, 2, 3].map((i) => (
+          <Grid key={i} size={{ xs: 12, md: 6, lg: 4 }}>
+            <Skeleton variant="rectangular" height={450} sx={{ borderRadius: 5 }} />
           </Grid>
         ))}
       </Grid>

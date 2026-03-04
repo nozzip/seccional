@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Grid,
   Paper,
   TextField,
   Button,
@@ -11,6 +10,7 @@ import {
   useTheme,
   InputAdornment,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import SaveIcon from "@mui/icons-material/Save";
 import HouseSidingIcon from "@mui/icons-material/HouseSiding";
 import { supabase } from "../../supabaseClient";
@@ -166,7 +166,7 @@ export default function PriceManagerNoroeste() {
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6} lg={4}>
+        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
           <Paper
             elevation={0}
             sx={{
@@ -192,7 +192,7 @@ export default function PriceManagerNoroeste() {
                   Cabaña 4 Personas
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <OptimizedPriceInput
                       label="Público General"
                       value={cabinPrices.confort4.general}
@@ -201,7 +201,7 @@ export default function PriceManagerNoroeste() {
                       }
                     />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <OptimizedPriceInput
                       label="Afiliados"
                       value={cabinPrices.confort4.afiliado}
@@ -221,7 +221,7 @@ export default function PriceManagerNoroeste() {
                   Cabaña 5 Personas
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <OptimizedPriceInput
                       label="Público General"
                       value={cabinPrices.confort5.general}
@@ -230,7 +230,7 @@ export default function PriceManagerNoroeste() {
                       }
                     />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <OptimizedPriceInput
                       label="Afiliados"
                       value={cabinPrices.confort5.afiliado}
@@ -250,7 +250,7 @@ export default function PriceManagerNoroeste() {
                   Cabaña 7 Personas
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <OptimizedPriceInput
                       label="Público General"
                       value={cabinPrices.confort7.general}
@@ -259,7 +259,7 @@ export default function PriceManagerNoroeste() {
                       }
                     />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <OptimizedPriceInput
                       label="Afiliados"
                       value={cabinPrices.confort7.afiliado}

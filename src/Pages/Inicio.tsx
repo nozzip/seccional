@@ -2,13 +2,13 @@ import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import {
   Box,
-  Grid,
   Typography,
   Container,
   Button,
   useTheme,
   alpha,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import BirthdayCarousel from "../Components/ContentsFront/BirthdayCarousel";
@@ -40,6 +40,7 @@ function Inicio() {
           content="Gremio de empleados de AFIP - Seccional Noroeste."
         />
       </Helmet>
+
       {/* Hero Section */}
       <Box
         sx={{
@@ -52,7 +53,7 @@ function Inicio() {
           position: "relative",
           color: "white",
           textAlign: "center",
-          px: 2,
+          px: 4,
         }}
       >
         <MotionTypography
@@ -61,10 +62,11 @@ function Inicio() {
           transition={{ duration: 1, ease: "easeOut" }}
           variant="h1"
           sx={{
-            fontSize: { xs: "2.5rem", md: "5rem" },
-            fontWeight: 800,
+            fontSize: { xs: "2.5rem", md: "5.5rem" },
+            fontWeight: 900,
             mb: 1,
-            letterSpacing: -1,
+            letterSpacing: -2,
+            lineHeight: 1,
             color: "white",
           }}
         >
@@ -76,11 +78,13 @@ function Inicio() {
           transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
           variant="h2"
           sx={{
-            fontSize: { xs: "1.5rem", md: "3rem" },
-            fontWeight: 400,
-            mb: 4,
-            opacity: 0.9,
+            fontSize: { xs: "1.2rem", md: "2.5rem" },
+            fontWeight: 300,
+            mb: 6,
+            opacity: 0.8,
             color: "white",
+            letterSpacing: 8,
+            textTransform: "uppercase",
           }}
         >
           A.E.F.I.P.
@@ -96,14 +100,15 @@ function Inicio() {
             variant="contained"
             size="large"
             sx={{
-              bgcolor: "primary.main",
-              "&:hover": { bgcolor: "primary.dark" },
-              color: "white",
-              px: { xs: 4, md: 6 },
-              py: 2,
-              fontSize: "1.1rem",
-              fontWeight: 800,
-              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.39)}`,
+              bgcolor: "white",
+              "&:hover": { bgcolor: alpha("#fff", 0.9) },
+              color: "primary.main",
+              px: { xs: 4, md: 8 },
+              py: 2.5,
+              fontSize: "1.2rem",
+              fontWeight: 900,
+              borderRadius: "50px",
+              boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
             }}
           >
             Conocenos
@@ -114,11 +119,17 @@ function Inicio() {
       {/* Main Content */}
       <Container
         maxWidth="xl"
-        sx={{ mt: -10, position: "relative", zIndex: 2, pb: 10 }}
+        sx={{
+          mt: -12,
+          position: "relative",
+          zIndex: 2,
+          pb: 15,
+          px: { xs: 2, md: 5 },
+        }}
       >
-        <Grid container spacing={4}>
+        <Grid container spacing={8}>
           {/* Afiliados Section */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <MotionBox
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -128,22 +139,27 @@ function Inicio() {
               <Box
                 sx={{
                   ...getGlassStyles(theme),
-                  p: { xs: 3, md: 6 },
-                  borderRadius: 4,
-                  mb: 6,
+                  p: { xs: 3, md: 8 },
+                  borderRadius: 8,
+                  boxShadow: "0 20px 40px rgba(0,0,0,0.08)",
                 }}
               >
                 <Typography
                   variant="h3"
-                  sx={{ mb: 4, color: "primary.main", fontWeight: 700 }}
+                  sx={{
+                    mb: 6,
+                    color: "primary.main",
+                    fontWeight: 900,
+                    letterSpacing: -1,
+                  }}
                 >
                   AFILIADOS
                 </Typography>
-                <Grid container spacing={4}>
-                  <Grid item xs={12} lg={8}>
+                <Grid container spacing={6}>
+                  <Grid size={{ xs: 12, lg: 8 }}>
                     <BirthdayCarousel />
                   </Grid>
-                  <Grid item xs={12} lg={4}>
+                  <Grid size={{ xs: 12, lg: 4 }}>
                     <Birthdays />
                   </Grid>
                 </Grid>
@@ -152,23 +168,38 @@ function Inicio() {
           </Grid>
 
           {/* Noticias Section */}
-          <Grid item xs={12}>
-            <Box sx={{ mb: 8 }}>
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{ mb: 4 }}>
               <Box
                 sx={{
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "flex-end",
-                  mb: 4,
+                  alignItems: "center",
+                  mb: 6,
                 }}
               >
                 <Typography
-                  variant="h3"
-                  sx={{ color: "primary.main", fontWeight: 700 }}
+                  variant="h2"
+                  sx={{
+                    color: "primary.main",
+                    fontWeight: 900,
+                    letterSpacing: -1,
+                  }}
                 >
                   NOTICIAS
                 </Typography>
-                <Button component={Link} to="/prensa" color="primary">
+                <Button
+                  component={Link}
+                  to="/prensa"
+                  variant="outlined"
+                  sx={{
+                    borderRadius: "50px",
+                    px: 4,
+                    fontWeight: 700,
+                    borderWidth: 2,
+                    "&:hover": { borderWidth: 2 },
+                  }}
+                >
                   Ver todas
                 </Button>
               </Box>
@@ -177,28 +208,42 @@ function Inicio() {
           </Grid>
 
           {/* Servicios Section */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <MotionBox
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              sx={{ textAlign: "center" }}
             >
               <Box
                 sx={{
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "flex-end",
+                  alignItems: "center",
                   mb: 6,
                 }}
               >
                 <Typography
-                  variant="h3"
-                  sx={{ color: "primary.main", fontWeight: 700 }}
+                  variant="h2"
+                  sx={{
+                    color: "primary.main",
+                    fontWeight: 900,
+                    letterSpacing: -1,
+                  }}
                 >
                   TURISMO Y SERVICIOS
                 </Typography>
-                <Button component={Link} to="/servicios" color="primary">
+                <Button
+                  component={Link}
+                  to="/servicios"
+                  variant="outlined"
+                  sx={{
+                    borderRadius: "50px",
+                    px: 4,
+                    fontWeight: 700,
+                    borderWidth: 2,
+                    "&:hover": { borderWidth: 2 },
+                  }}
+                >
                   Ver todos
                 </Button>
               </Box>

@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { signupSchema } from './schemas';
 
-const FormSignup = ({ submitForm }) => {
+const FormSignup = ({ submitForm }: { submitForm: any }) => {
   const theme = useTheme();
   const {
     register,
@@ -24,7 +24,7 @@ const FormSignup = ({ submitForm }) => {
     resolver: zodResolver(signupSchema),
   });
 
-  const onSubmit = (data) => {
+  const onSubmit = (data: any) => {
     console.log(data);
     submitForm();
   };

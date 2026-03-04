@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   Button,
   Chip,
   alpha,
@@ -21,6 +20,7 @@ import {
   Tooltip,
   Divider,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PersonIcon from "@mui/icons-material/Person";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -551,7 +551,7 @@ export default function CabinBookingManager() {
               }}
             >
               <Grid container spacing={2}>
-                <Grid item xs={5}>
+                <Grid size={{ xs: 5 }}>
                   <Typography
                     variant="caption"
                     sx={{
@@ -584,8 +584,7 @@ export default function CabinBookingManager() {
                   />
                 </Grid>
                 <Grid
-                  item
-                  xs={2}
+                  size={{ xs: 2 }}
                   sx={{
                     display: "flex",
                     alignItems: "center",
@@ -594,7 +593,7 @@ export default function CabinBookingManager() {
                 >
                   <Box sx={{ width: 30, height: 2, bgcolor: "divider" }} />
                 </Grid>
-                <Grid item xs={5}>
+                <Grid size={{ xs: 5 }}>
                   <Typography
                     variant="caption"
                     sx={{
@@ -612,8 +611,8 @@ export default function CabinBookingManager() {
                     value={
                       selectedRange
                         ? moment(selectedRange.end)
-                            .subtract(1, "days")
-                            .format("YYYY-MM-DD")
+                          .subtract(1, "days")
+                          .format("YYYY-MM-DD")
                         : ""
                     }
                     onChange={(e) => {

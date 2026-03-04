@@ -15,11 +15,11 @@ import DraftsIcon from '@mui/icons-material/Drafts';
 import SendIcon from '@mui/icons-material/Send';
 
 export default function DropDown() {
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const theme = useTheme();
   const open = Boolean(anchorEl);
 
-  const handleClick = (event) => {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
 

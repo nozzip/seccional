@@ -6,13 +6,13 @@ import {
   IconButton,
   Typography,
   Box,
-  Grid,
   Button,
   useTheme,
   alpha,
   Zoom,
   Fade,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import CloseIcon from "@mui/icons-material/Close";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
@@ -31,7 +31,7 @@ interface AdminCapabilitiesModalProps {
 const CapabilityItem = ({ icon: Icon, title, description, color }: any) => {
   const theme = useTheme();
   return (
-    <Grid item xs={12} sm={6}>
+    <Grid size={{ xs: 12, sm: 6 }}>
       <motion.div
         whileHover={{ y: -5, transition: { duration: 0.2 } }}
         initial={{ opacity: 0, scale: 0.95 }}
@@ -257,7 +257,7 @@ const AdminCapabilitiesModal: React.FC<AdminCapabilitiesModalProps> = ({
               fontWeight: 600,
             }}
           >
-            Antigravity OS • Sistema v1.0.0
+            Sistema NZP 1.0
           </Typography>
         </DialogContent>
       </Box>

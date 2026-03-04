@@ -21,7 +21,7 @@ export default function CardNovedades() {
   );
 }
 
-function NovedadItem({ item }) {
+function NovedadItem({ item }: { item: any }) {
   return (
     <Card
       sx={{

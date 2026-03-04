@@ -87,7 +87,7 @@ export default function Birthdays() {
           ))}
         </Stack>
       ) : (
-        <List sx={{ p: 0, flex: 1, overflowY: "auto", maxHeight: 350 }}>
+        <List sx={{ p: 0, flex: 1, overflowY: "auto", maxHeight: 400 }}>
           {affiliates.length > 0 ? (
             affiliates.map((aff, index) => (
               <React.Fragment key={index}>

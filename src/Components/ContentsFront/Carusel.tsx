@@ -32,7 +32,7 @@ function Carusel() {
   );
 }
 
-function Item({ item }) {
+function Item({ item }: { item: any }) {
   return (
     <Paper
       elevation={0}

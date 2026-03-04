@@ -17,8 +17,8 @@ import {
   TextField,
   IconButton,
   InputAdornment,
-  Grid,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -270,7 +270,7 @@ export default function ProvidersManager() {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Nombre o Razón Social"
@@ -281,7 +281,7 @@ export default function ProvidersManager() {
                 autoFocus
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="CUIT (Opcional)"

@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import {
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -10,7 +9,9 @@ import {
   Box,
   Divider,
   Paper,
+  alpha,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import GetAppIcon from "@mui/icons-material/GetApp";
 import { Helmet } from "react-helmet-async";
 
@@ -105,7 +106,7 @@ const authorities = [
   },
 ];
 
-function AuthorityCard({ person }) {
+function AuthorityCard({ person }: { person: any }) {
   const isMain = person.level === 1;
   const isSecondary = person.level === 2;
   const isTertiary = person.level === 3;
@@ -233,12 +234,12 @@ function Gremio() {
 
         <Grid container spacing={4}>
           {/* Main Leader */}
-          <Grid item xs={12}>
+          <Grid size={12}>
             <AuthorityCard person={authorities[0]} />
           </Grid>
 
           {/* Secondary Leader */}
-          <Grid item xs={12}>
+          <Grid size={12}>
             <AuthorityCard person={authorities[1]} />
           </Grid>
 
@@ -246,13 +247,13 @@ function Gremio() {
           {authorities
             .filter((p) => p.level === 3)
             .map((person, index) => (
-              <Grid item key={index} xs={12} sm={6} md={4}>
+              <Grid key={index} size={{ xs: 12, sm: 6, md: 4 }}>
                 <AuthorityCard person={person} />
               </Grid>
             ))}
 
           {/* Other Members (Level 4) */}
-          <Grid item xs={12}>
+          <Grid size={12}>
             <Divider sx={{ my: 4 }}>
               <Typography
                 variant="overline"
@@ -266,7 +267,7 @@ function Gremio() {
           {authorities
             .filter((p) => p.level === 4)
             .map((person, index) => (
-              <Grid item key={index} xs={12} sm={6} md={3}>
+              <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
                 <AuthorityCard person={person} />
               </Grid>
             ))}
@@ -287,7 +288,7 @@ function Gremio() {
               Documentación Institucional
             </Typography>
             <Grid container spacing={3} justifyContent="center">
-              <Grid item xs={12} md={5}>
+              <Grid size={{ xs: 12, md: 5 }}>
                 <Button
                   fullWidth
                   variant="contained"
@@ -306,7 +307,7 @@ function Gremio() {
                   Convenio Colectivo
                 </Button>
               </Grid>
-              <Grid item xs={12} md={5}>
+              <Grid size={{ xs: 12, md: 5 }}>
                 <Button
                   fullWidth
                   variant="outlined"

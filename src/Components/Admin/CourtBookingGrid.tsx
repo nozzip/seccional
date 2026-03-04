@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   Button,
   Chip,
   alpha,
@@ -22,20 +21,18 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import SportsTennisIcon from "@mui/icons-material/SportsTennis";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import OutdoorGrillIcon from "@mui/icons-material/OutdoorGrill";
 import DeleteIcon from "@mui/icons-material/Delete";
-import CancelIcon from "@mui/icons-material/Cancel";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PersonIcon from "@mui/icons-material/Person";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import HistoryIcon from "@mui/icons-material/History";
-import LockOpenIcon from "@mui/icons-material/LockOpen";
 import {
   Table,
   TableBody,
@@ -44,6 +41,7 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
+import { supabase } from "../../supabaseClient";
 
 const DAYS_NAMES = [
   "Lunes",
@@ -234,8 +232,6 @@ const BookingDialog = ({
   );
 };
 
-import { supabase } from "../../supabaseClient";
-
 export default function CourtBookingGrid() {
   const [court, setCourt] = useState(0);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -246,7 +242,6 @@ export default function CourtBookingGrid() {
   });
 
   const [bookings, setBookings] = useState<CourtBooking[]>([]);
-
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{
     dayName: string;
@@ -422,7 +417,6 @@ export default function CourtBookingGrid() {
     return map;
   }, [bookings, court]);
 
-  // Función para determinar si un slot está ocupado y devolver la info de la reserva
   const getBookingInSlot = (
     dayName: string,
     time: string,
@@ -655,13 +649,13 @@ export default function CourtBookingGrid() {
                                       ? alpha(theme.palette.success.main, 0.1)
                                       : booking.isWeekly
                                         ? alpha(
-                                            theme.palette.secondary.main,
-                                            0.1,
-                                          )
+                                          theme.palette.secondary.main,
+                                          0.1,
+                                        )
                                         : alpha(
-                                            theme.palette.primary.main,
-                                            0.05,
-                                          )
+                                          theme.palette.primary.main,
+                                          0.05,
+                                        )
                                     : "transparent",
                                   cursor: booking ? "default" : "pointer",
                                   transition: "all 0.1s",
@@ -803,7 +797,6 @@ export default function CourtBookingGrid() {
           </Table>
         </TableContainer>
       </Paper>
-
       <BookingDialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}

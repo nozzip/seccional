@@ -1,73 +1,77 @@
 import React from 'react';
 import Carousel from 'react-material-ui-carousel';
-import { Paper, makeStyles } from '@material-ui/core';
-import {dataCaruselSection1} from '../mockData';
+import { Paper, Typography, Box, alpha, useTheme } from '@mui/material';
+import { dataCarusel, DataItem } from '../mockData';
 
-const useStyles = makeStyles((theme) => ({
-  carousel: {
-    padding: theme.spacing(4),
-    margin: theme.spacing(-1),
-  },
-
-  paper: {
-    display: 'flex',
-    alignItems: 'center',
-    flexDirection: 'column',
-    padding: theme.spacing(1),
-    width: '40em',
-    height: '20em',
-    borderRadius: '20px',
-    boxShadow: '4px 10px 10px 2px black',
-    backgroundColor: 'rgba(255, 0, 0, 0.4)',
-  },
-  img: {
-    padding: theme.spacing(2),
-    height: '400px',
-    width: '300px',
-  },
-  title: {
-    alignContent: 'center',
-    textAlign: 'center',
-    padding: theme.spacing(1),
-    fontSize: '40px',
-  },
-  text: {
-    textAlign: 'center',
-    fontSize: '2em',
-    padding: theme.spacing(1),
-  },
-}));
-
-function Caruselsection1(props) {
-  const classes = useStyles();
+function Caruselsection1() {
   return (
     <Carousel
-      className={classes.carousel}
       autoPlay={true}
-      NextIcon={false}
-      PrevIcon={false}
+      interval={6000}
       animation="slide"
-      IndicatorIcon={false}
-      navButtonsProps={{
-        style: {
-          backgroundColor: 'transparent',
-          borderRadius: 0,
-        },
+      indicators={false}
+      navButtonsAlwaysInvisible={true}
+      sx={{
+        borderRadius: 6,
+        overflow: 'hidden',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
+        width: '100%',
+        maxWidth: '1200px',
+        mx: 'auto',
       }}
     >
-      {dataCaruselSection1.map((item, i) => (
+      {dataCarusel.map((item, i) => (
         <Item key={i} item={item} />
       ))}
     </Carousel>
   );
 }
 
-function Item(props) {
-  const classes = useStyles();
+function Item({ item }: { item: DataItem }) {
+  const theme = useTheme();
   return (
-    <Paper className={classes.paper}>
-      <h1 className={classes.title}>{props.item.title}</h1>
-      <h2 className={classes.text}>{props.item.short_description}</h2>
+    <Paper
+      elevation={0}
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: { xs: 4, md: 8 },
+        height: { xs: 350, md: 450 },
+        textAlign: 'center',
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.85)} 0%, ${alpha(theme.palette.secondary.main, 0.85)} 100%), url(${item.thumbnail})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundBlendMode: 'overlay',
+        color: 'white',
+        borderRadius: 6,
+      }}
+    >
+      <Typography
+        variant="h2"
+        sx={{
+          fontWeight: 900,
+          mb: 3,
+          fontSize: { xs: '2rem', md: '3.5rem' },
+          lineHeight: 1.1,
+          textShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        }}
+      >
+        {item.title}
+      </Typography>
+      <Typography
+        variant="h5"
+        sx={{
+          fontWeight: 500,
+          opacity: 0.9,
+          fontSize: { xs: '1.1rem', md: '1.5rem' },
+          maxWidth: '800px',
+          textShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        }}
+      >
+        {item.short_description}
+      </Typography>
     </Paper>
   );
 }

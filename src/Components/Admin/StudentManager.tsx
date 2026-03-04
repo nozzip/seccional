@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   TextField,
   Button,
   Table,
@@ -251,11 +250,11 @@ export default function StudentManager() {
                 if (filterExpiring) {
                   const daysLeft = s.expiryDate
                     ? Math.ceil(
-                        (new Date(s.expiryDate).getTime() -
-                          new Date().getTime() +
-                          1000) /
-                          (1000 * 60 * 60 * 24),
-                      )
+                      (new Date(s.expiryDate).getTime() -
+                        new Date().getTime() +
+                        1000) /
+                      (1000 * 60 * 60 * 24),
+                    )
                     : 0;
                   matchesExpiring = daysLeft <= 7;
                 }
@@ -283,11 +282,11 @@ export default function StudentManager() {
                             color: isExpired(s.expiryDate)
                               ? "error.main"
                               : Math.ceil(
-                                    (new Date(s.expiryDate).getTime() -
-                                      new Date().getTime() +
-                                      1000) /
-                                      (1000 * 60 * 60 * 24),
-                                  ) <= 7
+                                (new Date(s.expiryDate).getTime() -
+                                  new Date().getTime() +
+                                  1000) /
+                                (1000 * 60 * 60 * 24),
+                              ) <= 7
                                 ? "warning.main"
                                 : "success.main",
                           }}
@@ -301,7 +300,7 @@ export default function StudentManager() {
                               (new Date(s.expiryDate!).getTime() -
                                 new Date().getTime() +
                                 1000) /
-                                (1000 * 60 * 60 * 24),
+                              (1000 * 60 * 60 * 24),
                             ) <= 7 && !isExpired(s.expiryDate)
                               ? "warning.main"
                               : "text.secondary"
@@ -312,7 +311,7 @@ export default function StudentManager() {
                                 (new Date(s.expiryDate!).getTime() -
                                   new Date().getTime() +
                                   1000) /
-                                  (1000 * 60 * 60 * 24),
+                                (1000 * 60 * 60 * 24),
                               ) <= 7
                                 ? 700
                                 : 400,
@@ -321,12 +320,12 @@ export default function StudentManager() {
                           {isExpired(s.expiryDate)
                             ? "Vencido"
                             : "Días restantes: " +
-                              Math.ceil(
-                                (new Date(s.expiryDate).getTime() -
-                                  new Date().getTime() +
-                                  1000) /
-                                  (1000 * 60 * 60 * 24),
-                              )}
+                            Math.ceil(
+                              (new Date(s.expiryDate).getTime() -
+                                new Date().getTime() +
+                                1000) /
+                              (1000 * 60 * 60 * 24),
+                            )}
                         </Typography>
                       </Box>
                     ) : (

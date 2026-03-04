@@ -2,28 +2,31 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Grid,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Button,
-  TextField,
-  Stack,
   Chip,
   alpha,
   useTheme,
+  TableContainer,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TextField,
+  MenuItem,
+  Stack,
+  IconButton,
+  Tooltip,
   Divider,
-  InputAdornment,
   Alert,
-  Snackbar,
+  InputAdornment,
   Stepper,
   Step,
   StepLabel,
+  Snackbar,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import LocalAtmIcon from "@mui/icons-material/LocalAtm";
 import HistoryIcon from "@mui/icons-material/History";
 import LiquorIcon from "@mui/icons-material/Liquor";
@@ -110,9 +113,9 @@ export default function CashRegistry({
   const todayName = getTodaySpanish();
   const todayStaff = staffRoster[todayName] ||
     staffRoster["Lunes"] || {
-      morning: "No asignado",
-      afternoon: "No asignado",
-    };
+    morning: "No asignado",
+    afternoon: "No asignado",
+  };
 
   // States for Day Management
   const [dayArchived, setDayArchived] = useState(false);
@@ -492,7 +495,7 @@ export default function CashRegistry({
 
       <Grid container spacing={4}>
         {/* Main Action Area */}
-        <Grid item xs={12} lg={5}>
+        <Grid size={{ xs: 12, lg: 5 }}>
           <Paper
             elevation={0}
             sx={{
@@ -612,7 +615,7 @@ export default function CashRegistry({
                 </Typography>
 
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="caption" sx={{ fontWeight: 700 }}>
                       INICIO TURNO
                     </Typography>
@@ -620,7 +623,7 @@ export default function CashRegistry({
                       ${activeShift?.openingCash.toLocaleString()}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="caption" sx={{ fontWeight: 700 }}>
                       NETO SISTEMA
                     </Typography>
@@ -700,7 +703,7 @@ export default function CashRegistry({
         </Grid>
 
         {/* Current Day Status List */}
-        <Grid item xs={12} lg={7}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
             Progreso de los Turnos
           </Typography>
@@ -723,13 +726,13 @@ export default function CashRegistry({
                 }}
               >
                 <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} sm={4}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
                     <Typography sx={{ fontWeight: 800 }}>{s.name}</Typography>
                     <Typography variant="caption" color="text.secondary">
                       {s.timeLabel} • Resp: {s.responsible}
                     </Typography>
                   </Grid>
-                  <Grid item xs={4} sm={2} textAlign="center">
+                  <Grid size={{ xs: 4, sm: 2 }} textAlign="center">
                     <Typography
                       variant="caption"
                       color="text.secondary"
@@ -741,7 +744,7 @@ export default function CashRegistry({
                       ${s.openingCash.toLocaleString()}
                     </Typography>
                   </Grid>
-                  <Grid item xs={4} sm={2} textAlign="center">
+                  <Grid size={{ xs: 4, sm: 2 }} textAlign="center">
                     <Typography
                       variant="caption"
                       color="text.secondary"
@@ -755,7 +758,7 @@ export default function CashRegistry({
                         : "—"}
                     </Typography>
                   </Grid>
-                  <Grid item xs={4} sm={2} textAlign="center">
+                  <Grid size={{ xs: 4, sm: 2 }} textAlign="center">
                     <Typography
                       variant="caption"
                       color="text.secondary"
@@ -779,7 +782,7 @@ export default function CashRegistry({
                       "—"
                     )}
                   </Grid>
-                  <Grid item xs={12} sm={2}>
+                  <Grid size={{ xs: 12, sm: 2 }}>
                     <Chip
                       label={s.status}
                       size="small"
@@ -971,8 +974,7 @@ export default function CashRegistry({
         <Grid container spacing={3}>
           {filteredArchivedDays.length === 0 ? (
             <Grid
-              item
-              xs={12}
+              size={{ xs: 12 }}
               sx={{ textAlign: "center", py: 4, opacity: 0.5 }}
             >
               <ErrorIcon sx={{ fontSize: 40, mb: 1 }} />
@@ -983,7 +985,7 @@ export default function CashRegistry({
               const itemKey = `${day.date}-${idx}`;
               const isExpanded = expandedDay === itemKey;
               return (
-                <Grid item xs={12} key={itemKey}>
+                <Grid size={{ xs: 12 }} key={itemKey}>
                   <Paper
                     elevation={0}
                     onClick={() => setExpandedDay(isExpanded ? null : itemKey)}
@@ -1071,7 +1073,7 @@ export default function CashRegistry({
                       >
                         <Grid container spacing={4}>
                           {day.shifts.map((s, sidx) => (
-                            <Grid item xs={12} md={6} key={sidx}>
+                            <Grid size={{ xs: 12, md: 6 }} key={sidx}>
                               <Box
                                 sx={{
                                   p: 2,
@@ -1300,10 +1302,10 @@ export default function CashRegistry({
                                                 bgcolor:
                                                   ssidx % 2 === 0
                                                     ? alpha(
-                                                        theme.palette.action
-                                                          .hover,
-                                                        0.5,
-                                                      )
+                                                      theme.palette.action
+                                                        .hover,
+                                                      0.5,
+                                                    )
                                                     : "transparent",
                                               }}
                                             >

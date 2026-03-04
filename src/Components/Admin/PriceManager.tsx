@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Grid,
   Paper,
   TextField,
   Button,
@@ -22,6 +21,7 @@ import {
   Dialog,
   Chip,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import SaveIcon from "@mui/icons-material/Save";
 import PoolIcon from "@mui/icons-material/Pool";
 import ShoppingBasketIcon from "@mui/icons-material/ShoppingBasket";
@@ -439,7 +439,7 @@ export default function PriceManager() {
 
       {activeTab === 0 && (
         <Grid container spacing={4}>
-          <Grid item xs={12} lg={6}>
+          <Grid size={{ xs: 12, lg: 6 }}>
             <Paper
               elevation={0}
               sx={{
@@ -467,7 +467,7 @@ export default function PriceManager() {
                             : "5 veces por semana"}
                       </Typography>
                       <Grid container spacing={2}>
-                        <Grid item xs={4}>
+                        <Grid size={{ xs: 4 }}>
                           <OptimizedPriceInput
                             label="Total"
                             value={data.total}
@@ -479,7 +479,7 @@ export default function PriceManager() {
                             }
                           />
                         </Grid>
-                        <Grid item xs={4}>
+                        <Grid size={{ xs: 4 }}>
                           <OptimizedPriceInput
                             label="Club"
                             value={data.club}
@@ -491,7 +491,7 @@ export default function PriceManager() {
                             }
                           />
                         </Grid>
-                        <Grid item xs={4}>
+                        <Grid size={{ xs: 4 }}>
                           <OptimizedPriceInput
                             label="Profesor"
                             value={data.prof}
@@ -537,7 +537,7 @@ export default function PriceManager() {
                       {item.label}
                     </Typography>
                     <Grid container spacing={2}>
-                      <Grid item xs={4}>
+                      <Grid size={{ xs: 4 }}>
                         <OptimizedPriceInput
                           label="Total"
                           value={(swimmingPrices as any)[item.key].total}
@@ -546,7 +546,7 @@ export default function PriceManager() {
                           }
                         />
                       </Grid>
-                      <Grid item xs={4}>
+                      <Grid size={{ xs: 4 }}>
                         <OptimizedPriceInput
                           label="Club"
                           value={(swimmingPrices as any)[item.key].club}
@@ -555,7 +555,7 @@ export default function PriceManager() {
                           }
                         />
                       </Grid>
-                      <Grid item xs={4}>
+                      <Grid size={{ xs: 4 }}>
                         <OptimizedPriceInput
                           label="Profesor"
                           value={(swimmingPrices as any)[item.key].prof}
@@ -571,7 +571,7 @@ export default function PriceManager() {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} lg={6}>
+          <Grid size={{ xs: 12, lg: 6 }}>
             <Paper
               elevation={0}
               sx={{
@@ -653,7 +653,7 @@ export default function PriceManager() {
 
       {activeTab === 3 && (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6} lg={4}>
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
             <Paper
               elevation={0}
               sx={{
@@ -736,7 +736,7 @@ export default function PriceManager() {
               }
 
               return (
-                <Grid item xs={12} sm={6} md={4} key={promo.id}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={promo.id}>
                   <Paper
                     variant="outlined"
                     sx={{
@@ -871,7 +871,7 @@ export default function PriceManager() {
               }}
             />
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   label="Fecha de Inicio"
                   type="date"
@@ -881,7 +881,7 @@ export default function PriceManager() {
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   label="Fecha de Fin"
                   type="date"

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
     Box,
     Typography,
-    Grid,
     Paper,
     Chip,
     Avatar,
@@ -12,6 +11,8 @@ import {
     alpha,
     useTheme
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
+
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -38,7 +39,7 @@ export default function BookingManager({ title, bookings }: BookingManagerProps)
 
             <Grid container spacing={2}>
                 {bookings.map((booking) => (
-                    <Grid item xs={12} md={6} lg={4} key={booking.id}>
+                    <Grid size={{ xs: 12, md: 6, lg: 4 }} key={booking.id}>
                         <Paper
                             elevation={0}
                             sx={{

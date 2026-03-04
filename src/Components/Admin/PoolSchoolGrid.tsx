@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   Avatar,
   alpha,
   useTheme,
@@ -30,14 +29,13 @@ import {
   TableHead,
   TableRow,
   Checkbox,
-  FormControlLabel,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import AddIcon from "@mui/icons-material/Add";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PersonIcon from "@mui/icons-material/Person";
 import TableChartIcon from "@mui/icons-material/TableChart";
 
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import StudentManager from "./StudentManager";
 import { StudentData } from "./StudentRegistrationDialog";
 import { supabase } from "../../supabaseClient";
@@ -56,6 +54,7 @@ interface Professor {
 interface SlotData {
   [key: string]: any[];
 }
+
 export default function PoolSchoolGrid() {
   const [studentsData, setStudentsData] = useState<StudentData[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
@@ -378,7 +377,7 @@ export default function PoolSchoolGrid() {
           {professors.map((prof) => {
             const students = professorSummary[prof.name] || [];
             return (
-              <Grid item xs={12} md={6} lg={4} key={prof.id}>
+              <Grid key={prof.id} size={{ xs: 12, md: 6, lg: 4 }}>
                 <Card
                   sx={{
                     borderRadius: 3,
@@ -746,7 +745,6 @@ export default function PoolSchoolGrid() {
         </DialogActions>
       </Dialog>
 
-      {/* Slot Detail Dialog */}
       <Dialog
         open={!!selectedSlot}
         onClose={() => setSelectedSlot(null)}
@@ -798,14 +796,7 @@ export default function PoolSchoolGrid() {
           </List>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button
-            variant="contained"
-            fullWidth
-            onClick={() => setSelectedSlot(null)}
-            sx={{ fontWeight: 700 }}
-          >
-            Entendido
-          </Button>
+          <Button onClick={() => setSelectedSlot(null)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
     </Box>

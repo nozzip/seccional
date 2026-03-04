@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Grid, Typography, Container, IconButton, Divider, Link as MuiLink } from '@mui/material';
+import { Box, Typography, Container, IconButton, Divider, Link as MuiLink } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import { Link } from 'react-router-dom';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import TwitterIcon from '@mui/icons-material/Twitter';
@@ -13,7 +14,7 @@ export default function FooterElements() {
     <Box component="footer" sx={{ bgcolor: '#1a1a1a', color: 'white', pt: 8, pb: 4 }}>
       <Container maxWidth="lg">
         <Grid container spacing={4} justifyContent="center" alignItems="center">
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography
               variant="h5"
               align="center"
@@ -23,7 +24,7 @@ export default function FooterElements() {
             </Typography>
           </Grid>
 
-          <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 6 }}>
+          <Grid size={{ xs: 12 }} sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 6 }}>
             {[
               { icon: <FacebookIcon />, color: '#1877F2', url: 'https://www.facebook.com/aefip.seccionalnoroeste', label: 'Facebook' },
               { icon: <InstagramIcon />, color: '#E4405F', url: 'https://www.instagram.com/aefipseccionalnoroeste/', label: 'Instagram' },

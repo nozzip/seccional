@@ -6,11 +6,11 @@ import {
   Typography,
   alpha,
   useTheme,
-  Grid,
   Chip,
   Button,
   Divider,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import EventSeatIcon from "@mui/icons-material/EventSeat";
 import LocalDiningIcon from "@mui/icons-material/LocalDining";
@@ -110,7 +110,7 @@ function SanLorenzo() {
         <Divider sx={{ mb: 3 }} />
 
         <Grid container spacing={4} sx={{ mb: 4 }}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <Typography
               variant="h6"
               sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}
