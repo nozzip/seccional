@@ -47,7 +47,12 @@ function SanLorenzo() {
         },
       }}
     >
-      <Box sx={{ width: { xs: "100%", lg: "45%" }, minHeight: 400 }}>
+      <Box
+        sx={{
+          width: { xs: "100%", lg: "45%" },
+          height: { xs: 400, lg: "auto" },
+        }}
+      >
         <ServiceGallery photos={photosSanLorenzo} />
       </Box>
 
@@ -180,7 +185,7 @@ function SanLorenzo() {
             variant="contained"
             color="success"
             startIcon={<WhatsAppIcon />}
-            href="https://wa.me/5493870000000" // Placeholder phone
+            href="https://wa.me/5493816844462"
             target="_blank"
             sx={{
               fontWeight: 700,
@@ -196,7 +201,7 @@ function SanLorenzo() {
               width: { xs: "100%", sm: "auto" },
             }}
           >
-            Consultar
+            Contactar
           </Button>
         </Box>
       </CardContent>

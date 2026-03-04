@@ -54,7 +54,7 @@ export default function Birthdays() {
         p: 3,
         borderRadius: 4,
         bgcolor: alpha(theme.palette.background.paper, 0.4),
-        backdropFilter: "blur(10px)",
+        backdropFilter: "blur(4px)",
         border: "1px solid",
         borderColor: alpha(theme.palette.primary.main, 0.1),
         height: "100%",

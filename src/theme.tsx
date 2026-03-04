@@ -79,9 +79,9 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
 
 export const getGlassStyles = (theme: Theme) => ({
   backgroundColor: alpha(theme.palette.background.paper, 0.8),
-  backdropFilter: "blur(12px)",
+  backdropFilter: "blur(4px)",
   border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-  boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
+  boxShadow: "0 4px 16px 0 rgba(31, 38, 135, 0.05)",
 });
 
 export default getDesignTokens;

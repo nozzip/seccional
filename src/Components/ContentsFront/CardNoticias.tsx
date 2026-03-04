@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
-import seccionalLogo from "../../../public/seccionalLogo2.png";
+const seccionalLogo = "/seccionalLogo2.png";
 
 function CardNoticias() {
   const [news, setNews] = useState<NewsItem[]>([]);

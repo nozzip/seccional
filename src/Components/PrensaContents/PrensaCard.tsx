@@ -14,7 +14,7 @@ import Grid from "@mui/material/Grid2";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
-import seccionalLogo from "../../../public/seccionalLogo2.png";
+const seccionalLogo = "/seccionalLogo2.png";
 
 export default function PrensaCard() {
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -127,7 +127,7 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
           display: "flex",
           flexDirection: "column",
           bgcolor: alpha(theme.palette.background.paper, 0.8),
-          backdropFilter: "blur(10px)",
+          backdropFilter: "blur(4px)",
         }}
       >
         <CardContent
@@ -151,7 +151,11 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
             <CalendarTodayIcon sx={{ fontSize: "1.2rem" }} />
             <Typography
               variant="subtitle2"
-              sx={{ fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.5 }}
+              sx={{
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: 1.5,
+              }}
             >
               {item.date}
             </Typography>
@@ -269,7 +273,11 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
           <CalendarTodayIcon sx={{ fontSize: "0.9rem" }} />
           <Typography
             variant="caption"
-            sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}
+            sx={{
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: 1,
+            }}
           >
             {item.date}
           </Typography>
@@ -338,7 +346,11 @@ function NewsSkeleton() {
       <Grid container spacing={4}>
         {[1, 2, 3].map((i) => (
           <Grid key={i} size={{ xs: 12, md: 6, lg: 4 }}>
-            <Skeleton variant="rectangular" height={450} sx={{ borderRadius: 5 }} />
+            <Skeleton
+              variant="rectangular"
+              height={450}
+              sx={{ borderRadius: 5 }}
+            />
           </Grid>
         ))}
       </Grid>
