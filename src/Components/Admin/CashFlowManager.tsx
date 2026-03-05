@@ -134,6 +134,24 @@ interface Account {
   color: string;
 }
 
+export interface CartItem {
+  id: string; // Unique ID for the cart item
+  type: "Ingreso" | "Egreso";
+  category: string;
+  amount: number;
+  description: string;
+  paymentMethod: string; // "Efectivo", "Transferencia", "A Cuenta"
+  // Snapshots of the referenced entities (so we persist exactly what was selected)
+  studentSnapshot?: any;
+  bookingSnapshot?: any;
+  cabinSnapshot?: any;
+  inventorySnapshot?: any;
+  providerSnapshot?: any;
+  // Specific properties (e.g. quantity for inventory)
+  inventoryQty?: number;
+}
+
+
 import CashRegistry from "./CashRegistry";
 import InventoryManager from "./InventoryManager";
 import { OptimizedTextField } from "../common/OptimizedTextField";
@@ -840,6 +858,10 @@ export default function CashFlowManager({
     paymentMethod: "Efectivo",
     description: "",
   });
+
+  // --- Cart State logic ---
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
   const [accountFormData, setAccountFormData] = useState({
     name: "",
     type: "Ingreso",
@@ -1135,31 +1157,26 @@ export default function CashFlowManager({
     return `${prefix}${nextNumber.toString().padStart(8, "0")}`;
   };
 
-  const handleRegister = async () => {
-    if (!formData.category || !formData.amount) return;
+  const removeItemFromCart = (id: string) => {
+    setCartItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleAddToCart = () => {
+    if (!formData.category || !formData.amount) {
+      setErrorMessage("Complete la categoría y el monto.");
+      setShowError(true);
+      return;
+    }
 
     const formattedCategory = toTitleCase(formData.category.trim());
-
-    let finalInvoice: string | undefined = undefined;
-    if (isAutoInvoice) {
-      finalInvoice = generateAutoInvoice();
-    } else if (invoiceData.letter || invoiceData.num1 || invoiceData.num2) {
-      const paddedNum1 = invoiceData.num1.padStart(4, "0");
-      const paddedNum2 = invoiceData.num2.padStart(8, "0");
-      finalInvoice = `${invoiceData.letter || "X"}-${paddedNum1}-${paddedNum2}`;
-
-      const isDuplicate = transactions.some((t) => t.invoice === finalInvoice);
-      if (isDuplicate) {
-        setErrorMessage(
-          "Ya existe un movimiento con este número de comprobante/factura.",
-        );
-        setShowError(true);
-        return;
-      }
+    const parsedAmount = parseFloat(formData.amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setErrorMessage("El monto ingresado no es válido.");
+      setShowError(true);
+      return;
     }
 
     let finalDesc = formData.description;
-    let studentToUpsert: any = null;
 
     // Automatic Description Logic
     if (!finalDesc) {
@@ -1207,178 +1224,235 @@ export default function CashFlowManager({
         } else {
           finalDesc = `Pago de Cancha (${formattedCategory})`;
         }
+      } else if (isCabinCategory && selectedCabinId) {
+        const cabin = cabinBookings.find((c) => c.id === selectedCabinId);
+        if (cabin) {
+          finalDesc = `Reserva Cabaña: ${cabin.user_name} (${cabin.start_date})`;
+        } else {
+          finalDesc = `Pago Cabañas El Mollar`;
+        }
       } else {
         // Fallback description based on category if still empty
         finalDesc = `${formattedCategory}`;
       }
-    } else if (isCabinCategory && selectedCabinId) {
-      const cabin = cabinBookings.find((c) => c.id === selectedCabinId);
-      if (cabin) {
-        finalDesc = `Reserva Cabaña: ${cabin.user_name} (${cabin.start_date})`;
-      } else {
-        finalDesc = `Pago Cabañas El Mollar`;
-      }
     }
 
-    let providerToLink: number | null = selectedProvider
-      ? selectedProvider.id
-      : null;
+    const newItem: CartItem = {
+      id: crypto.randomUUID(),
+      type: formData.type as "Ingreso" | "Egreso",
+      category: formattedCategory,
+      amount: parsedAmount,
+      description: finalDesc,
+      paymentMethod: formData.paymentMethod, // From form 
+      studentSnapshot: isPileta ? {
+        selectedStudent,
+        isCreatingStudent,
+        newStudentData,
+        renewalDays,
+        swimmingSelection
+      } : null,
+      providerSnapshot: (formData.type === "Egreso" && (selectedProvider || (isCreatingProvider && providerFormData.name))) ? {
+        selectedProvider,
+        isCreatingProvider,
+        providerFormData
+      } : null,
+      bookingSnapshot: isCourtCategory ? { selectedBookingId } : null,
+      cabinSnapshot: isCabinCategory ? { selectedCabinId } : null,
+      inventorySnapshot: (isInventoryCategory && shouldDiscountStock) ? { selectedStockProduct } : null,
+      inventoryQty: shouldDiscountStock ? discountQuantity : undefined
+    };
 
-    if (
-      formData.type === "Egreso" &&
-      isCreatingProvider &&
-      providerFormData.name
-    ) {
-      try {
-        const { data: provData, error: provError } = await supabase
-          .from("providers")
-          .insert([
-            { name: providerFormData.name, cuit: providerFormData.cuit },
-          ])
-          .select()
-          .single();
-        if (provError) throw provError;
-        if (provData) {
-          providerToLink = provData.id;
-        }
-      } catch (err: any) {
-        setErrorMessage("Error al crear el proveedor en línea.");
+    setCartItems((prev) => [...prev, newItem]);
+
+    // Reset LOCAL form, leave Global Cart alone
+    setFormData((prev) => ({
+      ...prev,
+      category: "",
+      amount: "",
+      description: "",
+    }));
+    setSelectedStudent(null);
+    setIsCreatingStudent(false);
+    setSelectedBookingId(null);
+    setSelectedCabinId(null);
+    setSelectedStockProduct(null);
+    setShouldDiscountStock(false);
+    setDiscountQuantity(1);
+    setIsCreatingProvider(false);
+    setProviderSearchInput("");
+    setStudentSearchInput("");
+  };
+
+  const submitCart = async () => {
+    if (cartItems.length === 0) return;
+
+
+    let finalInvoice: string | undefined = undefined;
+    if (isAutoInvoice) {
+      finalInvoice = generateAutoInvoice();
+    } else if (invoiceData.letter || invoiceData.num1 || invoiceData.num2) {
+      const paddedNum1 = invoiceData.num1.padStart(4, "0");
+      const paddedNum2 = invoiceData.num2.padStart(8, "0");
+      finalInvoice = `${invoiceData.letter || "X"}-${paddedNum1}-${paddedNum2}`;
+
+      const isDuplicate = transactions.some((t) => t.invoice === finalInvoice);
+      if (isDuplicate) {
+        setErrorMessage(
+          "Ya existe un movimiento (fuera de este carrito) con este número de comprobante/factura.",
+        );
         setShowError(true);
         return;
       }
     }
 
-    if (isPileta) {
-      if (selectedStudent || isCreatingStudent) {
-        const student = students.find(
-          (s) =>
-            s.dni ===
-            (isCreatingStudent ? newStudentData.dni : selectedStudent.dni),
-        );
-        const today = new Date();
-        const baseDate =
-          student && student.expiryDate && new Date(student.expiryDate) > today
-            ? new Date(student.expiryDate)
-            : today;
-
-        const newExpiry = new Date(baseDate);
-        newExpiry.setDate(newExpiry.getDate() + renewalDays);
-
-        studentToUpsert = {
-          full_name: isCreatingStudent
-            ? newStudentData.fullName
-            : selectedStudent.fullName,
-          dni: isCreatingStudent ? newStudentData.dni : selectedStudent.dni,
-          phone: isCreatingStudent
-            ? newStudentData.phone
-            : selectedStudent.phone,
-          schedule: isCreatingStudent ? {} : selectedStudent.schedule || {},
-          has_professor: isCreatingStudent
-            ? true
-            : (selectedStudent.hasProfessor ?? true),
-          last_payment: {
-            date: today.toISOString().split("T")[0],
-            amount: parseFloat(formData.amount),
-          },
-          expiry_date: newExpiry.toISOString().split("T")[0],
-          deleted_at: null,
-        };
-      }
-    }
-
-    const parsedAmount = parseFloat(formData.amount);
-    if (isNaN(parsedAmount)) {
-      setErrorMessage("El monto ingresado no es un número válido.");
-      setShowError(true);
-      return;
-    }
+    const todayStr = new Date().toISOString().split("T")[0];
+    const totalCartAmount = cartItems.reduce((acc, i) => acc + i.amount, 0);
 
     try {
-      // 1. First, Upsert student to satisfy FK constraint
-      if (studentToUpsert) {
-        const { error: studentError } = await supabase
-          .from("students")
-          .upsert(studentToUpsert, { onConflict: "dni" });
-        if (studentError) throw studentError;
-      }
+      for (const item of cartItems) {
+        let studentToUpsert: any = null;
+        if (item.studentSnapshot) {
+          const sSnap = item.studentSnapshot;
+          const sStudent = sSnap.selectedStudent;
+          const sIsCreating = sSnap.isCreatingStudent;
+          const sNewData = sSnap.newStudentData;
 
-      // 2. Insert transaction
-      const { data: txData, error: txError } = await supabase
-        .from("transactions")
-        .insert({
-          date: new Date().toISOString().split("T")[0],
-          type: formData.type,
-          category: formattedCategory,
-          amount: parsedAmount,
-          payment_method: formData.paymentMethod,
+          const student = students.find(
+            (s) => s.dni === (sIsCreating ? sNewData.dni : sStudent.dni),
+          );
+          const todayDate = new Date();
+          const baseDate = student && student.expiryDate && new Date(student.expiryDate) > todayDate
+            ? new Date(student.expiryDate)
+            : todayDate;
+          const newExpiry = new Date(baseDate);
+          newExpiry.setDate(newExpiry.getDate() + sSnap.renewalDays);
+
+          studentToUpsert = {
+            full_name: sIsCreating ? sNewData.fullName : sStudent.fullName,
+            dni: sIsCreating ? sNewData.dni : sStudent.dni,
+            phone: sIsCreating ? sNewData.phone : sStudent.phone,
+            schedule: sIsCreating ? {} : sStudent.schedule || {},
+            has_professor: sIsCreating ? true : (sStudent?.hasProfessor ?? true),
+            last_payment: {
+              date: todayStr,
+              amount: item.amount,
+            },
+            expiry_date: newExpiry.toISOString().split("T")[0],
+            deleted_at: null,
+          };
+
+          const { error: studentError } = await supabase
+            .from("students")
+            .upsert(studentToUpsert, { onConflict: "dni" });
+          if (studentError) throw studentError;
+        }
+
+        let providerToLink: number | null = null;
+        if (item.providerSnapshot) {
+          const pSnap = item.providerSnapshot;
+          if (pSnap.isCreatingProvider && pSnap.providerFormData.name) {
+            const { data: provData, error: provError } = await supabase
+              .from("providers")
+              .insert([{ name: pSnap.providerFormData.name, cuit: pSnap.providerFormData.cuit }])
+              .select().single();
+            if (provError) throw provError;
+            if (provData) providerToLink = provData.id;
+          } else if (pSnap.selectedProvider) {
+            providerToLink = pSnap.selectedProvider.id;
+          }
+        }
+
+        // Simple payment method per item logic
+        entriesToInsert.push({
+          date: todayStr,
+          type: item.type,
+          category: item.category,
+          amount: item.amount,
+          payment_method: item.paymentMethod,
           invoice: finalInvoice,
-          description: finalDesc,
-          booking_id: selectedBookingId || selectedCabinId || null,
-          inventory_id:
-            shouldDiscountStock && selectedStockProduct
-              ? selectedStockProduct.id
-              : null,
-          inventory_qty: shouldDiscountStock ? discountQuantity : null,
+          description: item.description,
+          booking_id: item.bookingSnapshot?.selectedBookingId || item.cabinSnapshot?.selectedCabinId || null,
+          inventory_id: item.inventorySnapshot?.selectedStockProduct?.id || null,
+          inventory_qty: item.inventoryQty || null,
           student_dni: studentToUpsert ? studentToUpsert.dni : null,
           provider_id: providerToLink,
-          branch: branch,
-        })
-        .select()
-        .single();
+          branch,
+        });
 
-      if (txError) throw txError;
+        for (const entry of entriesToInsert) {
+          const { data: txData, error: txError } = await supabase
+            .from("transactions")
+            .insert(entry)
+            .select()
+            .single();
+          if (txError) throw txError;
 
-      // 3. Record in student_payments history
-      if (studentToUpsert && txData) {
-        const { error: historyError } = await supabase
-          .from("student_payments")
-          .insert({
-            student_dni: studentToUpsert.dni,
-            transaction_id: txData.id,
-            amount: parsedAmount,
-            payment_date: new Date().toISOString().split("T")[0],
-            expiry_date: studentToUpsert.expiry_date,
-            plan_details: {
-              ...swimmingSelection,
-              renewalDays,
-            },
-          });
-        if (historyError) throw historyError;
-      }
+          if (studentToUpsert && txData) {
+            const { error: historyError } = await supabase
+              .from("student_payments")
+              .insert({
+                student_dni: studentToUpsert.dni,
+                transaction_id: txData.id,
+                amount: entry.amount,
+                payment_date: todayStr,
+                expiry_date: studentToUpsert.expiry_date,
+                plan_details: {
+                  ...item.studentSnapshot.swimmingSelection,
+                  renewalDays: item.studentSnapshot.renewalDays,
+                },
+              });
+            if (historyError) throw historyError;
+          }
 
-      if (shouldDiscountStock && selectedStockProduct) {
-        const { error: invError } = await supabase
-          .from("inventory")
-          .update({
-            exits: (selectedStockProduct.exits || 0) + discountQuantity,
-          })
-          .eq("id", selectedStockProduct.id);
-        if (invError) throw invError;
-      }
+          if (providerToLink && txData) {
+            const { error: ledgerError } = await supabase
+              .from("provider_ledgers")
+              .insert({
+                provider_id: providerToLink,
+                transaction_id: txData.id,
+                type: cartGlobalType === "Egreso" && cartPaymentMethod === "A Cuenta" ? "invoice" : "payment",
+                amount: entry.amount,
+                date: todayStr,
+                description: entry.description
+              });
+            if (ledgerError) throw ledgerError;
 
-      if (selectedBookingId) {
-        const { error: bookingError } = await supabase
-          .from("court_bookings")
-          .update({ status: "Pagado" })
-          .eq("id", selectedBookingId);
-        if (bookingError) throw bookingError;
-      }
+            const { data: remainingLedgers } = await supabase
+              .from("provider_ledgers")
+              .select("type, amount")
+              .eq("provider_id", providerToLink);
+            const newBalance = (remainingLedgers || []).reduce((acc, l) => {
+              return acc + (l.type === "invoice" ? Number(l.amount) : -Number(l.amount));
+            }, 0);
+            await supabase.from("providers").update({ balance: newBalance }).eq("id", providerToLink);
+          }
+        }
 
-      if (selectedCabinId) {
-        const { error: cabinError } = await supabase
-          .from("cabin_bookings")
-          .update({ status: "Pagado" })
-          .eq("id", selectedCabinId);
-        if (cabinError) throw cabinError;
+        if (item.inventorySnapshot && item.inventorySnapshot.selectedStockProduct) {
+          const { error: invError } = await supabase
+            .from("inventory")
+            .update({
+              exits: (item.inventorySnapshot.selectedStockProduct.exits || 0) + (item.inventoryQty || 1),
+            })
+            .eq("id", item.inventorySnapshot.selectedStockProduct.id);
+          if (invError) throw invError;
+        }
+
+        if (item.bookingSnapshot?.selectedBookingId) {
+          await supabase.from("court_bookings").update({ status: "Pagado" }).eq("id", item.bookingSnapshot.selectedBookingId);
+        }
+        if (item.cabinSnapshot?.selectedCabinId) {
+          await supabase.from("cabin_bookings").update({ status: "Pagado" }).eq("id", item.cabinSnapshot.selectedCabinId);
+        }
       }
 
       setShowSuccess(true);
       fetchData();
       handleCloseDialog();
     } catch (error: any) {
-      console.error("Error in handleRegister:", error);
+      console.error("Error in submitCart:", error);
       const detail = error.message || error.details || "Error desconocido";
-      setErrorMessage(`Error al registrar: ${detail}`);
+      setErrorMessage(`Error al asentar cobro: ${detail}`);
       setShowError(true);
     }
   };
@@ -1386,6 +1460,7 @@ export default function CashFlowManager({
   const handleCloseDialog = () => {
     setOpen(false);
     setShowSuccess(false);
+    setCartItems([]);
     setFormData({
       type: "Ingreso",
       category: "",
@@ -1398,7 +1473,6 @@ export default function CashFlowManager({
     setIsCreatingStudent(false);
     setErrorMessage("");
     setShowError(false);
-    setSelectedStudent(null);
     setStudentSearchInput("");
     setSelectedProvider(null);
     setProviderSearchInput("");
@@ -2792,815 +2866,890 @@ export default function CashFlowManager({
           <Dialog
             open={open}
             onClose={handleCloseDialog}
-            maxWidth="sm"
+            maxWidth="lg"
             fullWidth
             PaperProps={{ sx: { borderRadius: 4 } }}
           >
             <DialogTitle sx={{ fontWeight: 800 }}>
-              Nuevo Movimiento de Caja
+              Nuevo Movimiento de Caja (Múltiples Ítems)
             </DialogTitle>
             <DialogContent>
-              <Stack spacing={3} sx={{ mt: 1 }}>
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 6 }}>
-                    <TextField
-                      select
-                      label="Tipo"
-                      fullWidth
-                      value={formData.type}
-                      onChange={(e) =>
-                        setFormData({ ...formData, type: e.target.value })
-                      }
-                    >
-                      <MenuItem value="Ingreso">Ingreso (+)</MenuItem>
-                      <MenuItem value="Egreso">Egreso (-)</MenuItem>
-                    </TextField>
-                  </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <TextField
-                      select
-                      label="Método de Pago"
-                      fullWidth
-                      value={formData.paymentMethod}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          paymentMethod: e.target.value,
-                        })
-                      }
-                    >
-                      <MenuItem value="Efectivo">
-                        Caja Azucena (Efectivo)
-                      </MenuItem>
-                      <MenuItem value="Transferencia">
-                        Banco Ficticio (Transferencia)
-                      </MenuItem>
-                    </TextField>
-                  </Grid>
-                </Grid>
+              <Grid container spacing={4}>
+                {/* Left Column: Add Item Form */}
+                <Grid size={{ xs: 12, md: 7 }}>
+                  <Stack spacing={3} sx={{ mt: 1 }}>
+                    <Typography variant="overline" color="primary" sx={{ fontWeight: 800, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
+                      1. Agregar Renglón
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid size={{ xs: 6 }}>
+                        <TextField
+                          select
+                          label="Tipo"
+                          fullWidth
+                          value={formData.type}
+                          onChange={(e) =>
+                            setFormData({ ...formData, type: e.target.value })
+                          }
+                        >
+                          <MenuItem value="Ingreso">Ingreso (+)</MenuItem>
+                          <MenuItem value="Egreso">Egreso (-)</MenuItem>
+                        </TextField>
+                      </Grid>
+                      <Grid size={{ xs: 6 }}>
+                        <TextField
+                          select
+                          label="Método de Pago"
+                          fullWidth
+                          value={formData.paymentMethod}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              paymentMethod: e.target.value,
+                            })
+                          }
+                        >
+                          <MenuItem value="Efectivo">
+                            Caja Azucena (Efectivo)
+                          </MenuItem>
+                          <MenuItem value="Transferencia">
+                            Banco Ficticio (Transferencia)
+                          </MenuItem>
+                        </TextField>
+                      </Grid>
+                    </Grid>
 
-                <Box>
-                  <Autocomplete
-                    freeSolo
-                    options={accountOptions}
-                    value={formData.category}
-                    onInputChange={(_, newValue) =>
-                      setFormData({ ...formData, category: newValue })
-                    }
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Cuenta"
-                        placeholder="Ej: Cuota Pileta, Bebida..."
+                    <Box>
+                      <Autocomplete
+                        freeSolo
+                        options={accountOptions}
+                        value={formData.category}
+                        onInputChange={(_, newValue) =>
+                          setFormData({ ...formData, category: newValue })
+                        }
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Cuenta"
+                            placeholder="Ej: Cuota Pileta, Bebida..."
+                          />
+                        )}
                       />
-                    )}
-                  />
-                  <Box
-                    sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}
-                  >
-                    {frequentCategories.map((cat) => (
-                      <Chip
-                        key={cat}
-                        label={
-                          cat.charAt(0).toUpperCase() +
-                          cat.slice(1).toLowerCase()
-                        }
-                        size="small"
-                        onClick={() =>
-                          setFormData({ ...formData, category: cat })
-                        }
-                        onDelete={() => handleRemoveFrequentCategory(cat)}
-                        color={
-                          formData.category === cat ? "primary" : "default"
-                        }
-                        variant={
-                          formData.category === cat ? "filled" : "outlined"
-                        }
-                        sx={{
-                          fontWeight: 800,
-                          "& .MuiChip-label": {
-                            color:
-                              formData.category === cat
-                                ? "#ffffff"
-                                : "text.primary",
-                          },
-                        }}
-                      />
-                    ))}
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={handleAddFrequentCategory}
-                      sx={{
-                        border: "1px dashed",
-                        borderColor: "primary.main",
-                        "&:hover": {
-                          bgcolor: alpha(theme.palette.primary.main, 0.1),
-                        },
-                      }}
-                    >
-                      <AddIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-
-                  {promotions.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontWeight: 800,
-                          color: "success.main",
-                          mb: 1,
-                          display: "block",
-                        }}
+                      <Box
+                        sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}
                       >
-                        PROMOCIONES ACTIVAS
-                      </Typography>
-                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                        {promotions.map((promo) => (
+                        {frequentCategories.map((cat) => (
                           <Chip
-                            key={promo.id}
-                            label={`${promo.name} ($${promo.price.toLocaleString()})`}
+                            key={cat}
+                            label={
+                              cat.charAt(0).toUpperCase() +
+                              cat.slice(1).toLowerCase()
+                            }
                             size="small"
-                            color="success"
-                            onClick={() => {
-                              setFormData({
-                                ...formData,
-                                amount: promo.price.toString(),
-                                description: `PROMO: ${promo.name} - ${promo.description}`,
-                                category: "Promociones",
-                              });
-                            }}
+                            onClick={() =>
+                              setFormData({ ...formData, category: cat })
+                            }
+                            onDelete={() => handleRemoveFrequentCategory(cat)}
+                            color={
+                              formData.category === cat ? "primary" : "default"
+                            }
                             variant={
-                              formData.description.includes(promo.id)
-                                ? "filled"
-                                : "outlined"
+                              formData.category === cat ? "filled" : "outlined"
                             }
                             sx={{
                               fontWeight: 800,
                               "& .MuiChip-label": {
-                                color: "#ffffff",
+                                color:
+                                  formData.category === cat
+                                    ? "#ffffff"
+                                    : "text.primary",
                               },
                             }}
                           />
                         ))}
-                      </Box>
-                    </Box>
-                  )}
-                </Box>
-
-                {formData.type === "Egreso" && (
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 2,
-                      bgcolor: alpha(theme.palette.error.main, 0.05),
-                      borderRadius: 2,
-                      border: "1px dashed",
-                      borderColor: "error.main",
-                      mb: 2,
-                    }}
-                  >
-                    <Stack spacing={2}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 800, color: "error.dark" }}
-                      >
-                        Vincular Proveedor (Opcional)
-                      </Typography>
-                      <Autocomplete
-                        options={providers}
-                        getOptionLabel={(option) =>
-                          `${option.name} ${option.cuit ? `(CUIT: ${option.cuit})` : ""}`
-                        }
-                        noOptionsText={
-                          <Button
-                            fullWidth
-                            color="error"
-                            variant="contained"
-                            size="small"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setIsCreatingProvider(true);
-                            }}
-                            startIcon={<AddIcon />}
-                            sx={{ fontWeight: 800 }}
-                          >
-                            Crear Proveedor "{providerSearchInput}"
-                          </Button>
-                        }
-                        inputValue={providerSearchInput}
-                        onInputChange={(_, newValue) =>
-                          setProviderSearchInput(newValue)
-                        }
-                        value={selectedProvider}
-                        onChange={(_, newValue) =>
-                          setSelectedProvider(newValue)
-                        }
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Seleccionar Proveedor"
-                            size="small"
-                          />
-                        )}
-                      />
-                      {isCreatingProvider && (
-                        <Box
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={handleAddFrequentCategory}
                           sx={{
-                            p: 2,
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 2,
-                            bgcolor: "background.paper",
+                            border: "1px dashed",
+                            borderColor: "primary.main",
+                            "&:hover": {
+                              bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            },
                           }}
                         >
+                          <AddIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+
+                      {promotions.length > 0 && (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 800,
+                              color: "success.main",
+                              mb: 1,
+                              display: "block",
+                            }}
+                          >
+                            PROMOCIONES ACTIVAS
+                          </Typography>
+                          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                            {promotions.map((promo) => (
+                              <Chip
+                                key={promo.id}
+                                label={`${promo.name} ($${promo.price.toLocaleString()})`}
+                                size="small"
+                                color="success"
+                                onClick={() => {
+                                  setFormData({
+                                    ...formData,
+                                    amount: promo.price.toString(),
+                                    description: `PROMO: ${promo.name} - ${promo.description}`,
+                                    category: "Promociones",
+                                  });
+                                }}
+                                variant={
+                                  formData.description.includes(promo.id)
+                                    ? "filled"
+                                    : "outlined"
+                                }
+                                sx={{
+                                  fontWeight: 800,
+                                  "& .MuiChip-label": {
+                                    color: "#ffffff",
+                                  },
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
+
+                    {formData.type === "Egreso" && (
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          p: 2,
+                          bgcolor: alpha(theme.palette.error.main, 0.05),
+                          borderRadius: 2,
+                          border: "1px dashed",
+                          borderColor: "error.main",
+                          mb: 2,
+                        }}
+                      >
+                        <Stack spacing={2}>
                           <Typography
                             variant="subtitle2"
-                            sx={{ mb: 1, fontWeight: 700 }}
+                            sx={{ fontWeight: 800, color: "error.dark" }}
                           >
-                            Nuevo Proveedor
+                            Vincular Proveedor (Opcional)
                           </Typography>
+                          <Autocomplete
+                            options={providers}
+                            getOptionLabel={(option) =>
+                              `${option.name} ${option.cuit ? `(CUIT: ${option.cuit})` : ""}`
+                            }
+                            noOptionsText={
+                              <Button
+                                fullWidth
+                                color="error"
+                                variant="contained"
+                                size="small"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setIsCreatingProvider(true);
+                                }}
+                                startIcon={<AddIcon />}
+                                sx={{ fontWeight: 800 }}
+                              >
+                                Crear Proveedor "{providerSearchInput}"
+                              </Button>
+                            }
+                            inputValue={providerSearchInput}
+                            onInputChange={(_, newValue) =>
+                              setProviderSearchInput(newValue)
+                            }
+                            value={selectedProvider}
+                            onChange={(_, newValue) =>
+                              setSelectedProvider(newValue)
+                            }
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Seleccionar Proveedor"
+                                size="small"
+                              />
+                            )}
+                          />
+                          {isCreatingProvider && (
+                            <Box
+                              sx={{
+                                p: 2,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 2,
+                                bgcolor: "background.paper",
+                              }}
+                            >
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ mb: 1, fontWeight: 700 }}
+                              >
+                                Nuevo Proveedor
+                              </Typography>
+                              <Grid container spacing={2}>
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Nombre / Razón Social"
+                                    value={providerFormData.name}
+                                    onChange={(e) =>
+                                      setProviderFormData({
+                                        ...providerFormData,
+                                        name: e.target.value,
+                                      })
+                                    }
+                                    autoFocus
+                                  />
+                                </Grid>
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="CUIT (Opcional)"
+                                    placeholder="XX-XXXXXXXX-X"
+                                    value={providerFormData.cuit}
+                                    onChange={(e) =>
+                                      setProviderFormData({
+                                        ...providerFormData,
+                                        cuit: formatCUIT(e.target.value),
+                                      })
+                                    }
+                                  />
+                                </Grid>
+                                <Grid
+                                  size={{ xs: 12 }}
+                                  display="flex"
+                                  justifyContent="flex-end"
+                                  gap={1}
+                                >
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => setIsCreatingProvider(false)}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    color="error"
+                                    startIcon={<SaveIcon />}
+                                    onClick={handleSaveQuickProvider}
+                                    sx={{ fontWeight: 800 }}
+                                  >
+                                    Guardar Proveedor
+                                  </Button>
+                                </Grid>
+                              </Grid>
+                            </Box>
+                          )}
+                        </Stack>
+                      </Paper>
+                    )}
+
+                    {isPileta && (
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          p: 2,
+                          bgcolor: alpha(theme.palette.info.main, 0.05),
+                          borderRadius: 2,
+                          border: "1px solid",
+                          borderColor: "info.main",
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ mb: 2, color: "info.main", fontWeight: 800 }}
+                        >
+                          Configuración de Natación (Cálculo Automático Club)
+                        </Typography>
+
+                        <Stack spacing={2}>
                           <Grid container spacing={2}>
                             <Grid size={{ xs: 12, sm: 6 }}>
                               <TextField
-                                fullWidth
-                                size="small"
-                                label="Nombre / Razón Social"
-                                value={providerFormData.name}
-                                onChange={(e) =>
-                                  setProviderFormData({
-                                    ...providerFormData,
-                                    name: e.target.value,
-                                  })
-                                }
-                                autoFocus
-                              />
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6 }}>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                label="CUIT (Opcional)"
-                                placeholder="XX-XXXXXXXX-X"
-                                value={providerFormData.cuit}
-                                onChange={(e) =>
-                                  setProviderFormData({
-                                    ...providerFormData,
-                                    cuit: formatCUIT(e.target.value),
-                                  })
-                                }
-                              />
-                            </Grid>
-                            <Grid
-                              size={{ xs: 12 }}
-                              display="flex"
-                              justifyContent="flex-end"
-                              gap={1}
-                            >
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={() => setIsCreatingProvider(false)}
-                              >
-                                Cancelar
-                              </Button>
-                              <Button
-                                size="small"
-                                variant="contained"
-                                color="error"
-                                startIcon={<SaveIcon />}
-                                onClick={handleSaveQuickProvider}
-                                sx={{ fontWeight: 800 }}
-                              >
-                                Guardar Proveedor
-                              </Button>
-                            </Grid>
-                          </Grid>
-                        </Box>
-                      )}
-                    </Stack>
-                  </Paper>
-                )}
-
-                {isPileta && (
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 2,
-                      bgcolor: alpha(theme.palette.info.main, 0.05),
-                      borderRadius: 2,
-                      border: "1px solid",
-                      borderColor: "info.main",
-                    }}
-                  >
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ mb: 2, color: "info.main", fontWeight: 800 }}
-                    >
-                      Configuración de Natación (Cálculo Automático Club)
-                    </Typography>
-
-                    <Stack spacing={2}>
-                      <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                          <TextField
-                            select
-                            label="Tipo de Plan"
-                            fullWidth
-                            size="small"
-                            value={swimmingSelection.planType}
-                            onChange={(e) =>
-                              setSwimmingSelection({
-                                ...swimmingSelection,
-                                planType: e.target.value,
-                              })
-                            }
-                          >
-                            <MenuItem value="conProfesor">
-                              Con Profesor
-                            </MenuItem>
-                            <MenuItem value="libre">Pileta Libre</MenuItem>
-                            <MenuItem value="matronatacion">
-                              Matronatación
-                            </MenuItem>
-                            <MenuItem value="plantel">Plantel</MenuItem>
-                            <MenuItem value="porClase">Clase Suelta</MenuItem>
-                            <MenuItem value="porDiaLibre">Día Libre</MenuItem>
-                          </TextField>
-                        </Grid>
-
-                        {(swimmingSelection.planType === "conProfesor" ||
-                          swimmingSelection.planType === "libre") && (
-                            <Grid size={{ xs: 12, sm: 6 }}>
-                              <TextField
                                 select
-                                label="Frecuencia"
+                                label="Tipo de Plan"
                                 fullWidth
                                 size="small"
-                                value={swimmingSelection.frequency}
+                                value={swimmingSelection.planType}
                                 onChange={(e) =>
                                   setSwimmingSelection({
                                     ...swimmingSelection,
-                                    frequency: e.target.value,
+                                    planType: e.target.value,
                                   })
                                 }
                               >
-                                <MenuItem value="v2">2 veces p/semana</MenuItem>
-                                <MenuItem value="v3">3 veces p/semana</MenuItem>
-                                <MenuItem value="v5">5 veces p/semana</MenuItem>
+                                <MenuItem value="conProfesor">
+                                  Con Profesor
+                                </MenuItem>
+                                <MenuItem value="libre">Pileta Libre</MenuItem>
+                                <MenuItem value="matronatacion">
+                                  Matronatación
+                                </MenuItem>
+                                <MenuItem value="plantel">Plantel</MenuItem>
+                                <MenuItem value="porClase">Clase Suelta</MenuItem>
+                                <MenuItem value="porDiaLibre">Día Libre</MenuItem>
                               </TextField>
                             </Grid>
-                          )}
 
-                        <Grid size={{ xs: 12 }}>
-                          <TextField
-                            select
-                            fullWidth
-                            size="small"
-                            label="Duración / Periodo de Pago"
-                            value={renewalDays}
-                            onChange={(e) =>
-                              setRenewalDays(Number(e.target.value))
+                            {(swimmingSelection.planType === "conProfesor" ||
+                              swimmingSelection.planType === "libre") && (
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                  <TextField
+                                    select
+                                    label="Frecuencia"
+                                    fullWidth
+                                    size="small"
+                                    value={swimmingSelection.frequency}
+                                    onChange={(e) =>
+                                      setSwimmingSelection({
+                                        ...swimmingSelection,
+                                        frequency: e.target.value,
+                                      })
+                                    }
+                                  >
+                                    <MenuItem value="v2">2 veces p/semana</MenuItem>
+                                    <MenuItem value="v3">3 veces p/semana</MenuItem>
+                                    <MenuItem value="v5">5 veces p/semana</MenuItem>
+                                  </TextField>
+                                </Grid>
+                              )}
+
+                            <Grid size={{ xs: 12 }}>
+                              <TextField
+                                select
+                                fullWidth
+                                size="small"
+                                label="Duración / Periodo de Pago"
+                                value={renewalDays}
+                                onChange={(e) =>
+                                  setRenewalDays(Number(e.target.value))
+                                }
+                              >
+                                <MenuItem value={30}>
+                                  Mes Completo (30 días)
+                                </MenuItem>
+                                <MenuItem value={15}>Quincena (15 días)</MenuItem>
+                                <MenuItem value={7}>Semana (7 días)</MenuItem>
+                              </TextField>
+                            </Grid>
+                          </Grid>
+
+                          <Autocomplete
+                            options={students}
+                            getOptionLabel={(option) =>
+                              `${option.fullName} (DNI: ${option.dni})`
                             }
-                          >
-                            <MenuItem value={30}>
-                              Mes Completo (30 días)
-                            </MenuItem>
-                            <MenuItem value={15}>Quincena (15 días)</MenuItem>
-                            <MenuItem value={7}>Semana (7 días)</MenuItem>
-                          </TextField>
-                        </Grid>
-                      </Grid>
-
-                      <Autocomplete
-                        options={students}
-                        getOptionLabel={(option) =>
-                          `${option.fullName} (DNI: ${option.dni})`
-                        }
-                        noOptionsText={
-                          <Button
-                            fullWidth
-                            color="primary"
-                            variant="contained"
-                            size="small"
-                            onMouseDown={(e) => {
-                              // Prevent losing focus and closing dialog before click
-                              e.preventDefault();
-                              setIsCreatingStudent(true);
-                            }}
-                            startIcon={<AddIcon />}
-                            sx={{ fontWeight: 800 }}
-                          >
-                            No encontrado. Crear "{studentSearchInput}"
-                          </Button>
-                        }
-                        inputValue={studentSearchInput}
-                        onInputChange={(_, newValue) =>
-                          setStudentSearchInput(newValue)
-                        }
-                        value={selectedStudent}
-                        onChange={(_, newValue) => setSelectedStudent(newValue)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Asignar Alumno"
-                            size="small"
+                            noOptionsText={
+                              <Button
+                                fullWidth
+                                color="primary"
+                                variant="contained"
+                                size="small"
+                                onMouseDown={(e) => {
+                                  // Prevent losing focus and closing dialog before click
+                                  e.preventDefault();
+                                  setIsCreatingStudent(true);
+                                }}
+                                startIcon={<AddIcon />}
+                                sx={{ fontWeight: 800 }}
+                              >
+                                No encontrado. Crear "{studentSearchInput}"
+                              </Button>
+                            }
+                            inputValue={studentSearchInput}
+                            onInputChange={(_, newValue) =>
+                              setStudentSearchInput(newValue)
+                            }
+                            value={selectedStudent}
+                            onChange={(_, newValue) => setSelectedStudent(newValue)}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Asignar Alumno"
+                                size="small"
+                              />
+                            )}
                           />
-                        )}
-                      />
 
-                      <Button
-                        size="small"
-                        sx={{ fontWeight: 700, alignSelf: "flex-start" }}
-                        onClick={() => setIsCreatingStudent(true)}
-                        startIcon={<AddIcon />}
+                          <Button
+                            size="small"
+                            sx={{ fontWeight: 700, alignSelf: "flex-start" }}
+                            onClick={() => setIsCreatingStudent(true)}
+                            startIcon={<AddIcon />}
+                          >
+                            Crear nuevo alumno
+                          </Button>
+                        </Stack>
+
+                        <StudentRegistrationDialog
+                          open={isCreatingStudent}
+                          onClose={() => setIsCreatingStudent(false)}
+                          initialData={
+                            studentSearchInput
+                              ? ({
+                                fullName: studentSearchInput,
+                                dni: "",
+                                phone: "",
+                                schedule: {},
+                              } as any)
+                              : null
+                          }
+                          onSave={(student) => {
+                            if (!student.dni) {
+                              setErrorMessage(
+                                "Es obligatorio ingresar un DNI para el alumno.",
+                              );
+                              setShowError(true);
+                              return;
+                            }
+                            setSelectedStudent(student);
+                            setIsCreatingStudent(false);
+                          }}
+                        />
+                      </Paper>
+                    )}
+
+                    {isCourtCategory && (
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          p: 2,
+                          bgcolor: alpha(theme.palette.warning.main, 0.05),
+                          borderRadius: 2,
+                          border: "1px dashed",
+                          borderColor: "warning.main",
+                        }}
                       >
-                        Crear nuevo alumno
-                      </Button>
-                    </Stack>
+                        <Stack spacing={2}>
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: 800, color: "warning.dark" }}
+                          >
+                            Vincular Reserva de Cancha (Pendientes)
+                          </Typography>
 
-                    <StudentRegistrationDialog
-                      open={isCreatingStudent}
-                      onClose={() => setIsCreatingStudent(false)}
-                      initialData={
-                        studentSearchInput
-                          ? ({
-                            fullName: studentSearchInput,
-                            dni: "",
-                            phone: "",
-                            schedule: {},
-                          } as any)
-                          : null
-                      }
-                      onSave={(student) => {
-                        if (!student.dni) {
-                          setErrorMessage(
-                            "Es obligatorio ingresar un DNI para el alumno.",
-                          );
-                          setShowError(true);
-                          return;
-                        }
-                        setSelectedStudent(student);
-                        setIsCreatingStudent(false);
+                          <Autocomplete
+                            options={courtBookings.filter((b) => {
+                              if (b.status === "Pagado") return false;
+
+                              // Categoría de cancha
+                              const cat = formData.category.toLowerCase();
+                              if (
+                                (cat.includes("paddle") || cat.includes("padel")) &&
+                                b.courtType !== 0
+                              )
+                                return false;
+                              if (cat.includes("squash") && b.courtType !== 1)
+                                return false;
+                              if (
+                                (cat.includes("fútbol") ||
+                                  cat.includes("futbol")) &&
+                                b.courtType !== 2
+                              ) {
+                                return false;
+                              }
+                              if (cat.includes("quincho") && b.courtType !== 3)
+                                return false;
+
+                              // Filtro de proximidad (Hoy +/- 2 días)
+                              if (!b.isWeekly && b.date) {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const bDate = new Date(b.date);
+                                bDate.setHours(0, 0, 0, 0);
+                                const diffDays =
+                                  Math.abs(bDate.getTime() - today.getTime()) /
+                                  (1000 * 60 * 60 * 24);
+                                if (diffDays > 2) return false;
+                              }
+
+                              return true;
+                            })}
+                            getOptionLabel={(option) =>
+                              `${option.user} - ${option.dayName} (${option.startTime} hs) - ${option.duration}m`
+                            }
+                            onChange={(_, newValue) => {
+                              setSelectedBookingId(newValue ? newValue.id : null);
+                              if (newValue) {
+                                // Calculate price based on courtPrices and duration
+                                // Note: We use Math.ceil to allow for increments or fractional hour pricing if needed, usually duration is in minutes. 1 hour = 60 mins.
+                                const durationInHours = newValue.duration / 60;
+                                const courtPricePerHour =
+                                  courtPrices[newValue.courtType] || 0;
+                                const totalToPay =
+                                  courtPricePerHour > 0
+                                    ? courtPricePerHour * Math.ceil(durationInHours)
+                                    : 0;
+
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  description: `Pago Cancha: ${newValue.user} (${newValue.dayName} ${newValue.startTime}hs)`,
+                                  amount:
+                                    totalToPay > 0 ? totalToPay.toString() : "",
+                                }));
+                              }
+                            }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Seleccionar Reserva Pendiente"
+                                size="small"
+                              />
+                            )}
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            Al registrar el ingreso, la reserva se marcará
+                            automáticamente como <b>Pagada</b> en el calendario.
+                          </Typography>
+                        </Stack>
+                      </Paper>
+                    )}
+
+                    {isCabinCategory && branch === "noroeste" && (
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          p: 2,
+                          bgcolor: alpha(theme.palette.success.main, 0.05),
+                          borderRadius: 2,
+                          border: "1px dashed",
+                          borderColor: "success.main",
+                        }}
+                      >
+                        <Stack spacing={2}>
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: 800, color: "success.dark" }}
+                          >
+                            Vincular Reserva de Cabaña (El Mollar)
+                          </Typography>
+
+                          <Autocomplete
+                            options={cabinBookings.filter(
+                              (b) => b.status !== "Pagado",
+                            )}
+                            getOptionLabel={(option) =>
+                              `Cabaña U${option.cabin_sub_number} - ${option.user_name} (${option.start_date}) ${option.is_affiliate ? "[Afiliado]" : "[General]"}`
+                            }
+                            onChange={(_, newValue) => {
+                              setSelectedCabinId(newValue ? newValue.id : null);
+                              if (newValue) {
+                                const start = new Date(newValue.start_date);
+                                const end = new Date(newValue.end_date);
+                                const nights = Math.max(
+                                  1,
+                                  Math.round(
+                                    (end.getTime() - start.getTime()) /
+                                    (1000 * 3600 * 24),
+                                  ),
+                                );
+
+                                const priceConfig = cabinPrices[
+                                  `confort${newValue.cabin_type}`
+                                ] || { general: 0, afiliado: 0 };
+                                const pricePerNight = newValue.is_affiliate
+                                  ? priceConfig.afiliado
+                                  : priceConfig.general;
+                                const totalToPay = pricePerNight * nights;
+
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  amount:
+                                    totalToPay > 0 ? totalToPay.toString() : "",
+                                  description: `Reserva Cabaña: U${newValue.cabin_sub_number} ${newValue.user_name} (${newValue.start_date} al ${newValue.end_date} - ${nights} Noche/s)`,
+                                }));
+                              }
+                            }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Seleccionar Reserva Pendiente"
+                                size="small"
+                              />
+                            )}
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            Selecciona la reserva pendiente para vincular el pago y
+                            confirmar la cabaña. Recuerda ingresar el monto
+                            correspondiente según el precio de Administrador.
+                          </Typography>
+                        </Stack>
+                      </Paper>
+                    )}
+
+                    {isInventoryCategory && (
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          p: 2,
+                          bgcolor: alpha(theme.palette.success.main, 0.05),
+                          borderRadius: 2,
+                          border: "1px dashed",
+                          borderColor: "success.main",
+                        }}
+                      >
+                        <Stack spacing={2}>
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: 800, color: "success.main" }}
+                          >
+                            Venta de Productos (Precio e Inventario Automático)
+                          </Typography>
+
+                          <Autocomplete
+                            options={inventoryItems.filter((item: any) => {
+                              const cat = formData.category.toLowerCase();
+                              // Match category: Bebidas or Snacks (Kiosco usually implies one of these)
+                              if (cat.includes("bebida"))
+                                return item.category === "Bebidas";
+                              if (cat.includes("snack") || cat.includes("kiosco"))
+                                return item.category === "Snacks";
+                              return true;
+                            })}
+                            getOptionLabel={(option) =>
+                              `${option.name} ($${option.price?.toLocaleString() || 0}) - Stock: ${option.initialStock + option.entries - option.exits}`
+                            }
+                            value={selectedStockProduct}
+                            onChange={(_, newValue) => {
+                              setSelectedStockProduct(newValue);
+                              if (newValue) {
+                                setShouldDiscountStock(true);
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  amount: (
+                                    newValue.price * discountQuantity
+                                  ).toString(),
+                                }));
+                              }
+                            }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Seleccionar Producto"
+                                size="small"
+                              />
+                            )}
+                          />
+
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={shouldDiscountStock}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                  setShouldDiscountStock(e.target.checked)
+                                }
+                                color="success"
+                              />
+                            }
+                            label={
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 800 }}
+                              >
+                                Descontar del Inventario al registrar
+                              </Typography>
+                            }
+                          />
+
+                          {shouldDiscountStock && (
+                            <TextField
+                              label="Cantidad a vender"
+                              size="small"
+                              type="number"
+                              value={discountQuantity}
+                              onChange={(e) =>
+                                setDiscountQuantity(parseInt(e.target.value) || 1)
+                              }
+                              InputProps={{ inputProps: { min: 1 } }}
+                              sx={{ maxWidth: 150 }}
+                            />
+                          )}
+                        </Stack>
+                      </Paper>
+                    )}
+
+                    <OptimizedTextField
+                      label="Importe"
+                      fullWidth
+                      type="number"
+                      value={formData.amount}
+                      onChange={(val) => setFormData({ ...formData, amount: val })}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">$</InputAdornment>
+                        ),
+                        sx: { fontSize: "1.2rem", fontWeight: 700 },
                       }}
                     />
-                  </Paper>
-                )}
 
-                {isCourtCategory && (
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 2,
-                      bgcolor: alpha(theme.palette.warning.main, 0.05),
-                      borderRadius: 2,
-                      border: "1px dashed",
-                      borderColor: "warning.main",
-                    }}
-                  >
-                    <Stack spacing={2}>
+                    <Box>
                       <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 800, color: "warning.dark" }}
+                        variant="caption"
+                        sx={{ fontWeight: 700, mb: 0.5, display: "block" }}
                       >
-                        Vincular Reserva de Cancha (Pendientes)
+                        Nro de Factura / Ticket
                       </Typography>
-
-                      <Autocomplete
-                        options={courtBookings.filter((b) => {
-                          if (b.status === "Pagado") return false;
-
-                          // Categoría de cancha
-                          const cat = formData.category.toLowerCase();
-                          if (
-                            (cat.includes("paddle") || cat.includes("padel")) &&
-                            b.courtType !== 0
-                          )
-                            return false;
-                          if (cat.includes("squash") && b.courtType !== 1)
-                            return false;
-                          if (
-                            (cat.includes("fútbol") ||
-                              cat.includes("futbol")) &&
-                            b.courtType !== 2
-                          ) {
-                            return false;
-                          }
-                          if (cat.includes("quincho") && b.courtType !== 3)
-                            return false;
-
-                          // Filtro de proximidad (Hoy +/- 2 días)
-                          if (!b.isWeekly && b.date) {
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            const bDate = new Date(b.date);
-                            bDate.setHours(0, 0, 0, 0);
-                            const diffDays =
-                              Math.abs(bDate.getTime() - today.getTime()) /
-                              (1000 * 60 * 60 * 24);
-                            if (diffDays > 2) return false;
-                          }
-
-                          return true;
-                        })}
-                        getOptionLabel={(option) =>
-                          `${option.user} - ${option.dayName} (${option.startTime} hs) - ${option.duration}m`
-                        }
-                        onChange={(_, newValue) => {
-                          setSelectedBookingId(newValue ? newValue.id : null);
-                          if (newValue) {
-                            // Calculate price based on courtPrices and duration
-                            // Note: We use Math.ceil to allow for increments or fractional hour pricing if needed, usually duration is in minutes. 1 hour = 60 mins.
-                            const durationInHours = newValue.duration / 60;
-                            const courtPricePerHour =
-                              courtPrices[newValue.courtType] || 0;
-                            const totalToPay =
-                              courtPricePerHour > 0
-                                ? courtPricePerHour * Math.ceil(durationInHours)
-                                : 0;
-
-                            setFormData((prev) => ({
-                              ...prev,
-                              description: `Pago Cancha: ${newValue.user} (${newValue.dayName} ${newValue.startTime}hs)`,
-                              amount:
-                                totalToPay > 0 ? totalToPay.toString() : "",
-                            }));
-                          }
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Seleccionar Reserva Pendiente"
-                            size="small"
+                      <Grid container spacing={1}>
+                        <Grid size={{ xs: 3 }}>
+                          <OptimizedTextField
+                            placeholder="A"
+                            disabled={isAutoInvoice}
+                            inputProps={{
+                              maxLength: 1,
+                              style: {
+                                textAlign: "center",
+                                textTransform: "uppercase",
+                              },
+                            }}
+                            value={isAutoInvoice ? "C" : invoiceData.letter}
+                            onChange={(val) => handleInvoiceChange("letter", val)}
                           />
-                        )}
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        Al registrar el ingreso, la reserva se marcará
-                        automáticamente como <b>Pagada</b> en el calendario.
-                      </Typography>
-                    </Stack>
-                  </Paper>
-                )}
-
-                {isCabinCategory && branch === "noroeste" && (
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 2,
-                      bgcolor: alpha(theme.palette.success.main, 0.05),
-                      borderRadius: 2,
-                      border: "1px dashed",
-                      borderColor: "success.main",
-                    }}
-                  >
-                    <Stack spacing={2}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 800, color: "success.dark" }}
-                      >
-                        Vincular Reserva de Cabaña (El Mollar)
-                      </Typography>
-
-                      <Autocomplete
-                        options={cabinBookings.filter(
-                          (b) => b.status !== "Pagado",
-                        )}
-                        getOptionLabel={(option) =>
-                          `Cabaña U${option.cabin_sub_number} - ${option.user_name} (${option.start_date}) ${option.is_affiliate ? "[Afiliado]" : "[General]"}`
-                        }
-                        onChange={(_, newValue) => {
-                          setSelectedCabinId(newValue ? newValue.id : null);
-                          if (newValue) {
-                            const start = new Date(newValue.start_date);
-                            const end = new Date(newValue.end_date);
-                            const nights = Math.max(
-                              1,
-                              Math.round(
-                                (end.getTime() - start.getTime()) /
-                                (1000 * 3600 * 24),
-                              ),
-                            );
-
-                            const priceConfig = cabinPrices[
-                              `confort${newValue.cabin_type}`
-                            ] || { general: 0, afiliado: 0 };
-                            const pricePerNight = newValue.is_affiliate
-                              ? priceConfig.afiliado
-                              : priceConfig.general;
-                            const totalToPay = pricePerNight * nights;
-
-                            setFormData((prev) => ({
-                              ...prev,
-                              amount:
-                                totalToPay > 0 ? totalToPay.toString() : "",
-                              description: `Reserva Cabaña: U${newValue.cabin_sub_number} ${newValue.user_name} (${newValue.start_date} al ${newValue.end_date} - ${nights} Noche/s)`,
-                            }));
-                          }
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Seleccionar Reserva Pendiente"
-                            size="small"
+                        </Grid>
+                        <Grid size={{ xs: 4 }}>
+                          <OptimizedTextField
+                            id="invoice-num1"
+                            placeholder="0001"
+                            disabled={isAutoInvoice}
+                            inputProps={{
+                              maxLength: 4,
+                              style: { textAlign: "center" },
+                            }}
+                            value={isAutoInvoice ? "0100" : invoiceData.num1}
+                            onChange={(val) => handleInvoiceChange("num1", val)}
+                            onBlur={padInvoiceNumbers}
                           />
-                        )}
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        Selecciona la reserva pendiente para vincular el pago y
-                        confirmar la cabaña. Recuerda ingresar el monto
-                        correspondiente según el precio de Administrador.
-                      </Typography>
-                    </Stack>
-                  </Paper>
-                )}
-
-                {isInventoryCategory && (
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 2,
-                      bgcolor: alpha(theme.palette.success.main, 0.05),
-                      borderRadius: 2,
-                      border: "1px dashed",
-                      borderColor: "success.main",
-                    }}
-                  >
-                    <Stack spacing={2}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 800, color: "success.main" }}
-                      >
-                        Venta de Productos (Precio e Inventario Automático)
-                      </Typography>
-
-                      <Autocomplete
-                        options={inventoryItems.filter((item: any) => {
-                          const cat = formData.category.toLowerCase();
-                          // Match category: Bebidas or Snacks (Kiosco usually implies one of these)
-                          if (cat.includes("bebida"))
-                            return item.category === "Bebidas";
-                          if (cat.includes("snack") || cat.includes("kiosco"))
-                            return item.category === "Snacks";
-                          return true;
-                        })}
-                        getOptionLabel={(option) =>
-                          `${option.name} ($${option.price?.toLocaleString() || 0}) - Stock: ${option.initialStock + option.entries - option.exits}`
-                        }
-                        value={selectedStockProduct}
-                        onChange={(_, newValue) => {
-                          setSelectedStockProduct(newValue);
-                          if (newValue) {
-                            setShouldDiscountStock(true);
-                            setFormData((prev) => ({
-                              ...prev,
-                              amount: (
-                                newValue.price * discountQuantity
-                              ).toString(),
-                            }));
-                          }
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Seleccionar Producto"
-                            size="small"
+                        </Grid>
+                        <Grid size={{ xs: 5 }}>
+                          <OptimizedTextField
+                            id="invoice-num2"
+                            placeholder={isAutoInvoice ? "AUTO" : "00000000"}
+                            disabled={isAutoInvoice}
+                            inputProps={{
+                              maxLength: 8,
+                              style: { textAlign: "center" },
+                            }}
+                            value={isAutoInvoice ? "" : invoiceData.num2}
+                            onChange={(val) => handleInvoiceChange("num2", val)}
+                            onBlur={padInvoiceNumbers}
+                            helperText={isAutoInvoice ? "Asignado por sistema" : ""}
+                            FormHelperTextProps={{
+                              sx: { fontWeight: 700, color: "primary.main" },
+                            }}
                           />
-                        )}
-                      />
+                        </Grid>
+                      </Grid>
+                    </Box>
 
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={shouldDiscountStock}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                              setShouldDiscountStock(e.target.checked)
-                            }
-                            color="success"
-                          />
-                        }
-                        label={
-                          <Typography
-                            variant="caption"
-                            sx={{ fontWeight: 800 }}
-                          >
-                            Descontar del Inventario al registrar
+                    <OptimizedTextField
+                      label="Descripción"
+                      fullWidth
+                      multiline
+                      rows={2}
+                      value={formData.description}
+                      onChange={(val) =>
+                        setFormData({ ...formData, description: val })
+                      }
+                    />
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      startIcon={<AddIcon />}
+                      onClick={handleAddToCart}
+                      sx={{ fontWeight: 800, py: 1.5, borderStyle: 'dashed' }}
+                    >
+                      AGREGAR AL CARRITO
+                    </Button>
+                  </Stack>
+                </Grid>
+
+                {/* Right Column: Cart & Checkout */}
+                <Grid size={{ xs: 12, md: 5 }}>
+                  <Stack spacing={3} sx={{ mt: 1, height: '100%' }}>
+                    <Typography variant="overline" color="secondary" sx={{ fontWeight: 800, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
+                      2. Detalle del Cobro
+                    </Typography>
+
+                    <Paper variant="outlined" sx={{ p: 2, flex: 1, borderRadius: 3, display: 'flex', flexDirection: 'column', bgcolor: alpha(theme.palette.secondary.main, 0.02) }}>
+                      {cartItems.length === 0 ? (
+                        <Box sx={{ py: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            El carrito está vacío.
                           </Typography>
-                        }
-                      />
-
-                      {shouldDiscountStock && (
-                        <TextField
-                          label="Cantidad a vender"
-                          size="small"
-                          type="number"
-                          value={discountQuantity}
-                          onChange={(e) =>
-                            setDiscountQuantity(parseInt(e.target.value) || 1)
-                          }
-                          InputProps={{ inputProps: { min: 1 } }}
-                          sx={{ maxWidth: 150 }}
-                        />
+                        </Box>
+                      ) : (
+                        <Stack spacing={1} sx={{ flex: 1, overflowY: 'auto', maxHeight: 300, pr: 1 }}>
+                          {cartItems.map((item) => (
+                            <Paper key={item.id} elevation={0} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <Box>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                                    {item.category}
+                                    <Chip
+                                      size="small"
+                                      label={item.paymentMethod}
+                                      sx={{ ml: 1, height: 18, fontSize: '0.6rem', fontWeight: 900 }}
+                                      color={item.type === "Ingreso" ? "success" : "error"}
+                                      variant="outlined"
+                                    />
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>{item.description}</Typography>
+                                </Box>
+                                <IconButton size="small" color="error" onClick={() => removeItemFromCart(item.id)}>
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                              <Typography variant="body2" sx={{ fontWeight: 900, color: 'primary.main', textAlign: 'right' }}>
+                                ${item.amount.toLocaleString()}
+                              </Typography>
+                            </Paper>
+                          ))}
+                        </Stack>
                       )}
-                    </Stack>
-                  </Paper>
-                )}
 
-                <OptimizedTextField
-                  label="Importe"
-                  fullWidth
-                  type="number"
-                  value={formData.amount}
-                  onChange={(val) => setFormData({ ...formData, amount: val })}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">$</InputAdornment>
-                    ),
-                    sx: { fontSize: "1.2rem", fontWeight: 700 },
-                  }}
-                />
-
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{ fontWeight: 700, mb: 0.5, display: "block" }}
-                  >
-                    Nro de Factura / Ticket
-                  </Typography>
-                  <Grid container spacing={1}>
-                    <Grid size={{ xs: 3 }}>
-                      <OptimizedTextField
-                        placeholder="A"
-                        disabled={isAutoInvoice}
-                        inputProps={{
-                          maxLength: 1,
-                          style: {
-                            textAlign: "center",
-                            textTransform: "uppercase",
-                          },
-                        }}
-                        value={isAutoInvoice ? "C" : invoiceData.letter}
-                        onChange={(val) => handleInvoiceChange("letter", val)}
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 4 }}>
-                      <OptimizedTextField
-                        id="invoice-num1"
-                        placeholder="0001"
-                        disabled={isAutoInvoice}
-                        inputProps={{
-                          maxLength: 4,
-                          style: { textAlign: "center" },
-                        }}
-                        value={isAutoInvoice ? "0100" : invoiceData.num1}
-                        onChange={(val) => handleInvoiceChange("num1", val)}
-                        onBlur={padInvoiceNumbers}
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 5 }}>
-                      <OptimizedTextField
-                        id="invoice-num2"
-                        placeholder={isAutoInvoice ? "AUTO" : "00000000"}
-                        disabled={isAutoInvoice}
-                        inputProps={{
-                          maxLength: 8,
-                          style: { textAlign: "center" },
-                        }}
-                        value={isAutoInvoice ? "" : invoiceData.num2}
-                        onChange={(val) => handleInvoiceChange("num2", val)}
-                        onBlur={padInvoiceNumbers}
-                        helperText={isAutoInvoice ? "Asignado por sistema" : ""}
-                        FormHelperTextProps={{
-                          sx: { fontWeight: 700, color: "primary.main" },
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                <OptimizedTextField
-                  label="Descripción"
-                  fullWidth
-                  multiline
-                  rows={2}
-                  value={formData.description}
-                  onChange={(val) =>
-                    setFormData({ ...formData, description: val })
-                  }
-                />
-              </Stack>
+                      <Box sx={{ borderTop: '2px dashed', borderColor: 'divider', pt: 2, mt: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>TOTAL:</Typography>
+                          <Typography variant="h5" sx={{ fontWeight: 900, color: 'success.main' }}>
+                            ${cartItems.reduce((acc, item) => acc + item.amount, 0).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Paper>
+                  </Stack>
+                </Grid>
+              </Grid>
             </DialogContent>
-            <DialogActions sx={{ p: 3, pt: 0 }}>
+            <DialogActions sx={{ p: 3, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
               <Button onClick={handleCloseDialog} sx={{ fontWeight: 700 }}>
-                Cancelar
+                CERRAR / CANCELAR
               </Button>
               <Button
                 variant="contained"
-                sx={{ px: 4, fontWeight: 700 }}
-                onClick={handleRegister}
+                color="success"
+                sx={{ px: 4, fontWeight: 900, py: 1 }}
+                onClick={submitCart}
+                disabled={cartItems.length === 0}
               >
-                Registrar
+                ASENTAR COBRO TOTAL
               </Button>
             </DialogActions>
           </Dialog>

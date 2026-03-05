@@ -32,6 +32,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import PaidIcon from "@mui/icons-material/Paid";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import StudentRegistrationDialog, {
   StudentData,
 } from "./StudentRegistrationDialog";
@@ -99,13 +100,20 @@ export default function StudentManager() {
   );
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
 
-  const isExpired = (expiryDate?: string) => {
-    if (!expiryDate) return true;
+  const getExpiryStatus = (expiryDate?: string) => {
+    if (!expiryDate) return { label: "SIN PAGOS", color: "default" as const };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const exp = new Date(expiryDate);
     exp.setHours(23, 59, 59, 999);
-    return exp < today;
+
+    if (exp < today) return { label: "VENCIDO", color: "error" as const };
+
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    if (exp <= nextWeek) return { label: "POR VENCER", color: "warning" as const };
+
+    return { label: "ACTIVO", color: "success" as const };
   };
 
   const handleDelete = async (studentId: number) => {
@@ -156,7 +164,7 @@ export default function StudentManager() {
     try {
       const { data, error } = await supabase
         .from("student_payments")
-        .select("*")
+        .select("*, transactions(payment_method, branch)")
         .eq("student_dni", student.dni)
         .order("payment_date", { ascending: false });
       if (error) throw error;
@@ -279,16 +287,7 @@ export default function StudentManager() {
                         <Typography
                           sx={{
                             fontWeight: 700,
-                            color: isExpired(s.expiryDate)
-                              ? "error.main"
-                              : Math.ceil(
-                                (new Date(s.expiryDate).getTime() -
-                                  new Date().getTime() +
-                                  1000) /
-                                (1000 * 60 * 60 * 24),
-                              ) <= 7
-                                ? "warning.main"
-                                : "success.main",
+                            color: getExpiryStatus(s.expiryDate).color + ".main",
                           }}
                         >
                           {new Date(s.expiryDate).toLocaleDateString("es-AR")}
@@ -296,28 +295,16 @@ export default function StudentManager() {
                         <Typography
                           variant="caption"
                           color={
-                            Math.ceil(
-                              (new Date(s.expiryDate!).getTime() -
-                                new Date().getTime() +
-                                1000) /
-                              (1000 * 60 * 60 * 24),
-                            ) <= 7 && !isExpired(s.expiryDate)
+                            getExpiryStatus(s.expiryDate).color === "warning"
                               ? "warning.main"
                               : "text.secondary"
                           }
                           sx={{
                             fontWeight:
-                              Math.ceil(
-                                (new Date(s.expiryDate!).getTime() -
-                                  new Date().getTime() +
-                                  1000) /
-                                (1000 * 60 * 60 * 24),
-                              ) <= 7
-                                ? 700
-                                : 400,
+                              getExpiryStatus(s.expiryDate).color === "warning" ? 700 : 400,
                           }}
                         >
-                          {isExpired(s.expiryDate)
+                          {getExpiryStatus(s.expiryDate).label === "VENCIDO"
                             ? "Vencido"
                             : "Días restantes: " +
                             Math.ceil(
@@ -359,11 +346,11 @@ export default function StudentManager() {
                                 />
                               }
                               label={
-                                isExpired(s.expiryDate) ? "VENCIDO" : "ACTIVO"
+                                getExpiryStatus(s.expiryDate).label
                               }
                               size="small"
                               color={
-                                isExpired(s.expiryDate) ? "error" : "success"
+                                getExpiryStatus(s.expiryDate).color
                               }
                               sx={{
                                 height: 20,
@@ -470,7 +457,7 @@ export default function StudentManager() {
       <Dialog
         open={openHistory}
         onClose={() => setOpenHistory(false)}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
         PaperProps={{ sx: { borderRadius: 4 } }}
       >
@@ -478,6 +465,41 @@ export default function StudentManager() {
           Historial de Pagos: {historyStudent?.fullName}
         </DialogTitle>
         <DialogContent>
+          {historyStudent?.lastPayment && (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                mb: 3,
+                mt: 1,
+                bgcolor: alpha(theme.palette.primary.main, 0.05),
+                borderRadius: 3,
+                border: "1px solid",
+                borderColor: alpha(theme.palette.primary.main, 0.1),
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}
+            >
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: "primary.main", display: "block", mb: 0.5 }}>
+                  ÚLTIMO PAGO REGISTRADO EN FICHA
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 900 }}>
+                  ${historyStudent.lastPayment.amount.toLocaleString()}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: "right" }}>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  Fecha: {historyStudent.lastPayment.date}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  Vencimiento: {historyStudent.expiryDate}
+                </Typography>
+              </Box>
+            </Paper>
+          )}
+
           {paymentHistory.length === 0 ? (
             <Box sx={{ py: 4, textAlign: "center" }}>
               <Typography color="text.secondary">
@@ -492,13 +514,28 @@ export default function StudentManager() {
                     <TableCell sx={{ fontWeight: 700 }}>Fecha Pago</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Vencimiento</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Monto</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Caja / Medio</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Estado</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {paymentHistory.map((h) => {
                     const isDeleted = !!h.deleted_at;
-                    const expired = isExpired(h.expiry_date);
+                    const status = getExpiryStatus(h.expiry_date);
+
+                    let paymentMethodStr = "-";
+                    if (h.transactions) {
+                      const method = h.transactions.payment_method;
+                      const branch = h.transactions.branch;
+                      if (method === "Efectivo") {
+                        paymentMethodStr = `Efectivo (${branch === "noroeste" ? "Caja Noroeste" : "Caja Azucena"})`;
+                      } else if (method === "Transferencia") {
+                        paymentMethodStr = "Transferencia (Banco Compartido)";
+                      } else {
+                        paymentMethodStr = method;
+                      }
+                    }
+
                     return (
                       <TableRow
                         key={h.id}
@@ -534,6 +571,15 @@ export default function StudentManager() {
                         >
                           ${h.amount.toLocaleString()}
                         </TableCell>
+                        <TableCell
+                          sx={{
+                            textDecoration: isDeleted ? "line-through" : "none",
+                            color: isDeleted ? "text.disabled" : "inherit",
+                            fontSize: "0.8rem"
+                          }}
+                        >
+                          {paymentMethodStr}
+                        </TableCell>
                         <TableCell>
                           {isDeleted ? (
                             <Chip
@@ -549,9 +595,9 @@ export default function StudentManager() {
                             />
                           ) : (
                             <Chip
-                              label={expired ? "EXPIRADO" : "VIGENTE"}
+                              label={status.label}
                               size="small"
-                              color={expired ? "warning" : "success"}
+                              color={status.color}
                               variant="outlined"
                               sx={{
                                 fontSize: "0.6rem",

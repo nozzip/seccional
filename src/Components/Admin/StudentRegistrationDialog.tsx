@@ -20,6 +20,7 @@ import {
   Box,
   alpha,
   useTheme,
+  Chip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
@@ -40,6 +41,7 @@ export interface StudentData {
   schedule: { [key: string]: boolean };
   lastPayment?: { date: string; amount: number };
   expiryDate?: string;
+  balance?: number;
 }
 
 interface StudentRegistrationDialogProps {
@@ -161,6 +163,46 @@ export default function StudentRegistrationDialog({
                 value={formData.city}
                 onChange={(e) => handleChange("city", e.target.value)}
               />
+
+              {formData.lastPayment && (
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    borderRadius: 3,
+                    bgcolor: alpha(theme.palette.success.main, 0.02),
+                    borderColor: alpha(theme.palette.success.main, 0.2),
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 800, color: "success.main", display: "block", mb: 1 }}
+                  >
+                    ESTADO DE PAGO ACTUAL
+                  </Typography>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>
+                        ${formData.lastPayment.amount.toLocaleString()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Pagado el: {formData.lastPayment.date}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: "right" }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        Vence: {formData.expiryDate}
+                      </Typography>
+                      <Chip
+                        label={new Date(formData.expiryDate || "") > new Date() ? "ACTIVO" : "VENCIDO"}
+                        size="small"
+                        color={new Date(formData.expiryDate || "") > new Date() ? "success" : "error"}
+                        sx={{ height: 20, fontSize: "0.6rem", fontWeight: 800, mt: 0.5 }}
+                      />
+                    </Box>
+                  </Stack>
+                </Paper>
+              )}
             </Stack>
           </Grid>
 

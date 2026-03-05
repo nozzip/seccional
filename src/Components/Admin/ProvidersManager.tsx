@@ -24,12 +24,15 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { supabase } from "../../supabaseClient";
+import ProviderLedgerModal from "./ProviderLedgerModal";
 
 interface Provider {
   id: number;
   name: string;
   cuit: string;
+  balance: number;
 }
 
 export default function ProvidersManager() {
@@ -38,6 +41,10 @@ export default function ProvidersManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  // States for Ledger Modal
+  const [openLedger, setOpenLedger] = useState(false);
+  const [ledgerProvider, setLedgerProvider] = useState<Provider | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -99,6 +106,11 @@ export default function ProvidersManager() {
       setFormData({ name: "", cuit: "" });
     }
     setIsModalOpen(true);
+  };
+
+  const handleOpenLedger = (provider: Provider) => {
+    setLedgerProvider(provider);
+    setOpenLedger(true);
   };
 
   const handleCloseModal = () => {
@@ -210,6 +222,7 @@ export default function ProvidersManager() {
                 Nombre / Razón Social
               </TableCell>
               <TableCell sx={{ fontWeight: 800 }}>CUIT</TableCell>
+              <TableCell sx={{ fontWeight: 800 }}>Estado de Cuenta</TableCell>
               <TableCell align="right" sx={{ fontWeight: 800 }}>
                 Acciones
               </TableCell>
@@ -235,10 +248,52 @@ export default function ProvidersManager() {
                     {provider.name}
                   </TableCell>
                   <TableCell>{provider.cuit || "-"}</TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 800,
+                        color:
+                          (provider.balance || 0) > 0
+                            ? "error.main"
+                            : (provider.balance || 0) < 0
+                              ? "success.main"
+                              : "text.secondary",
+                      }}
+                    >
+                      ${Math.abs(provider.balance || 0).toLocaleString()}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color:
+                          (provider.balance || 0) > 0
+                            ? "error.main"
+                            : (provider.balance || 0) < 0
+                              ? "success.main"
+                              : "text.secondary",
+                      }}
+                    >
+                      {(provider.balance || 0) > 0
+                        ? "Deuda"
+                        : (provider.balance || 0) < 0
+                          ? "Adelanto (A Favor)"
+                          : "Saldado"}
+                    </Typography>
+                  </TableCell>
                   <TableCell align="right">
                     <IconButton
                       size="small"
+                      color="info"
+                      title="Ver Cuenta Corriente"
+                      onClick={() => handleOpenLedger(provider)}
+                    >
+                      <AccountBalanceWalletIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
                       color="primary"
+                      title="Editar Proveedor"
                       onClick={() => handleOpenModal(provider)}
                     >
                       <EditIcon fontSize="small" />
@@ -307,6 +362,13 @@ export default function ProvidersManager() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal Ledger */}
+      <ProviderLedgerModal
+        open={openLedger}
+        onClose={() => setOpenLedger(false)}
+        provider={ledgerProvider}
+      />
     </Box>
   );
 }
