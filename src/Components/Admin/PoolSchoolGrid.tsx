@@ -91,13 +91,15 @@ export default function PoolSchoolGrid() {
         }
       }
 
-      const mappedStudents: StudentData[] = (allStudents || []).map((s: any) => ({
-        ...s,
-        fullName: s.full_name,
-        hasProfessor: s.has_professor,
-        lastPayment: s.last_payment,
-        expiryDate: s.expiry_date,
-      }));
+      const mappedStudents: StudentData[] = (allStudents || []).map(
+        (s: any) => ({
+          ...s,
+          fullName: s.full_name,
+          hasProfessor: s.has_professor,
+          lastPayment: s.last_payment,
+          expiryDate: s.expiry_date,
+        }),
+      );
       setStudentsData(mappedStudents);
 
       const { data: profs, error: pError } = await supabase
@@ -217,9 +219,16 @@ export default function PoolSchoolGrid() {
   };
 
   const handleDeleteProfessor = async (id: number) => {
-    if (window.confirm("¿Está seguro de que desea eliminar este profesor/clase? Los alumnos dejarán de estar asignados a este si coinciden en el horario.")) {
+    if (
+      window.confirm(
+        "¿Está seguro de que desea eliminar este profesor/clase? Los alumnos dejarán de estar asignados a este si coinciden en el horario.",
+      )
+    ) {
       try {
-        const { error } = await supabase.from("professors").delete().eq("id", id);
+        const { error } = await supabase
+          .from("professors")
+          .delete()
+          .eq("id", id);
         if (error) throw error;
         fetchData();
       } catch (error) {
@@ -576,16 +585,44 @@ export default function PoolSchoolGrid() {
                           <React.Fragment key={slot}>
                             <ListItem
                               sx={{
-                                bgcolor: alpha(theme.palette.primary.main, 0.05),
+                                bgcolor: alpha(
+                                  theme.palette.primary.main,
+                                  0.05,
+                                ),
                                 py: 0.5,
                               }}
                             >
-                              <Typography
-                                variant="overline"
-                                sx={{ fontWeight: 800, lineHeight: 1.2 }}
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
                               >
-                                {slot} hs
-                              </Typography>
+                                <Typography
+                                  variant="overline"
+                                  sx={{ fontWeight: 800, lineHeight: 1.2 }}
+                                >
+                                  {slot} hs
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: "primary.main",
+                                    bgcolor: alpha(
+                                      theme.palette.primary.main,
+                                      0.1,
+                                    ),
+                                    px: 1,
+                                    borderRadius: 1,
+                                    fontSize: "0.65rem",
+                                  }}
+                                >
+                                  {slotStudents.length}{" "}
+                                  {slotStudents.length === 1
+                                    ? "ALUMNO"
+                                    : "ALUMNOS"}
+                                </Typography>
+                              </Stack>
                             </ListItem>
                             {slotStudents.map((s: any, idx: number) => (
                               <ListItem
