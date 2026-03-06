@@ -1363,6 +1363,7 @@ export default function CashFlowManager({
         }
 
         // Simple payment method per item logic
+        const entriesToInsert: any[] = [];
         entriesToInsert.push({
           date: todayStr,
           type: item.type,
@@ -1410,7 +1411,7 @@ export default function CashFlowManager({
               .insert({
                 provider_id: providerToLink,
                 transaction_id: txData.id,
-                type: cartGlobalType === "Egreso" && cartPaymentMethod === "A Cuenta" ? "invoice" : "payment",
+                type: item.type === "Egreso" && item.paymentMethod === "A Cuenta" ? "invoice" : "payment",
                 amount: entry.amount,
                 date: todayStr,
                 description: entry.description

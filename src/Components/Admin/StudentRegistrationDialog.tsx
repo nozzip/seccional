@@ -27,7 +27,7 @@ import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-const HOURS = Array.from({ length: 14 }, (_, i) => `${i + 8}:00`);
+const HOURS = Array.from({ length: 16 }, (_, i) => `${i + 7}:00`);
 
 export interface StudentData {
   id?: number;
@@ -79,7 +79,9 @@ export default function StudentRegistrationDialog({
         address: initialData?.address || "",
         city: initialData?.city || "",
         hasProfessor: initialData?.hasProfessor ?? true,
-        schedule: initialData?.schedule || {},
+        schedule: (typeof initialData?.schedule === 'string'
+          ? JSON.parse(initialData.schedule)
+          : initialData?.schedule) || {},
         lastPayment: initialData?.lastPayment,
         expiryDate: initialData?.expiryDate,
       });

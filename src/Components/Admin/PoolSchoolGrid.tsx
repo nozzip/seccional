@@ -29,12 +29,15 @@ import {
   TableHead,
   TableRow,
   Checkbox,
+  IconButton,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import AddIcon from "@mui/icons-material/Add";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PersonIcon from "@mui/icons-material/Person";
 import TableChartIcon from "@mui/icons-material/TableChart";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
 import StudentManager from "./StudentManager";
 import { StudentData } from "./StudentRegistrationDialog";
@@ -63,13 +66,32 @@ export default function PoolSchoolGrid() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: students, error: sError } = await supabase
-        .from("students")
-        .select("*")
-        .is("deleted_at", null);
-      if (sError) throw sError;
+      let allStudents: any[] = [];
+      let pageConfig = 0;
+      let hasMoreConfig = true;
 
-      const mappedStudents: StudentData[] = (students || []).map((s: any) => ({
+      while (hasMoreConfig) {
+        const { data: students, error: sError } = await supabase
+          .from("students")
+          .select("*")
+          .is("deleted_at", null)
+          .range(pageConfig * 1000, (pageConfig + 1) * 1000 - 1);
+
+        if (sError) throw sError;
+
+        if (students && students.length > 0) {
+          allStudents = [...allStudents, ...students];
+          if (students.length < 1000) {
+            hasMoreConfig = false;
+          } else {
+            pageConfig++;
+          }
+        } else {
+          hasMoreConfig = false;
+        }
+      }
+
+      const mappedStudents: StudentData[] = (allStudents || []).map((s: any) => ({
         ...s,
         fullName: s.full_name,
         hasProfessor: s.has_professor,
@@ -194,10 +216,26 @@ export default function PoolSchoolGrid() {
     }
   };
 
+  const handleDeleteProfessor = async (id: number) => {
+    if (window.confirm("¿Está seguro de que desea eliminar este profesor/clase? Los alumnos dejarán de estar asignados a este si coinciden en el horario.")) {
+      try {
+        const { error } = await supabase.from("professors").delete().eq("id", id);
+        if (error) throw error;
+        fetchData();
+      } catch (error) {
+        console.error("Error deleting professor:", error);
+        alert("Ocurrió un error al eliminar el profesor.");
+      }
+    }
+  };
+
   const isExpired = (expiryDate?: string) => {
     if (!expiryDate) return true;
-    const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD format
-    return expiryDate < todayStr;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const exp = new Date(expiryDate);
+    exp.setHours(23, 59, 59, 999);
+    return exp < today;
   };
 
   const activeStudents = studentsData.filter(
@@ -259,6 +297,19 @@ export default function PoolSchoolGrid() {
       .join(" | ");
   };
 
+  const calculateAge = (dob: string | undefined): number | null => {
+    if (!dob || dob === "1900-01-01") return null;
+    const birthDate = new Date(dob);
+    if (isNaN(birthDate.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const poolData: SlotData = {};
   activeStudents.forEach((student: StudentData) => {
     if (!student.schedule) return;
@@ -266,10 +317,31 @@ export default function PoolSchoolGrid() {
       if (!student.schedule[slotKey]) return;
       if (!poolData[slotKey]) poolData[slotKey] = [];
 
-      // Find if any professor is teaching in this specific slot
-      const matchingProf = professors.find(
+      // 1. Calculate age to determine category
+      const age = calculateAge(student.dob);
+      const isKid = age !== null && age >= 4 && age <= 12;
+
+      // 2. Find eligible professors testing in this slot
+      const availableProfs = professors.filter(
         (p) => p.schedule && p.schedule[slotKey],
       );
+
+      // 3. Prioritize by specialty
+      let matchingProf = null;
+      if (isKid) {
+        matchingProf =
+          availableProfs.find((p) => p.specialty === "Niños") ||
+          availableProfs.find((p) => p.specialty !== "Clase");
+      } else {
+        matchingProf =
+          availableProfs.find((p) => p.specialty === "Adultos") ||
+          availableProfs.find((p) => p.specialty !== "Clase");
+      }
+
+      // If still not found, try to fallback to any class just in case, though usually shouldn't default to "Clase"
+      if (!matchingProf && availableProfs.length > 0) {
+        matchingProf = availableProfs[0];
+      }
 
       poolData[slotKey].push({
         id: student.id || 0,
@@ -287,30 +359,54 @@ export default function PoolSchoolGrid() {
   const [view, setView] = useState(0); // 0: Summary, 1: Students
 
   const getSummaryByProfessor = () => {
-    const summary: { [key: string]: any[] } = {};
-    const seenInProf: { [key: string]: Set<number> } = {};
+    const summary: {
+      [key: string]: {
+        uniqueStudents: Set<number>;
+        timeSlots: { [time: string]: any[] };
+      };
+    } = {};
 
     // Initialize with known professors
     professors.forEach((p) => {
-      summary[p.name] = [];
-      seenInProf[p.name] = new Set();
+      summary[p.name] = { uniqueStudents: new Set(), timeSlots: {} };
     });
 
-    Object.values(poolData).forEach((slotStudents) => {
+    Object.entries(poolData).forEach(([slot, slotStudents]) => {
+      const time = slot.split("-")[1]; // Extract the hour part, e.g. "7:00"
+
       slotStudents.forEach((student) => {
         const profName = student.professor;
         if (!summary[profName]) {
-          summary[profName] = [];
-          seenInProf[profName] = new Set();
+          summary[profName] = { uniqueStudents: new Set(), timeSlots: {} };
         }
 
-        // Only add unique students to each professor's count
-        if (!seenInProf[profName].has(student.id)) {
-          summary[profName].push(student);
-          seenInProf[profName].add(student.id);
+        if (!summary[profName].timeSlots[time]) {
+          summary[profName].timeSlots[time] = [];
         }
+
+        // Add student to the timeSlot only if they aren't already there
+        const isAlreadyInTimeSlot = summary[profName].timeSlots[time].some(
+          (s: any) => s.id === student.id,
+        );
+        if (!isAlreadyInTimeSlot) {
+          summary[profName].timeSlots[time].push(student);
+        }
+
+        summary[profName].uniqueStudents.add(student.id);
       });
     });
+
+    // Alphabetically sort students in each time slot
+    Object.values(summary).forEach((profSummary) => {
+      Object.values(profSummary.timeSlots).forEach((studentsList) => {
+        studentsList.sort((a, b) => {
+          const nameA = `${a.lastName} ${a.name}`.toLowerCase();
+          const nameB = `${b.lastName} ${b.name}`.toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+      });
+    });
+
     return summary;
   };
 
@@ -375,7 +471,16 @@ export default function PoolSchoolGrid() {
       {view === 0 && (
         <Grid container spacing={3}>
           {professors.map((prof) => {
-            const students = professorSummary[prof.name] || [];
+            const profData = professorSummary[prof.name] || {
+              uniqueStudents: new Set(),
+              timeSlots: {},
+            };
+            const uniqueCount = profData.uniqueStudents.size;
+            const slotsData = profData.timeSlots;
+            const sortedSlots = Object.keys(slotsData).sort((a, b) => {
+              return parseInt(a) - parseInt(b);
+            });
+
             return (
               <Grid key={prof.id} size={{ xs: 12, md: 6, lg: 4 }}>
                 <Card
@@ -396,26 +501,45 @@ export default function PoolSchoolGrid() {
                       </Avatar>
                     }
                     action={
-                      <Chip
-                        label={
-                          prof.specialty === "Clase"
-                            ? prof.className
-                            : prof.specialty
-                        }
-                        size="small"
-                        color={
-                          prof.specialty === "Clase" ? "secondary" : "default"
-                        }
-                        variant="outlined"
-                        sx={{ fontWeight: 800 }}
-                      />
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip
+                          label={
+                            prof.specialty === "Clase"
+                              ? prof.className
+                              : prof.specialty
+                          }
+                          size="small"
+                          color={
+                            prof.specialty === "Clase" ? "secondary" : "default"
+                          }
+                          variant="outlined"
+                          sx={{ fontWeight: 800 }}
+                        />
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => {
+                            setProfFormData(prof);
+                            setOpenProfDialog(true);
+                          }}
+                        >
+                          <EditOutlinedIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDeleteProfessor(prof.id)}
+                        >
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
                     }
                     title={
                       <Typography variant="h6" sx={{ fontWeight: 800 }}>
                         {prof.name}
                       </Typography>
                     }
-                    subheader={`${students.length} Alumnos`}
+                    subheader={`${uniqueCount} Alumnos`}
                     sx={{ bgcolor: alpha(theme.palette.primary.main, 0.02) }}
                   />
                   <Divider />
@@ -445,22 +569,47 @@ export default function PoolSchoolGrid() {
                   </Box>
                   <Divider />
                   <List sx={{ p: 0, flexGrow: 1 }}>
-                    {students.length > 0 ? (
-                      students.map((s, idx) => (
-                        <ListItem
-                          key={`${s.id}-${idx}`}
-                          divider={idx !== students.length - 1}
-                        >
-                          <ListItemText
-                            primary={
-                              <Typography sx={{ fontWeight: 700 }}>
-                                {s.name} {s.lastName}
+                    {sortedSlots.length > 0 ? (
+                      sortedSlots.map((slot) => {
+                        const slotStudents = slotsData[slot];
+                        return (
+                          <React.Fragment key={slot}>
+                            <ListItem
+                              sx={{
+                                bgcolor: alpha(theme.palette.primary.main, 0.05),
+                                py: 0.5,
+                              }}
+                            >
+                              <Typography
+                                variant="overline"
+                                sx={{ fontWeight: 800, lineHeight: 1.2 }}
+                              >
+                                {slot} hs
                               </Typography>
-                            }
-                            secondary={s.professor}
-                          />
-                        </ListItem>
-                      ))
+                            </ListItem>
+                            {slotStudents.map((s: any, idx: number) => (
+                              <ListItem
+                                key={`${s.id}-${idx}`}
+                                divider={idx !== slotStudents.length - 1}
+                                dense
+                              >
+                                <ListItemText
+                                  primary={
+                                    <Typography
+                                      sx={{
+                                        fontWeight: 700,
+                                        fontSize: "0.85rem",
+                                      }}
+                                    >
+                                      {s.name} {s.lastName}
+                                    </Typography>
+                                  }
+                                />
+                              </ListItem>
+                            ))}
+                          </React.Fragment>
+                        );
+                      })
                     ) : (
                       <Box sx={{ p: 3, textAlign: "center", opacity: 0.5 }}>
                         <Typography variant="body2">
