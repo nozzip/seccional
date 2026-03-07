@@ -22,7 +22,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  CloseIcon,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
@@ -656,14 +655,14 @@ export default function DeudaAfiliadosManager() {
                         label={h.importe || "Sin datos"}
                         color={
                           !h.importe ||
-                          h.importe.toLowerCase().includes("no se registran")
+                            h.importe.toLowerCase().includes("no se registran")
                             ? "default"
                             : "error"
                         }
                         size="small"
                         variant={
                           !h.importe ||
-                          h.importe.toLowerCase().includes("no se registran")
+                            h.importe.toLowerCase().includes("no se registran")
                             ? "outlined"
                             : "filled"
                         }
@@ -673,10 +672,10 @@ export default function DeudaAfiliadosManager() {
                     <TableCell>
                       {h.created_at
                         ? new Date(h.created_at).toLocaleDateString("es-AR", {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
-                          })
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })
                         : "-"}
                     </TableCell>
                     <TableCell align="center">
@@ -692,14 +691,14 @@ export default function DeudaAfiliadosManager() {
                 ))}
                 {(!selectedGroup?.history ||
                   selectedGroup.history.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">
-                        Sin registros en el historial
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
+                        <Typography color="text.secondary">
+                          Sin registros en el historial
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
               </TableBody>
             </Table>
           </TableContainer>

@@ -13,6 +13,8 @@ import Login from "./Pages/Login";
 import Servicios from "./Components/Servicios/Servicios";
 import AdminDashboard from "./Pages/Admin/AdminDashboard";
 
+import MobileBeneficiosApp from "./Pages/MobileBeneficiosApp";
+
 const Layout = () => (
   <ColorModeProvider>
     <CssBaseline />
@@ -64,6 +66,15 @@ const router = createHashRouter([
         element: <AdminDashboard />,
       },
     ],
+  },
+  {
+    path: "/app/beneficios",
+    element: (
+      <ColorModeProvider>
+        <CssBaseline />
+        <MobileBeneficiosApp />
+      </ColorModeProvider>
+    ),
   },
 ]);
 

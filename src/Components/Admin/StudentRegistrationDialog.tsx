@@ -25,6 +25,7 @@ import {
 import Grid from "@mui/material/Grid2";
 import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import { supabase } from "../../supabaseClient";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const HOURS = Array.from({ length: 16 }, (_, i) => `${i + 7}:00`);
@@ -42,6 +43,7 @@ export interface StudentData {
   lastPayment?: { date: string; amount: number };
   expiryDate?: string;
   balance?: number;
+  assignedClass?: string | null;
 }
 
 interface StudentRegistrationDialogProps {
@@ -67,7 +69,26 @@ export default function StudentRegistrationDialog({
     city: "",
     hasProfessor: true,
     schedule: {},
+    assignedClass: null,
   });
+
+  const [classesList, setClassesList] = useState<{ id: number; name: string; class_name?: string }[]>([]);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("professors")
+          .select("id, name, class_name")
+          .eq("specialty", "Clase");
+        if (error) throw error;
+        setClassesList(data || []);
+      } catch (err) {
+        console.error("Error fetching classes:", err);
+      }
+    };
+    if (open) fetchClasses();
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -84,6 +105,7 @@ export default function StudentRegistrationDialog({
           : initialData?.schedule) || {},
         lastPayment: initialData?.lastPayment,
         expiryDate: initialData?.expiryDate,
+        assignedClass: initialData?.assignedClass || null,
       });
     }
   }, [open, initialData]);
@@ -301,6 +323,25 @@ export default function StudentRegistrationDialog({
                 label="Asignar Profesor"
                 sx={{ "& .MuiTypography-root": { fontWeight: 700 } }}
               />
+
+              <TextField
+                select
+                label="Asignar a Clase Específica (Opcional)"
+                fullWidth
+                value={formData.assignedClass || ""}
+                onChange={(e) =>
+                  handleChange("assignedClass", e.target.value || null)
+                }
+                SelectProps={{ native: true }}
+                helperText="Si selecciona una clase, se priorizará este profesor en sus horarios."
+              >
+                <option value="">Ninguna clase específica</option>
+                {classesList.map((cls) => (
+                  <option key={cls.id} value={cls.class_name || cls.name}>
+                    {cls.class_name || cls.name}
+                  </option>
+                ))}
+              </TextField>
             </Stack>
           </Grid>
         </Grid>

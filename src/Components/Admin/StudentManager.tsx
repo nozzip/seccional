@@ -45,7 +45,11 @@ import UploadIcon from "@mui/icons-material/Upload";
 import * as XLSX from "xlsx";
 import { supabase } from "../../supabaseClient";
 
-export default function StudentManager() {
+export interface StudentManagerProps {
+  onDataChanged?: () => void;
+}
+
+export default function StudentManager({ onDataChanged }: StudentManagerProps = {}) {
   const [students, setStudents] = useState<StudentData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,6 +88,7 @@ export default function StudentManager() {
         hasProfessor: s.has_professor,
         lastPayment: s.last_payment,
         expiryDate: s.expiry_date,
+        assignedClass: s.assigned_class,
       }));
       setStudents(mapped);
     } catch (error) {
@@ -152,6 +157,7 @@ export default function StudentManager() {
         .eq("id", studentId);
       if (error) throw error;
       fetchData();
+      if (onDataChanged) onDataChanged();
     } catch (error) {
       console.error("Error soft-deleting student:", error);
     }
@@ -174,6 +180,7 @@ export default function StudentManager() {
         .eq("id", studentId);
       if (error) throw error;
       fetchData();
+      if (onDataChanged) onDataChanged();
     } catch (error) {
       console.error("Error clearing payment:", error);
     }
@@ -468,6 +475,7 @@ export default function StudentManager() {
           if (!hasError) {
             alert(`Se procesaron ${successCount} registros correctamente (los DNIs existentes se actualizaron).`);
             fetchData();
+            if (onDataChanged) onDataChanged();
           }
         } else {
           alert("No se encontraron registros válidos para importar (falta Nombre o DNI).");
@@ -818,6 +826,7 @@ export default function StudentManager() {
               schedule: updatedStudent.schedule,
               last_payment: updatedStudent.lastPayment || null,
               expiry_date: updatedStudent.expiryDate || null,
+              assigned_class: updatedStudent.assignedClass || null,
             };
 
             if (selectedStudent?.id) {
@@ -836,6 +845,7 @@ export default function StudentManager() {
             setOpen(false);
             setSelectedStudent(null);
             fetchData();
+            if (onDataChanged) onDataChanged();
           } catch (error) {
             console.error("Error saving student:", error);
           }
