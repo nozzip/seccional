@@ -28,7 +28,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { supabase } from "../../supabaseClient";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-const HOURS = Array.from({ length: 16 }, (_, i) => `${i + 7}:00`);
+const HOURS = Array.from({ length: 18 }, (_, i) => `${i + 7}:00`);
 
 export interface StudentData {
   id?: number;
@@ -80,9 +80,21 @@ export default function StudentRegistrationDialog({
         const { data, error } = await supabase
           .from("professors")
           .select("id, name, class_name")
-          .eq("specialty", "Clase");
+          .in("specialty", ["Clase", "Particular"]);
         if (error) throw error;
-        setClassesList(data || []);
+
+        // Filter out duplicate class names
+        const uniqueClasses: typeof data = [];
+        const seenNames = new Set<string>();
+        for (const cls of data || []) {
+          const nameToUse = cls.class_name || cls.name;
+          if (!seenNames.has(nameToUse)) {
+            seenNames.add(nameToUse);
+            uniqueClasses.push(cls);
+          }
+        }
+
+        setClassesList(uniqueClasses);
       } catch (err) {
         console.error("Error fetching classes:", err);
       }
@@ -275,38 +287,42 @@ export default function StudentRegistrationDialog({
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {HOURS.map((hour) => (
-                      <TableRow key={hour}>
-                        <TableCell
-                          sx={{ fontWeight: 700, fontSize: "0.75rem" }}
-                        >
-                          {hour}
-                        </TableCell>
-                        {DAYS.map((day) => {
-                          const slotKey = `${day}-${hour}`;
-                          const isSelected = !!formData.schedule[slotKey];
-                          return (
-                            <TableCell key={day} align="center" sx={{ p: 0 }}>
-                              <Checkbox
-                                size="small"
-                                checked={isSelected}
-                                onChange={(e) => {
-                                  const newSchedule = { ...formData.schedule };
-                                  if (e.target.checked)
-                                    newSchedule[slotKey] = true;
-                                  else delete newSchedule[slotKey];
-                                  handleChange("schedule", newSchedule);
-                                }}
-                                sx={{
-                                  color: alpha(theme.palette.primary.main, 0.2),
-                                  "&.Mui-checked": { color: "primary.main" },
-                                }}
-                              />
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
+                    {HOURS.map((hour) => {
+                      const hr = parseInt(hour.split(":")[0]);
+                      const label = hr === 7 ? "7:00 a 8:00" : `${hr}:01 a ${hr + 1}:00`;
+                      return (
+                        <TableRow key={hour}>
+                          <TableCell
+                            sx={{ fontWeight: 700, fontSize: "0.75rem", whiteSpace: "nowrap" }}
+                          >
+                            {label}
+                          </TableCell>
+                          {DAYS.map((day) => {
+                            const slotKey = `${day}-${hour}`;
+                            const isSelected = !!formData.schedule[slotKey];
+                            return (
+                              <TableCell key={day} align="center" sx={{ p: 0 }}>
+                                <Checkbox
+                                  size="small"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    const newSchedule = { ...formData.schedule };
+                                    if (e.target.checked)
+                                      newSchedule[slotKey] = true;
+                                    else delete newSchedule[slotKey];
+                                    handleChange("schedule", newSchedule);
+                                  }}
+                                  sx={{
+                                    color: alpha(theme.palette.primary.main, 0.2),
+                                    "&.Mui-checked": { color: "primary.main" },
+                                  }}
+                                />
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -333,6 +349,7 @@ export default function StudentRegistrationDialog({
                   handleChange("assignedClass", e.target.value || null)
                 }
                 SelectProps={{ native: true }}
+                InputLabelProps={{ shrink: true }}
                 helperText="Si selecciona una clase, se priorizará este profesor en sus horarios."
               >
                 <option value="">Ninguna clase específica</option>

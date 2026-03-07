@@ -58,7 +58,7 @@ const HOURS = Array.from({ length: 18 }, (_, i) => `${i + 7}:00`);
 interface Professor {
   id: number;
   name: string;
-  specialty: "Adultos" | "Niños" | "Clase" | "Nado Libre" | "General";
+  specialty: "Adultos" | "Niños" | "Clase" | "Nado Libre" | "General" | "Particular";
   className?: string;
   schedule: { [key: string]: boolean };
 }
@@ -151,8 +151,8 @@ export default function PoolSchoolGrid() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(studentsChannel);
-      supabase.removeChannel(profsChannel);
+      if (studentsChannel) supabase.removeChannel(studentsChannel);
+      if (profsChannel) supabase.removeChannel(profsChannel);
     };
   }, []);
 
@@ -190,6 +190,7 @@ export default function PoolSchoolGrid() {
 
   const handleSaveProfessor = async () => {
     if (!profFormData.name) return;
+
 
     try {
       const profToSave = {
@@ -290,8 +291,11 @@ export default function PoolSchoolGrid() {
       if (daySlots.length > 0) {
         const start = daySlots[0];
         const end = daySlots[daySlots.length - 1];
-        const formattedEnd = `${parseInt(end.split(":")[0]) + 1}:00`;
-        daysMap[day] = `${start} a ${formattedEnd}`;
+        const startHr = parseInt(start.split(":")[0]);
+        const endHr = parseInt(end.split(":")[0]);
+        const formattedStart = startHr === 7 ? "7:00" : `${startHr}:01`;
+        const formattedEnd = `${endHr + 1}:00`;
+        daysMap[day] = `${formattedStart} a ${formattedEnd}`;
       }
     });
 
@@ -376,6 +380,7 @@ export default function PoolSchoolGrid() {
           availableProfs.find(
             (p) =>
               p.specialty === "Clase" ||
+              p.specialty === "Particular" ||
               p.name.toLowerCase().includes("aqua") ||
               p.className?.toLowerCase().includes("aqua")
           ) || availableProfs.find((p) => p.specialty === "Nado Libre");
@@ -387,13 +392,13 @@ export default function PoolSchoolGrid() {
             availableProfs.find((p) => p.specialty === "Niños") ||
             availableProfs.find((p) => p.specialty === "General") ||
             availableProfs.find((p) => p.specialty === "Adultos") ||
-            availableProfs.find((p) => p.specialty !== "Clase");
+            availableProfs.find((p) => p.specialty !== "Clase" && p.specialty !== "Particular");
         } else {
           matchingProf =
             availableProfs.find((p) => p.specialty === "Adultos") ||
             availableProfs.find((p) => p.specialty === "General") ||
             availableProfs.find((p) => p.specialty === "Niños") ||
-            availableProfs.find((p) => p.specialty !== "Clase");
+            availableProfs.find((p) => p.specialty !== "Clase" && p.specialty !== "Particular");
         }
       }
 
@@ -411,10 +416,12 @@ export default function PoolSchoolGrid() {
       const isMatchedClass =
         matchingProf &&
         (matchingProf.specialty === "Clase" ||
+          matchingProf.specialty === "Particular" ||
           matchingProf.name.toLowerCase().includes("aqua") ||
+          matchingProf.className?.toLowerCase().includes("aqua") ||
           matchingProf.name.toLowerCase().includes("clase"));
 
-      if (isMatchedClass && (!student.hasProfessor || student.assignedClass)) {
+      if (matchingProf && isMatchedClass && (!student.hasProfessor || student.assignedClass)) {
         // Encontró una clase especial y no requiere profe (o la pidió), va a la clase.
         assignedProfName = matchingProf.name;
       } else if (isLibreWindow && !student.hasProfessor) {
@@ -430,6 +437,7 @@ export default function PoolSchoolGrid() {
         // No dejas profes libres en este slot fuera de horario "Libre". Marcar para revisar.
         assignedProfName = "REVISAR";
       }
+
 
       poolData[slotKey].push({
         id: student.id || 0,
@@ -469,11 +477,19 @@ export default function PoolSchoolGrid() {
         }
 
         // Add student to the timeSlot only if they aren't already there
-        const isAlreadyInTimeSlot = summary[profName].timeSlots[time].some(
+        const existingStudent = summary[profName].timeSlots[time].find(
           (s: any) => s.id === student.id,
         );
-        if (!isAlreadyInTimeSlot) {
-          summary[profName].timeSlots[time].push(student);
+        const dayPrefix = slot.split("-")[0].substring(0, 2); // e.g., "Lu", "Ma", "Mi"
+        if (!existingStudent) {
+          summary[profName].timeSlots[time].push({
+            ...student,
+            matchedDays: [dayPrefix]
+          });
+        } else {
+          if (!existingStudent.matchedDays.includes(dayPrefix)) {
+            existingStudent.matchedDays.push(dayPrefix);
+          }
         }
 
         summary[profName].uniqueStudents.add(student.id);
@@ -608,13 +624,17 @@ export default function PoolSchoolGrid() {
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Chip
                             label={
-                              prof.specialty === "Clase"
-                                ? prof.className
+                              prof.specialty === "Clase" || prof.specialty === "Particular"
+                                ? prof.className || prof.specialty
                                 : prof.specialty
                             }
                             size="small"
                             color={
-                              prof.specialty === "Clase" ? "secondary" : "default"
+                              prof.specialty === "Clase"
+                                ? "secondary"
+                                : prof.specialty === "Particular"
+                                  ? "info"
+                                  : "default"
                             }
                             variant="outlined"
                             sx={{ fontWeight: 800 }}
@@ -683,7 +703,6 @@ export default function PoolSchoolGrid() {
                           return (
                             <React.Fragment key={slot}>
                               <ListItem
-                                button
                                 onClick={() => toggleSlot(prof.id, slot)}
                                 sx={{
                                   bgcolor: alpha(
@@ -710,7 +729,7 @@ export default function PoolSchoolGrid() {
                                     variant="overline"
                                     sx={{ fontWeight: 800, lineHeight: 1.2 }}
                                   >
-                                    {slot} hs
+                                    {parseInt(slot.split(":")[0]) === 7 ? "7:00 a 8:00" : `${parseInt(slot.split(":")[0])}:01 a ${parseInt(slot.split(":")[0]) + 1}:00`} hs
                                   </Typography>
                                   <Typography
                                     variant="caption"
@@ -766,6 +785,9 @@ export default function PoolSchoolGrid() {
                                             }}
                                           >
                                             {s.name} {s.lastName}
+                                            <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary", ml: 0.5 }}>
+                                              ({s.matchedDays?.join(", ")})
+                                            </Typography>
                                           </Typography>
                                         }
                                       />
@@ -875,7 +897,7 @@ export default function PoolSchoolGrid() {
                         borderColor: alpha(theme.palette.divider, 0.4),
                       }}
                     >
-                      {hour}
+                      {parseInt(hour.split(":")[0]) === 7 ? "7:00 a 8:00" : `${parseInt(hour.split(":")[0])}:01 a ${parseInt(hour.split(":")[0]) + 1}:00`}
                     </TableCell>
                     {DAYS.map((day, idx) => {
                       const slotKey = `${day}-${hour}`;
@@ -984,6 +1006,7 @@ export default function PoolSchoolGrid() {
               <option value="Adultos">Adultos</option>
               <option value="Niños">Niños</option>
               <option value="Clase">Clase Específica</option>
+              <option value="Particular">Clase Particular</option>
             </TextField>
 
             {profFormData.specialty === "Clase" && (
@@ -1033,8 +1056,8 @@ export default function PoolSchoolGrid() {
                 <TableBody>
                   {HOURS.map((hour) => (
                     <TableRow key={hour}>
-                      <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem" }}>
-                        {hour}
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                        {parseInt(hour.split(":")[0]) === 7 ? "7:00 a 8:00" : `${parseInt(hour.split(":")[0])}:01 a ${parseInt(hour.split(":")[0]) + 1}:00`}
                       </TableCell>
                       {DAYS.map((day) => {
                         const slotKey = `${day}-${hour}`;

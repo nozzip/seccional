@@ -556,12 +556,6 @@ export default function CashFlowManager({
         .is("deleted_at", null);
       if (studErr) throw studErr;
 
-      const { data: staffData } = await supabase
-        .from("system_configs")
-        .select("value")
-        .eq("key", "staff_roster")
-        .single();
-
       // 4. Fetch Court Bookings (Global)
       const { data: courtData, error: courtErr } = await supabase
         .from("court_bookings")
@@ -654,7 +648,7 @@ export default function CashFlowManager({
         configs?.find((c) => c.key === "cabin_prices")?.value || {};
       setCabinPrices(cabinPricesConfig);
 
-      const roster = staffData?.value || {};
+      const roster = configs?.find((c) => c.key === "staff_roster")?.value || {};
 
       if (Object.keys(roster).length === 0) {
         setStaffRoster({

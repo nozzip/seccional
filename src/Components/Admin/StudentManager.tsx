@@ -25,7 +25,14 @@ import {
   useTheme,
   InputAdornment,
   Chip,
+  Collapse,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -111,7 +118,7 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
@@ -126,6 +133,12 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
     null,
   );
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterPaymentDateFrom, setFilterPaymentDateFrom] = useState("");
+  const [filterPaymentDateTo, setFilterPaymentDateTo] = useState("");
+  const [filterExpiryDateFrom, setFilterExpiryDateFrom] = useState("");
+  const [filterExpiryDateTo, setFilterExpiryDateTo] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("todos");
 
   const getExpiryStatus = (expiryDate?: string) => {
     if (!expiryDate) return { label: "SIN PAGOS", color: "default" as const };
@@ -206,11 +219,25 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
     try {
       const { data, error } = await supabase
         .from("student_payments")
-        .select("*, transactions(payment_method, branch)")
+        .select("*")
         .eq("student_dni", student.dni)
         .order("payment_date", { ascending: false });
       if (error) throw error;
-      setPaymentHistory(data || []);
+
+      // Enrich with transaction details where available
+      const enriched = await Promise.all((data || []).map(async (p: any) => {
+        if (p.transaction_id) {
+          const { data: tx } = await supabase
+            .from("transactions")
+            .select("payment_method, branch")
+            .eq("id", p.transaction_id)
+            .single();
+          return { ...p, transactions: tx };
+        }
+        return { ...p, transactions: null };
+      }));
+
+      setPaymentHistory(enriched);
     } catch (error) {
       console.error("Error fetching payment history:", error);
     }
@@ -269,6 +296,20 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
 
         const data = XLSX.utils.sheet_to_json(ws, { defval: "" }) as any[];
 
+        const { data: existingDB } = await supabase.from("students").select("dni, expiry_date, last_payment");
+        const existingMap = new Map();
+        existingDB?.forEach(s => existingMap.set(s.dni, s));
+
+        // Fetch all student payments to avoid duplicating history
+        const { data: allHistory } = await supabase.from("student_payments").select("student_dni, payment_date");
+        const historyMap = new Map();
+        allHistory?.forEach(h => {
+          const dateStr = new Date(h.payment_date).toISOString().split("T")[0];
+          historyMap.set(`${h.student_dni}_${dateStr}`, true);
+        });
+
+        const paymentsToInsert: any[] = [];
+
         const mappedStudents = data.map((row) => {
           const getVal = (keyBase: string) => {
             const key = Object.keys(row).find(k => k.toLowerCase().includes(keyBase.toLowerCase()));
@@ -276,12 +317,19 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
           };
 
           const fullName = getVal("Apellido y Nombre") || getVal("Nombre");
-          const dni = String(getVal("DNI") || "").trim();
-          const phone = String(getVal("Tel") || getVal("Celular") || "").trim();
+          const dniStr = getVal("DNI");
+          let dni = String(dniStr).replace(/[^0-9]/g, ""); // DNI
+
+          // Only process valid students. Skip the example row or invalid rows immediately.
+          if (!fullName || !dni || fullName === "Ejemplo, Juan") {
+            return null;
+          }
+
+          const phone = String(getVal("Tel. Celular") || getVal("Tel") || getVal("Celular") || "").trim();
           const address = getVal("Domicilio");
           const city = getVal("Localidad");
 
-          let rawDob = getVal("Fecha Nacim");
+          let rawDob = getVal("Fecha Nacim.");
           let dob = null;
           if (rawDob) {
             if (rawDob instanceof Date) {
@@ -329,7 +377,9 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
             if (!dob) dob = "1900-01-01";
           }
 
-          const hasProfessorStr = String(getVal("Con Prof")).toLowerCase() === "x" || String(getVal("Profesor")).trim() !== "";
+          const conProfVal = String(getVal("Con Prof (x)") || getVal("Con Prof") || "").trim().toLowerCase();
+          const profesorVal = String(getVal("Profesor") || "").trim();
+          const hasProfessorStr = conProfVal === "x" || profesorVal !== "";
 
           const daysMarks = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabados"].filter(d => {
             const val = String(getVal(d)).trim().toLowerCase();
@@ -397,23 +447,76 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
 
             if (parsedDate && !isNaN(parsedDate.getTime()) && parsedDate.getFullYear() >= 1800 && parsedDate.getFullYear() <= 2100) {
               const dateStr = parsedDate.toLocaleDateString("es-AR", { year: 'numeric', month: '2-digit', day: '2-digit' });
-              lastPayment = { date: dateStr, amount: mapLastPaymentAmount };
 
-              const expiry = new Date(parsedDate);
-              expiry.setMonth(expiry.getMonth() + 1);
-              const exY = expiry.getFullYear();
-              const exM = expiry.getMonth() + 1;
-              const exD = expiry.getDate();
-              expiryDate = `${exY}-${String(exM).padStart(2, '0')}-${String(exD).padStart(2, '0')}`;
+              const existing = existingMap.get(dni);
+
+              if (existing && existing.last_payment && existing.last_payment.date !== dateStr) {
+                // Hay un pago anterior en la DB que es DIFERENTE al que viene en el Excel.
+                // Nos aseguramos de que el pago anterior esté archivado en el historial.
+                const parts = existing.last_payment.date.split("/");
+                if (parts.length === 3) {
+                  const oldIso = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                  if (!historyMap.has(`${dni}_${oldIso}`)) {
+                    // El pago anterior no estaba en el historial, lo agregamos para no perderlo
+                    paymentsToInsert.push({
+                      student_dni: dni,
+                      payment_date: oldIso,
+                      amount: existing.last_payment.amount,
+                      expiry_date: existing.expiry_date
+                    });
+                    // Agregamos al historyMap para no duplicarlo si hay más filas del mismo alumno
+                    historyMap.set(`${dni}_${oldIso}`, true);
+                  }
+                }
+              }
+
+              if (existing && existing.last_payment && existing.last_payment.date === dateStr) {
+                // Se trata del mismo pago ya guardado previamente, mantenemos datos
+                lastPayment = existing.last_payment;
+                expiryDate = existing.expiry_date;
+              } else {
+                // Nuevo pago detectado
+                lastPayment = { date: dateStr, amount: mapLastPaymentAmount };
+
+                // Definir base para vencimiento
+                let baseDateForExpiry = new Date(parsedDate);
+
+                // Si ya era alumno activo y su vencimiento actual es posterior a su nueva fecha de pago
+                // Sumamos 30 dias (1 mes) a partir de su vencimiento vigente.
+                if (existing && existing.expiry_date) {
+                  // Asumimos parsear tomando mediodía para evitar problemas de timezone
+                  const currentExpiry = new Date(`${existing.expiry_date}T12:00:00`);
+                  const paymentTime = new Date(`${parsedDate.toISOString().split("T")[0]}T12:00:00`);
+                  if (currentExpiry >= paymentTime) {
+                    baseDateForExpiry = new Date(currentExpiry);
+                  } else {
+                    baseDateForExpiry = new Date(paymentTime);
+                  }
+                }
+
+                const expiry = new Date(baseDateForExpiry);
+                expiry.setMonth(expiry.getMonth() + 1);
+                const exY = expiry.getFullYear();
+                const exM = expiry.getMonth() + 1;
+                const exD = expiry.getDate();
+                expiryDate = `${exY}-${String(exM).padStart(2, '0')}-${String(exD).padStart(2, '0')}`;
+
+                // Preparar el pago NUEVO para archivarlo en el historial si no existe aún
+                const newIso = parsedDate.toISOString().split("T")[0];
+                if (!historyMap.has(`${dni}_${newIso}`)) {
+                  paymentsToInsert.push({
+                    student_dni: dni,
+                    payment_date: newIso,
+                    amount: mapLastPaymentAmount,
+                    expiry_date: expiryDate
+                  });
+                  historyMap.set(`${dni}_${newIso}`, true);
+                }
+              }
             } else {
               // If it has logic for payment but date is weird, fallback
               expiryDate = "1900-01-01";
             }
-          }
-
-          // Only return valid students
-          if (!fullName || !dni || fullName === "Ejemplo, Juan") {
-            return null;
           }
 
           return {
@@ -472,6 +575,22 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
             }
           }
 
+          if (!hasError && paymentsToInsert.length > 0) {
+            // Quitamos repetidos dentro del mismo excel para un mismo dni
+            const uniquePaymentsMap = new Map();
+            paymentsToInsert.forEach(p => uniquePaymentsMap.set(`${p.student_dni}-${p.payment_date}`, p));
+            const uniquePayments = Array.from(uniquePaymentsMap.values());
+
+            for (let i = 0; i < uniquePayments.length; i += 500) {
+              const chunk = uniquePayments.slice(i, i + 500);
+              const { error: histError } = await supabase.from("student_payments").insert(chunk);
+              if (histError) {
+                console.error("Error guardando historial", histError);
+                alert("Advertencia: No se pudo guardar el historial de pagos. " + histError.message);
+              }
+            }
+          }
+
           if (!hasError) {
             alert(`Se procesaron ${successCount} registros correctamente (los DNIs existentes se actualizaron).`);
             fetchData();
@@ -495,23 +614,17 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
-  const stats = React.useMemo(() => {
-    let vigentes = 0;
-    let vencidos = 0;
-    let porVencer = 0;
-    students.forEach((s) => {
-      const { label } = getExpiryStatus(s.expiryDate);
-      if (label === "ACTIVO") vigentes++;
-      if (label === "POR VENCER") porVencer++;
-      if (label === "VENCIDO" || label === "SIN PAGOS") vencidos++;
-    });
-    return {
-      total: students.length,
-      vigentes,
-      vencidos,
-      porVencer,
-    };
-  }, [students]);
+
+  const hasActiveFilters = filterPaymentDateFrom || filterPaymentDateTo || filterExpiryDateFrom || filterExpiryDateTo || filterStatus !== "todos";
+
+  const clearAllFilters = () => {
+    setFilterPaymentDateFrom("");
+    setFilterPaymentDateTo("");
+    setFilterExpiryDateFrom("");
+    setFilterExpiryDateTo("");
+    setFilterStatus("todos");
+    setFilterExpiring(false);
+  };
 
   const filteredStudents = React.useMemo(() => {
     return students.filter((s) => {
@@ -525,9 +638,93 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
         matchesExpiring = label === "POR VENCER" || label === "VENCIDO";
       }
 
-      return matchesSearch && matchesExpiring;
+      // Date filters
+      let matchesPaymentDate = true;
+      if (filterPaymentDateFrom || filterPaymentDateTo) {
+        const paymentDateStr = s.lastPayment?.date;
+        if (!paymentDateStr) {
+          matchesPaymentDate = false;
+        } else {
+          // Parse DD/MM/YYYY to a comparable date
+          const parts = paymentDateStr.split("/");
+          if (parts.length === 3) {
+            const payDate = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            payDate.setHours(12, 0, 0, 0);
+            if (filterPaymentDateFrom) {
+              const from = new Date(filterPaymentDateFrom + "T00:00:00");
+              if (payDate < from) matchesPaymentDate = false;
+            }
+            if (filterPaymentDateTo) {
+              const to = new Date(filterPaymentDateTo + "T23:59:59");
+              if (payDate > to) matchesPaymentDate = false;
+            }
+          } else {
+            matchesPaymentDate = false;
+          }
+        }
+      }
+
+      let matchesExpiryDate = true;
+      if (filterExpiryDateFrom || filterExpiryDateTo) {
+        if (!s.expiryDate) {
+          matchesExpiryDate = false;
+        } else {
+          const expDate = new Date(s.expiryDate + "T12:00:00");
+          if (filterExpiryDateFrom) {
+            const from = new Date(filterExpiryDateFrom + "T00:00:00");
+            if (expDate < from) matchesExpiryDate = false;
+          }
+          if (filterExpiryDateTo) {
+            const to = new Date(filterExpiryDateTo + "T23:59:59");
+            if (expDate > to) matchesExpiryDate = false;
+          }
+        }
+      }
+
+      let matchesStatus = true;
+      if (filterStatus !== "todos") {
+        const { label } = getExpiryStatus(s.expiryDate);
+        if (filterStatus === "activo") matchesStatus = label === "ACTIVO";
+        else if (filterStatus === "por_vencer") matchesStatus = label === "POR VENCER";
+        else if (filterStatus === "vencido") matchesStatus = label === "VENCIDO";
+        else if (filterStatus === "sin_pagos") matchesStatus = label === "SIN PAGOS";
+      }
+
+      return matchesSearch && matchesExpiring && matchesPaymentDate && matchesExpiryDate && matchesStatus;
     });
-  }, [students, searchTerm, filterExpiring]);
+  }, [students, searchTerm, filterExpiring, filterPaymentDateFrom, filterPaymentDateTo, filterExpiryDateFrom, filterExpiryDateTo, filterStatus]);
+
+  const stats = React.useMemo(() => {
+    let vigentes = 0;
+    let vencidos = 0;
+    let porVencer = 0;
+    let totalDineroActivos = 0;
+    let totalDineroPorVencer = 0;
+
+    filteredStudents.forEach((s) => {
+      const { label } = getExpiryStatus(s.expiryDate);
+      const amount = s.lastPayment?.amount ? Number(s.lastPayment.amount) : 0;
+
+      if (label === "ACTIVO") {
+        vigentes++;
+        totalDineroActivos += amount;
+      } else if (label === "POR VENCER") {
+        porVencer++;
+        totalDineroPorVencer += amount;
+      } else if (label === "VENCIDO" || label === "SIN PAGOS") {
+        vencidos++;
+      }
+    });
+    return {
+      total: filteredStudents.length,
+      vigentes,
+      vencidos,
+      porVencer,
+      totalDineroActivos,
+      totalDineroPorVencer,
+      totalDineroTotal: totalDineroActivos + totalDineroPorVencer,
+    };
+  }, [filteredStudents]);
 
   const paginatedStudents = React.useMemo(() => {
     return filteredStudents.slice(
@@ -584,6 +781,18 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
               ? "Mostrando Alertas (7 Días)"
               : "Ver Alertas de Vencimiento"}
           </Button>
+          <Button
+            variant={showFilters ? "contained" : "outlined"}
+            color={hasActiveFilters ? "secondary" : "inherit"}
+            onClick={() => setShowFilters(!showFilters)}
+            startIcon={<FilterListIcon />}
+            sx={{
+              fontWeight: 700,
+              borderColor: showFilters ? "secondary.main" : "divider",
+            }}
+          >
+            Filtros{hasActiveFilters ? " ●" : ""}
+          </Button>
         </Box>
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <Button
@@ -623,10 +832,126 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
         </Box>
       </Box>
 
+      {/* Collapsible Filter Panel */}
+      <Collapse in={showFilters}>
+        <Paper
+          elevation={0}
+          sx={{
+            mb: 2,
+            p: 2.5,
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 3,
+            bgcolor: alpha(theme.palette.primary.main, 0.02),
+          }}
+        >
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
+              <FilterListIcon fontSize="small" /> Filtros Avanzados
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              {hasActiveFilters && (
+                <Button size="small" color="error" onClick={clearAllFilters} startIcon={<CloseIcon />}>
+                  Limpiar Filtros
+                </Button>
+              )}
+            </Box>
+          </Box>
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "flex-end" }}>
+            {/* Payment Date Range */}
+            <Box sx={{ flex: "1 1 auto", minWidth: 200 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5, display: "block" }}>
+                Fecha de Pago (Desde)
+              </Typography>
+              <TextField
+                type="date"
+                size="small"
+                fullWidth
+                value={filterPaymentDateFrom}
+                onChange={(e) => { setFilterPaymentDateFrom(e.target.value); setPage(0); }}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+            <Box sx={{ flex: "1 1 auto", minWidth: 200 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5, display: "block" }}>
+                Fecha de Pago (Hasta)
+              </Typography>
+              <TextField
+                type="date"
+                size="small"
+                fullWidth
+                value={filterPaymentDateTo}
+                onChange={(e) => { setFilterPaymentDateTo(e.target.value); setPage(0); }}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+            {/* Expiry Date Range */}
+            <Box sx={{ flex: "1 1 auto", minWidth: 200 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5, display: "block" }}>
+                Vencimiento (Desde)
+              </Typography>
+              <TextField
+                type="date"
+                size="small"
+                fullWidth
+                value={filterExpiryDateFrom}
+                onChange={(e) => { setFilterExpiryDateFrom(e.target.value); setPage(0); }}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+            <Box sx={{ flex: "1 1 auto", minWidth: 200 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5, display: "block" }}>
+                Vencimiento (Hasta)
+              </Typography>
+              <TextField
+                type="date"
+                size="small"
+                fullWidth
+                value={filterExpiryDateTo}
+                onChange={(e) => { setFilterExpiryDateTo(e.target.value); setPage(0); }}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+            {/* Status Filter */}
+            <Box sx={{ flex: "1 1 auto", minWidth: 180 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5, display: "block" }}>
+                Estado
+              </Typography>
+              <FormControl size="small" fullWidth>
+                <Select
+                  value={filterStatus}
+                  onChange={(e) => { setFilterStatus(e.target.value as string); setPage(0); }}
+                >
+                  <MenuItem value="todos">Todos</MenuItem>
+                  <MenuItem value="activo">Activo</MenuItem>
+                  <MenuItem value="por_vencer">Por Vencer</MenuItem>
+                  <MenuItem value="vencido">Vencido</MenuItem>
+                  <MenuItem value="sin_pagos">Sin Pagos</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+          {hasActiveFilters && (
+            <Box sx={{ mt: 1.5 }}>
+              <Chip
+                label={`Resultados filtrados: ${filteredStudents.length} alumnos`}
+                color="secondary"
+                variant="outlined"
+                size="small"
+                sx={{ fontWeight: 700 }}
+              />
+            </Box>
+          )}
+        </Paper>
+      </Collapse>
+
       <Box sx={{ mb: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
         <Chip label={`Total Alumnos: ${stats.total}`} color="primary" variant="outlined" sx={{ fontWeight: 700 }} />
-        <Chip label={`Alumnos Vigentes (Pagos al día): ${stats.vigentes}`} color="success" variant="outlined" sx={{ fontWeight: 700 }} />
-        <Chip label={`Alumnos Por Vencer: ${stats.porVencer}`} color="warning" variant="outlined" sx={{ fontWeight: 700 }} />
+        <Chip label={`Alumnos Vigentes (Pagos al día): ${stats.vigentes} ($${stats.totalDineroActivos.toLocaleString()})`} color="success" variant="outlined" sx={{ fontWeight: 700 }} />
+        <Chip label={`Alumnos Por Vencer: ${stats.porVencer} ($${stats.totalDineroPorVencer.toLocaleString()})`} color="warning" variant="outlined" sx={{ fontWeight: 700 }} />
+        <Chip label={`Total Recaudado (Activos): $${stats.totalDineroTotal.toLocaleString()}`} color="info" variant="filled" sx={{ fontWeight: 800 }} />
         <Chip label={`Alumnos Vencidos / Sin Pagos: ${stats.vencidos}`} color="error" variant="outlined" sx={{ fontWeight: 700 }} />
       </Box>
 
@@ -922,7 +1247,7 @@ export default function StudentManager({ onDataChanged }: StudentManagerProps = 
                     const isDeleted = !!h.deleted_at;
                     const status = getExpiryStatus(h.expiry_date);
 
-                    let paymentMethodStr = "-";
+                    let paymentMethodStr = "Importado (Excel)";
                     if (h.transactions) {
                       const method = h.transactions.payment_method;
                       const branch = h.transactions.branch;
