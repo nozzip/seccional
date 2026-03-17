@@ -358,7 +358,7 @@ export default function AdminOverview() {
   };
 
   return (
-    <Box>
+    <Box sx={{ p: { xs: 1, md: 2 } }}>
       <Box
         sx={{
           mb: 4,

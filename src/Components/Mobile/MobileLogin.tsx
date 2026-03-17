@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Box, Typography, TextField, Button, CircularProgress, Alert, Paper, Container } from '@mui/material';
 import { supabase } from '../../supabaseClient';
+import { AffiliateData } from '../../types/mobile';
 
 interface MobileLoginProps {
-    onLoginSuccess: (legajo: string, name: string) => void;
+    onLoginSuccess: (data: AffiliateData) => void;
 }
 
 export default function MobileLogin({ onLoginSuccess }: MobileLoginProps) {
@@ -33,7 +34,7 @@ export default function MobileLogin({ onLoginSuccess }: MobileLoginProps) {
 
             const { data, error: dbError } = await supabase
                 .from('affiliates')
-                .select('nombre, apellido, legajo')
+                .select('nombre, apellido, legajo, cuil, telefono, email, es_jubilado')
                 .in('legajo', legajoVariations)
                 .eq('branch', 'noroeste')
                 .limit(1);
@@ -44,10 +45,16 @@ export default function MobileLogin({ onLoginSuccess }: MobileLoginProps) {
             } else if (!data || data.length === 0) {
                 setError('No se encontró un afiliado con ese legajo en la seccional Noroeste.');
             } else {
-                // Success
                 const affiliate = data[0];
-                const fullName = `${affiliate.nombre} ${affiliate.apellido}`;
-                onLoginSuccess(affiliate.legajo, fullName);
+                onLoginSuccess({
+                    legajo: affiliate.legajo,
+                    nombre: affiliate.nombre,
+                    apellido: affiliate.apellido,
+                    cuil: affiliate.cuil,
+                    telefono: affiliate.telefono,
+                    email: affiliate.email,
+                    es_jubilado: affiliate.es_jubilado,
+                });
             }
         } catch (err) {
             setError('Ocurrió un error inesperado al iniciar sesión.');

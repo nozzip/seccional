@@ -159,7 +159,7 @@ export default function ProvidersManager() {
   };
 
   return (
-    <Box>
+    <Box sx={{ p: { xs: 1, md: 2 } }}>
       <Box
         sx={{
           mb: 4,

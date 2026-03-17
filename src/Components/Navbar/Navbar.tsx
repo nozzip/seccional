@@ -10,10 +10,13 @@ import {
   Box,
   IconButton,
   alpha,
+  Tooltip,
+  Badge,
 } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
+import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import DrawerComponent from "./Drawer";
 import { getGlassStyles } from "../../theme";
 import { useColorMode } from "../../ColorModeContext";
@@ -155,6 +158,34 @@ function Navbar(props: any) {
             >
               Ingresar
             </Button>
+
+            <Tooltip title="App Afiliados">
+              <IconButton
+                component={Link}
+                to="/app/beneficios"
+                color="primary"
+                aria-label="App Afiliados"
+                sx={{
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.2) },
+                }}
+              >
+                <Badge
+                  badgeContent="NEW"
+                  color="secondary"
+                  sx={{
+                    "& .MuiBadge-badge": {
+                      fontSize: "0.65rem",
+                      fontWeight: 800,
+                      height: 18,
+                      minWidth: 18,
+                    },
+                  }}
+                >
+                  <SmartphoneIcon />
+                </Badge>
+              </IconButton>
+            </Tooltip>
 
             {isMobile && <DrawerComponent />}
           </Box>

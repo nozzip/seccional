@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Box,
   Paper,
@@ -12,14 +12,37 @@ import {
   IconButton,
   alpha,
   useTheme,
+  CircularProgress,
+  Fab,
+  Tooltip,
+  TablePagination,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import CloseIcon from "@mui/icons-material/Close";
-import { dataBeneficios, Beneficio } from "../mockData";
+import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add";
+import { dataBeneficios } from "../mockData";
+import { supabase } from "../../supabaseClient";
+import BenefitEditModal, { Benefit } from "./BenefitEditModal";
+
+const ITEMS_PER_PAGE = 9;
+
+type BenefitItem = Benefit & {
+  thumbnail?: string | null;
+  short_description?: string | null;
+  mail?: string | null;
+  telephone?: string | null;
+};
 
 export default function GridBeneficios() {
-  const [beneficios, setBeneficios] = useState(dataBeneficios);
+  const [beneficios, setBeneficios] = useState<BenefitItem[]>([]);
+  const [dbBenefits, setDbBenefits] = useState<Benefit[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [loading, setLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedBenefit, setSelectedBenefit] = useState<Benefit | null>(null);
+  const [page, setPage] = useState(0);
+  const theme = useTheme();
 
   const categories = [
     "Todos",
@@ -31,15 +54,73 @@ export default function GridBeneficios() {
     "General",
   ];
 
-  const filter = (provinciaId: string) => {
-    setSelectedCategory(provinciaId);
-    if (provinciaId === "Todos") {
-      setBeneficios(dataBeneficios);
-    } else {
-      setBeneficios(
-        dataBeneficios.filter((item) => item.category === provinciaId),
-      );
+  useEffect(() => {
+    fetchBenefits();
+  }, []);
+
+  const fetchBenefits = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("benefits")
+        .select("*")
+        .order("display_order", { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        setDbBenefits(data);
+        setBeneficios(data);
+      } else {
+        setBeneficios(dataBeneficios as BenefitItem[]);
+      }
+    } catch (err) {
+      console.error("Error fetching benefits:", err);
+      setBeneficios(dataBeneficios as BenefitItem[]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const getAllBenefits = (): BenefitItem[] => {
+    if (dbBenefits.length > 0) {
+      return dbBenefits;
+    }
+    return dataBeneficios as BenefitItem[];
+  };
+
+  const filteredBenefits = useMemo(() => {
+    const all = getAllBenefits();
+    if (selectedCategory === "Todos") {
+      return all;
+    }
+    return all.filter((item) => item.category === selectedCategory);
+  }, [selectedCategory, dbBenefits]);
+
+  const paginatedBenefits = useMemo(() => {
+    const start = page * ITEMS_PER_PAGE;
+    return filteredBenefits.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredBenefits, page]);
+
+  const handleCategoryChange = useCallback((provinciaId: string) => {
+    setSelectedCategory(provinciaId);
+    setPage(0);
+  }, []);
+
+  const handlePageChange = useCallback((_: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
+    setPage(newPage);
+  }, []);
+
+  const handleEdit = (benefit: BenefitItem) => {
+    setSelectedBenefit(benefit);
+    setEditModalOpen(true);
+  };
+
+  const handleAdd = () => {
+    setSelectedBenefit(null);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    fetchBenefits();
   };
 
   return (
@@ -50,14 +131,14 @@ export default function GridBeneficios() {
           flexWrap: "wrap",
           gap: 1.5,
           justifyContent: "center",
-          mb: 8,
+          mb: 4,
         }}
       >
         {categories.map((cat) => (
           <Chip
             key={cat}
             label={cat}
-            onClick={() => filter(cat)}
+            onClick={() => handleCategoryChange(cat)}
             color={selectedCategory === cat ? "primary" : "default"}
             variant={selectedCategory === cat ? "filled" : "outlined"}
             sx={{
@@ -78,23 +159,65 @@ export default function GridBeneficios() {
         ))}
       </Box>
 
-      <Grid container spacing={4}>
-        {beneficios.map((item, i) => (
-          <Grid key={i} size={{ xs: 12, sm: 6, lg: 4 }}>
-            <BenefitItem item={item} />
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          <Grid container spacing={4}>
+            {paginatedBenefits.map((item, i) => (
+              <Grid key={item.id || `paginated-${i}`} size={{ xs: 12, sm: 6, lg: 4 }}>
+                <BenefitItemComponent item={item} onEdit={() => handleEdit(item)} />
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
+          
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+            <TablePagination
+              component="div"
+              count={filteredBenefits.length}
+              page={page}
+              onPageChange={handlePageChange}
+              rowsPerPage={ITEMS_PER_PAGE}
+              rowsPerPageOptions={[]}
+              labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+            />
+          </Box>
+        </>
+      )}
+
+      <Tooltip title="Agregar beneficio">
+        <Fab
+          color="primary"
+          onClick={handleAdd}
+          sx={{
+            position: "fixed",
+            bottom: 80,
+            right: 24,
+            zIndex: 1000,
+          }}
+        >
+          <AddIcon />
+        </Fab>
+      </Tooltip>
+
+      <BenefitEditModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        benefit={selectedBenefit}
+        onSave={handleSaveEdit}
+      />
     </Box>
   );
 }
 
-function BenefitItem({ item }: { item: Beneficio }) {
+function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () => void }) {
   const [open, setOpen] = useState(false);
   const theme = useTheme();
 
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleOpen = useCallback(() => setOpen(true), []);
+  const handleClose = useCallback(() => setOpen(false), []);
 
   return (
     <>
@@ -210,8 +333,8 @@ function BenefitItem({ item }: { item: Beneficio }) {
           }}
         >
           {item.title}
-          <IconButton onClick={handleClose} sx={{ color: "text.disabled" }}>
-            <CloseIcon />
+          <IconButton onClick={(e) => { e.stopPropagation(); onEdit(); }} sx={{ color: "primary.main" }}>
+            <EditIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ p: 4 }}>
@@ -241,8 +364,29 @@ function BenefitItem({ item }: { item: Beneficio }) {
             variant="body1"
             sx={{ color: "text.secondary", lineHeight: 1.8, mb: 4, fontSize: "1.1rem" }}
           >
-            {item.short_description}
+            {item.short_description || "Sin descripción disponible"}
           </Typography>
+
+          {item.discount_description && (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                mb: 3,
+                bgcolor: alpha(theme.palette.success.main, 0.08),
+                borderRadius: 4,
+                border: "1px solid",
+                borderColor: alpha(theme.palette.success.main, 0.2),
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, color: "success.main", textTransform: "uppercase", letterSpacing: 1 }}>
+                Descuento:
+              </Typography>
+              <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                {item.discount_description}
+              </Typography>
+            </Paper>
+          )}
 
           <Paper
             elevation={0}
@@ -266,6 +410,21 @@ function BenefitItem({ item }: { item: Beneficio }) {
               {item.telephone && (
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   Teléfono: <Box component="span" sx={{ fontWeight: 400, color: "text.secondary" }}>{item.telephone}</Box>
+                </Typography>
+              )}
+              {item.contact_person && (
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Contacto: <Box component="span" sx={{ fontWeight: 400, color: "text.secondary" }}>{item.contact_person}</Box>
+                </Typography>
+              )}
+              {item.address && (
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Dirección: <Box component="span" sx={{ fontWeight: 400, color: "text.secondary" }}>{item.address}</Box>
+                </Typography>
+              )}
+              {!item.mail && !item.telephone && !item.contact_person && !item.address && (
+                <Typography variant="body2" sx={{ fontWeight: 400, color: "text.secondary" }}>
+                  Sin información de contacto disponible
                 </Typography>
               )}
             </Box>

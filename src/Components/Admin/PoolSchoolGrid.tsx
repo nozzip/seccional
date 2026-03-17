@@ -513,7 +513,7 @@ export default function PoolSchoolGrid() {
   const professorSummary = getSummaryByProfessor();
 
   return (
-    <Box>
+    <Box sx={{ p: { xs: 1, md: 2 } }}>
       <Box
         sx={{
           mb: 4,

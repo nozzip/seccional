@@ -159,7 +159,7 @@ export default function RecycleBinManager() {
   };
 
   return (
-    <Box>
+    <Box sx={{ p: { xs: 1, md: 2 } }}>
       <Typography variant="h4" sx={{ fontWeight: 900, mb: 3 }}>
         Papelera de Reciclaje
       </Typography>

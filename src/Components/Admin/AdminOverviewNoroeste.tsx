@@ -195,7 +195,7 @@ export default function AdminOverviewNoroeste() {
   }
 
   return (
-    <Box>
+    <Box sx={{ p: { xs: 1, md: 2 } }}>
       <Typography
         variant="h5"
         sx={{ mb: 4, fontWeight: 800, color: "primary.main" }}

@@ -1,19 +1,50 @@
-import { createHashRouter, RouterProvider, Outlet } from "react-router-dom";
-import { CssBaseline, Box } from "@mui/material";
+import { createHashRouter, RouterProvider, Outlet, useLocation } from "react-router-dom";
+import { CssBaseline, Box, CircularProgress } from "@mui/material";
 import { HelmetProvider } from "react-helmet-async";
 import { ColorModeProvider } from "./ColorModeContext";
 import Navbar from "./Components/Navbar/Navbar";
 import FooterElements from "./Components/Footer/FooterElements";
-import Inicio from "./Pages/Inicio";
-import Beneficios from "./Pages/Beneficios";
-import Prensa from "./Pages/Prensa";
-import Galeria from "./Pages/Galeria";
-import Gremio from "./Pages/Gremio";
-import Login from "./Pages/Login";
-import Servicios from "./Components/Servicios/Servicios";
-import AdminDashboard from "./Pages/Admin/AdminDashboard";
+import { AnimatePresence, motion } from "framer-motion";
+import { Suspense, lazy, useEffect } from "react";
 
-import MobileBeneficiosApp from "./Pages/MobileBeneficiosApp";
+const Inicio = lazy(() => import("./Pages/Inicio"));
+const Beneficios = lazy(() => import("./Pages/Beneficios"));
+const Prensa = lazy(() => import("./Pages/Prensa"));
+const Galeria = lazy(() => import("./Pages/Galeria"));
+const Gremio = lazy(() => import("./Pages/Gremio"));
+const Login = lazy(() => import("./Pages/Login"));
+const AdminDashboard = lazy(() => import("./Pages/Admin/AdminDashboard"));
+const MobileBeneficiosApp = lazy(() => import("./Pages/MobileBeneficiosApp"));
+const Servicios = lazy(() => import("./Components/Servicios/Servicios"));
+
+const PageTransition = ({ children }: { children: React.ReactNode }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    transition={{ duration: 0.4, ease: "easeOut" }}
+  >
+    {children}
+  </motion.div>
+);
+
+const AnimatedOutlet = () => {
+  const location = useLocation();
+  
+  return (
+    <AnimatePresence mode="wait">
+      <PageTransition key={location.pathname}>
+        <Outlet />
+      </PageTransition>
+    </AnimatePresence>
+  );
+};
+
+const LoadingFallback = () => (
+  <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+    <CircularProgress />
+  </Box>
+);
 
 const Layout = () => (
   <ColorModeProvider>
@@ -21,7 +52,9 @@ const Layout = () => (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Navbar />
       <Box component="main" sx={{ flexGrow: 1 }}>
-        <Outlet />
+        <Suspense fallback={<LoadingFallback />}>
+          <AnimatedOutlet />
+        </Suspense>
       </Box>
       <FooterElements />
     </Box>
@@ -72,7 +105,9 @@ const router = createHashRouter([
     element: (
       <ColorModeProvider>
         <CssBaseline />
-        <MobileBeneficiosApp />
+        <Suspense fallback={<LoadingFallback />}>
+          <MobileBeneficiosApp />
+        </Suspense>
       </ColorModeProvider>
     ),
   },

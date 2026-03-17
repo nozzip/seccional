@@ -796,7 +796,7 @@ export default function AfiliadosManager() {
   };
 
   return (
-    <Box sx={{ pb: 4 }}>
+    <Box sx={{ p: { xs: 1, md: 2 }, pb: 4 }}>
       <Box
         sx={{
           mb: 4,
