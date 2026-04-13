@@ -39,6 +39,8 @@ import PriceManagerNoroeste from "../../Components/Admin/PriceManagerNoroeste";
 import ProvidersManager from "../../Components/Admin/ProvidersManager";
 import AdminCapabilitiesModal from "../../Components/Admin/AdminCapabilitiesModal";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import RequestManager from "../../Components/Admin/RequestManager";
+import HelpCenterIcon from "@mui/icons-material/HelpCenter";
 
 function AdminDashboard() {
   const [activeBranch, setActiveBranch] = useState<"azucena" | "noroeste">(
@@ -143,6 +145,13 @@ function AdminDashboard() {
         component: <DeudaAfiliadosManager />,
       },
       {
+        label: "Gestión Unificada",
+        icon: (
+          <HelpCenterIcon sx={{ fontSize: 20, mb: "0 !important", mr: 1 }} />
+        ),
+        component: <RequestManager />,
+      },
+      {
         label: "Finanzas y Caja",
         icon: (
           <AccountBalanceWalletIcon
@@ -159,13 +168,6 @@ function AdminDashboard() {
           <LocationOnIcon sx={{ fontSize: 20, mb: "0 !important", mr: 1 }} />
         ),
         component: <CabinBookingManager />,
-      },
-      {
-        label: "Pedidos",
-        icon: (
-          <AssignmentIcon sx={{ fontSize: 20, mb: "0 !important", mr: 1 }} />
-        ),
-        component: <OrderManagement />,
       },
       {
         label: "Precios Noroeste",

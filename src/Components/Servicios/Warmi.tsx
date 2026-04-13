@@ -10,6 +10,7 @@ import {
   Button,
   Divider,
   Skeleton,
+  Stack,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -23,16 +24,19 @@ import FreeBreakfastIcon from "@mui/icons-material/FreeBreakfast";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PeopleIcon from "@mui/icons-material/People";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import ServiceGallery from "./ServiceGallery";
 import { photosWarmi } from "../mockData";
 import { supabase } from "../../supabaseClient";
 import WarmiPricesModal from "./WarmiPricesModal";
+import CabinReservationForm from "../Public/CabinReservationForm";
 
 function Warmi() {
   const theme = useTheme();
   const [cabinPrices, setCabinPrices] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [reservationOpen, setReservationOpen] = useState(false);
 
   useEffect(() => {
     async function fetchPrices() {
@@ -249,55 +253,85 @@ function Warmi() {
           <Box
             sx={{
               mt: "auto",
-              p: 3,
+              p: 4,
               bgcolor: alpha(theme.palette.primary.main, 0.05),
-              borderRadius: 3,
+              borderRadius: 4,
               display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 2,
+              flexDirection: "column",
+              gap: 3,
               border: "1px solid",
               borderColor: alpha(theme.palette.primary.main, 0.1),
             }}
           >
             <Box>
               <Typography
-                variant="h6"
+                variant="h5"
                 sx={{ fontWeight: 800, color: "primary.main", mb: 0.5 }}
               >
                 Reservas y Consultas
               </Typography>
               <Typography
-                variant="body2"
+                variant="body1"
                 sx={{ color: "text.secondary", fontWeight: 600 }}
               >
                 AEFIP Seccional Noroeste • Lunes a Viernes de 09:00 a 17:00 hs.
               </Typography>
             </Box>
 
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<WhatsAppIcon />}
-              href="https://wa.me/5493816844462"
-              target="_blank"
-              sx={{
-                fontWeight: 700,
-                borderRadius: 2,
-                boxShadow: "0 4px 14px rgba(46, 125, 50, 0.3)",
-                "&:hover": {
-                  bgcolor: "#2e7d32",
-                  transform: "translateY(-2px)",
-                },
-                transition: "all 0.2s ease",
-                px: 3,
-                py: 1.5,
-                width: { xs: "100%", sm: "auto" },
-              }}
+            <Stack 
+              direction={{ xs: "column", sm: "row" }} 
+              spacing={2} 
+              sx={{ width: "100%" }}
             >
-              Contactar
-            </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<CalendarMonthIcon />}
+                onClick={() => setReservationOpen(true)}
+                sx={{
+                  flex: 1,
+                  fontWeight: 800,
+                  borderRadius: 3,
+                  py: 2,
+                  fontSize: "1rem",
+                  textTransform: "none",
+                  boxShadow: "0 4px 12px " + alpha(theme.palette.primary.main, 0.3),
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 6px 16px " + alpha(theme.palette.primary.main, 0.4),
+                  },
+                  transition: "all 0.3s ease",
+                }}
+              >
+                Pedir Reserva Online
+              </Button>
+
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<WhatsAppIcon />}
+                href="https://wa.me/5493816844462"
+                target="_blank"
+                sx={{
+                  flex: 1,
+                  fontWeight: 800,
+                  borderRadius: 3,
+                  py: 2,
+                  fontSize: "1rem",
+                  textTransform: "none",
+                  bgcolor: "#25D366",
+                  boxShadow: "0 4px 12px rgba(37, 211, 102, 0.3)",
+                  "&:hover": {
+                    bgcolor: "#128C7E",
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 6px 16px rgba(37, 211, 102, 0.4)",
+                  },
+                  transition: "all 0.3s ease",
+                }}
+              >
+                WhatsApp
+              </Button>
+            </Stack>
           </Box>
         </CardContent>
       </Card>
@@ -306,6 +340,11 @@ function Warmi() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         prices={cabinPrices}
+      />
+
+      <CabinReservationForm
+        open={reservationOpen}
+        onClose={() => setReservationOpen(false)}
       />
     </>
   );

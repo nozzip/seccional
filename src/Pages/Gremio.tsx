@@ -119,7 +119,7 @@ function AuthorityCard({ person }: { person: any }) {
         display: "flex",
         flexDirection:
           isMain || isSecondary ? { xs: "column", md: "row" } : "column",
-        borderRadius: 4,
+        borderRadius: 1,
         overflow: "hidden",
         boxShadow: isMain
           ? "0 20px 40px rgba(0,0,0,0.12)"
@@ -278,7 +278,7 @@ function Gremio() {
             elevation={0}
             sx={{
               p: { xs: 4, md: 6 },
-              borderRadius: 6,
+              borderRadius: 1,
               bgcolor: "primary.main",
               color: "white",
               textAlign: "center",
@@ -298,7 +298,7 @@ function Gremio() {
                   startIcon={<GetAppIcon />}
                   sx={{
                     py: 2,
-                    borderRadius: 3,
+                    borderRadius: 1,
                     bgcolor: "white",
                     color: "primary.main",
                     "&:hover": { bgcolor: "rgba(255,255,255,0.9)" },
@@ -316,7 +316,7 @@ function Gremio() {
                   target="_blank"
                   sx={{
                     py: 2,
-                    borderRadius: 3,
+                    borderRadius: 1,
                     color: "white",
                     borderColor: "white",
                     "&:hover": {

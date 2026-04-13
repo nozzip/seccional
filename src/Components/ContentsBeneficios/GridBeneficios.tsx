@@ -146,7 +146,7 @@ export default function GridBeneficios() {
               px: { xs: 2, md: 3 },
               py: 3,
               fontSize: "1rem",
-              borderRadius: "50px",
+              borderRadius: 1,
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               borderWidth: 2,
               "&:hover": {
@@ -227,7 +227,7 @@ function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () 
         sx={{
           height: 380,
           position: "relative",
-          borderRadius: 6,
+          borderRadius: 1,
           overflow: "hidden",
           cursor: "pointer",
           boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
@@ -299,7 +299,7 @@ function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () 
             color: "primary.main",
             px: 2,
             py: 0.5,
-            borderRadius: 8,
+            borderRadius: 1,
             fontWeight: 800,
             fontSize: "0.75rem",
             boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
@@ -317,7 +317,7 @@ function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () 
         fullWidth
         maxWidth="sm"
         PaperProps={{
-          sx: { borderRadius: 8, overflow: "hidden" },
+          sx: { borderRadius: 1, overflow: "hidden" },
         }}
       >
         <DialogTitle
@@ -342,7 +342,7 @@ function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () 
             sx={{
               width: "100%",
               height: 300,
-              borderRadius: 5,
+              borderRadius: 1,
               mb: 4,
               backgroundImage: `url(${item.thumbnail})`,
               backgroundSize: "contain",
@@ -374,7 +374,7 @@ function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () 
                 p: 3,
                 mb: 3,
                 bgcolor: alpha(theme.palette.success.main, 0.08),
-                borderRadius: 4,
+                borderRadius: 1,
                 border: "1px solid",
                 borderColor: alpha(theme.palette.success.main, 0.2),
               }}
@@ -393,7 +393,7 @@ function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () 
             sx={{
               p: 3,
               bgcolor: alpha(theme.palette.primary.main, 0.04),
-              borderRadius: 4,
+              borderRadius: 1,
               border: "1px solid",
               borderColor: alpha(theme.palette.primary.main, 0.1),
             }}
@@ -437,7 +437,7 @@ function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () 
             fullWidth
             sx={{
               py: 2,
-              borderRadius: 4,
+              borderRadius: 1,
               fontWeight: 900,
               fontSize: "1.1rem",
               boxShadow: `0 8px 20px ${alpha(theme.palette.primary.main, 0.3)}`,

@@ -16,6 +16,7 @@ import { supabase } from "../../supabaseClient";
 interface Affiliate {
   nombre: string;
   apellido: string;
+  fecha_nacimiento?: string;
 }
 
 export default function BirthdayCarousel() {
@@ -26,15 +27,26 @@ export default function BirthdayCarousel() {
   useEffect(() => {
     async function fetchTodayBirthdays() {
       try {
-        // Fetch 3 random affiliates to simulate "today's birthdays"
+        const today = new Date();
+        const currentMonth = today.getMonth() + 1;
+        const currentDay = today.getDate();
+
         const { data, error } = await supabase
           .from("affiliates")
-          .select("nombre, apellido")
+          .select("nombre, apellido, fecha_nacimiento")
           .eq("branch", "noroeste")
-          .limit(3);
+          .not("fecha_nacimiento", "is", null);
 
         if (error) throw error;
-        setAffiliates(data || []);
+        
+        // Filter in JS to be year-agnostic
+        const todayBirthdays = (data || []).filter(a => {
+          if (!a.fecha_nacimiento) return false;
+          const [y, m, d] = a.fecha_nacimiento.split("-");
+          return parseInt(m) === currentMonth && parseInt(d) === currentDay;
+        });
+
+        setAffiliates(todayBirthdays);
       } catch (error) {
         console.error("Error fetching today birthdays:", error);
       } finally {
@@ -49,7 +61,7 @@ export default function BirthdayCarousel() {
       <Skeleton
         variant="rectangular"
         height={500}
-        sx={{ borderRadius: 4, width: "100%" }}
+        sx={{ borderRadius: 1, width: "100%" }}
       />
     );
   }
@@ -58,7 +70,7 @@ export default function BirthdayCarousel() {
     <Box
       sx={{
         width: "100%",
-        borderRadius: 4,
+        borderRadius: 1,
         overflow: "hidden",
         boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
       }}
@@ -134,6 +146,7 @@ function BirthdayItem({ name, lastName }: { name: string; lastName: string }) {
           mb: 3,
           fontSize: "3rem",
           fontWeight: 800,
+          borderRadius: 1,
           boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
         }}
       >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Box,
   Typography,
@@ -7,8 +7,6 @@ import {
   Chip,
   alpha,
   useTheme,
-  Tabs,
-  Tab,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -19,689 +17,320 @@ import {
   IconButton,
   Tooltip,
   Divider,
+  Alert,
+  InputAdornment,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PersonIcon from "@mui/icons-material/Person";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import HistoryIcon from "@mui/icons-material/History";
 import HouseSidingIcon from "@mui/icons-material/HouseSiding";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import TodayIcon from "@mui/icons-material/Today";
 import { supabase } from "../../supabaseClient";
-import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "moment/locale/es";
-import "react-big-calendar/lib/css/react-big-calendar.css";
 
 moment.locale("es");
-const localizer = momentLocalizer(moment);
 
 interface CabinBooking {
   id: number;
-  cabin_type: number; // 4, 5, 7
-  cabin_sub_number: number; // 1, 2
+  cabin_type: number;
+  cabin_sub_number: number;
   start_date: string;
   end_date: string;
   user_name: string;
   is_affiliate: boolean;
-  status: "Pendiente" | "Pagado";
+  status: "Pendiente" | "Señada" | "Pagada" | "Cancelada";
+  total_price: number;
+  deposit_amount: number;
+  remaining_balance: number;
+  nights_count: number;
+  notes: string;
 }
 
-const CABINS = [
-  { id: 4, name: "Cabaña 4 Personas", max: 2, capacity: 4 },
-  { id: 5, name: "Cabaña 5 Personas", max: 1, capacity: 5 },
-  { id: 7, name: "Cabaña 7 Personas", max: 2, capacity: 7 },
+const UNITS = [
+    { type: 4, sub: 1, name: "C4 - Unidad 1", key: 'confort4' },
+    { type: 4, sub: 2, name: "C4 - Unidad 2", key: 'confort4' },
+    { type: 5, sub: 1, name: "C5 - Unidad 1", key: 'confort5' },
+    { type: 7, sub: 1, name: "C7 - Unidad 1", key: 'confort7' },
+    { type: 7, sub: 2, name: "C7 - Unidad 2", key: 'confort7' },
 ];
 
-const HOLIDAYS_2026: Record<string, string> = {
-  "2026-01-01": "Año Nuevo",
-  "2026-02-16": "Lunes de Carnaval",
-  "2026-02-17": "Martes de Carnaval",
-  "2026-03-23": "Puente turístico",
-  "2026-03-24": "Día de la Memoria",
-  "2026-04-02": "Día del Veterano y de los Caídos en Malvinas",
-  "2026-04-03": "Viernes Santo",
-  "2026-05-01": "Día del Trabajador",
-  "2026-05-25": "Día de la Revolución de Mayo",
-  "2026-06-15": "Paso a la Inmortalidad de Güemes",
-  "2026-06-20": "Paso a la Inmortalidad de Belgrano",
-  "2026-07-09": "Día de la Independencia",
-  "2026-07-10": "Puente turístico",
-  "2026-08-17": "San Martín",
-  "2026-10-12": "Diversidad Cultural",
-  "2026-11-23": "Día de la Soberanía",
-  "2026-12-07": "Puente turístico",
-  "2026-12-08": "Inmaculada Concepción",
-  "2026-12-25": "Navidad",
-};
-
 export default function CabinBookingManager() {
-  const [activeTab, setActiveTab] = useState(4); // default to cabin 4
+  const theme = useTheme();
+  const [viewStartDate, setViewStartDate] = useState(moment().startOf('day'));
   const [bookings, setBookings] = useState<CabinBooking[]>([]);
-
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [prices, setPrices] = useState<any>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedRange, setSelectedRange] = useState<{
     start: Date;
     end: Date;
-    subNumber: number;
+    unit: typeof UNITS[0];
   } | null>(null);
+  
   const [formData, setFormData] = useState({
     user_name: "",
-    is_affiliate: false,
-    subNumber: 1,
+    is_affiliate: true,
+    deposit: 0,
+    notes: "",
+    status: "Pendiente" as any
   });
+  const [conflictError, setConflictError] = useState<string | null>(null);
 
-  const theme = useTheme();
+  // Fetching data
+  const fetchData = async () => {
+    const { data: bData } = await supabase.from("cabin_bookings").select("*");
+    setBookings(bData || []);
 
-  const fetchBookings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("cabin_bookings")
-        .select("*")
-        .eq("cabin_type", activeTab);
-
-      if (error) throw error;
-      setBookings(data || []);
-    } catch (error) {
-      console.error("Error fetching cabin bookings:", error);
-    }
+    const { data: pData } = await supabase.from('system_configs').select('value').eq('key', 'cabin_prices').single();
+    if (pData?.value) setPrices(pData.value);
   };
 
   useEffect(() => {
-    fetchBookings();
+    fetchData();
+  }, []);
 
-    const subscription = supabase
-      .channel("cabin_bookings_changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "cabin_bookings" },
-        () => {
-          fetchBookings();
-        },
-      )
-      .subscribe();
+  // Grilla de 15 días
+  const daysInView = useMemo(() => {
+    return Array.from({ length: 15 }, (_, i) => moment(viewStartDate).add(i, 'days'));
+  }, [viewStartDate]);
 
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-  }, [activeTab]);
-
-  const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
-    // Determine which sub-cabin to default to (1 or 2, depending on availability)
-    setSelectedRange({ start, end, subNumber: 1 });
-    setFormData({
-      ...formData,
-      subNumber: 1,
-      user_name: "",
-      is_affiliate: false,
+  const handleDayClick = (day: moment.Moment, unit: typeof UNITS[0]) => {
+    setSelectedRange({
+        start: day.clone().toDate(),
+        end: day.clone().add(1, 'day').toDate(),
+        unit
     });
+    setFormData({ user_name: "", deposit: 0, notes: "", status: 'Pendiente', is_affiliate: true });
+    setConflictError(null);
     setOpenDialog(true);
+  };
+
+  const handleBookingClick = (booking: CabinBooking) => {
+    // Para simplificar, abrimos el mismo modal pero con los datos de la reserva
+    // (Podríamos hacer un modo edición más complejo luego)
+    alert(`Reserva de: ${booking.user_name}\nSaldo: $${booking.remaining_balance}`);
+  };
+
+  const checkConflict = (start: Date, end: Date, type: number, sub: number) => {
+    const sStr = moment(start).format('YYYY-MM-DD');
+    const eStr = moment(end).format('YYYY-MM-DD');
+    return bookings.find(b => b.cabin_type === type && b.cabin_sub_number === sub && (sStr < b.end_date) && (eStr > b.start_date));
   };
 
   const handleSaveBooking = async () => {
     if (!selectedRange || !formData.user_name) return;
 
+    if (checkConflict(selectedRange.start, selectedRange.end, selectedRange.unit.type, selectedRange.unit.sub)) {
+        setConflictError("¡Conflicto detectado en esas fechas!");
+        return;
+    }
+
+    const priceKey = selectedRange.unit.key as any;
+    const pricePerNight = formData.is_affiliate ? prices[priceKey].afiliado : prices[priceKey].general;
+    const nights = moment(selectedRange.end).diff(moment(selectedRange.start), 'days');
+    const total = nights * pricePerNight;
+
     try {
       const { error } = await supabase.from("cabin_bookings").insert({
-        cabin_type: activeTab,
-        cabin_sub_number: formData.subNumber,
+        cabin_type: selectedRange.unit.type,
+        cabin_sub_number: selectedRange.unit.sub,
         start_date: moment(selectedRange.start).format("YYYY-MM-DD"),
-        end_date: moment(selectedRange.end).format("YYYY-MM-DD"), // FullCalendar end date is exclusive
+        end_date: moment(selectedRange.end).format("YYYY-MM-DD"),
         user_name: formData.user_name,
         is_affiliate: formData.is_affiliate,
-        status: "Pendiente",
+        status: formData.status || (formData.deposit > 0 ? "Señada" : "Pendiente"),
+        total_price: total,
+        deposit_amount: formData.deposit,
+        remaining_balance: total - formData.deposit,
+        nights_count: nights,
+        notes: formData.notes
       });
 
       if (error) throw error;
       setOpenDialog(false);
-      fetchBookings();
-    } catch (error) {
-      console.error("Error saving cabin booking:", error);
-      alert("Error al guardar la reserva. Verifica que no haya superposición.");
-    }
-  };
-
-  const deleteBooking = async (id: number, status: string) => {
-    if (
-      status === "Pagado" &&
-      !window.confirm(
-        "Esta reserva ya está PAGADA. ¿Seguro que deseas eliminarla?",
-      )
-    )
-      return;
-    if (status !== "Pagado" && !window.confirm("¿Dar de baja esta reserva?"))
-      return;
-
-    try {
-      await supabase.from("cabin_bookings").delete().eq("id", id);
-      fetchBookings();
+      fetchData();
     } catch (e) {
-      console.error(e);
+      alert("Error al guardar.");
     }
   };
 
-  const events = bookings.map((b) => ({
-    id: b.id,
-    title: `U${b.cabin_sub_number} - ${b.user_name} ${b.is_affiliate ? "(Afil)" : ""}`,
-    start: moment(b.start_date).toDate(),
-    end: moment(b.end_date).toDate(), // React big calendar expects end date to be exclusive for full days
-    allDay: true,
-    resource: b,
-  }));
-
-  const eventStyleGetter = (
-    event: any,
-    start: Date,
-    end: Date,
-    isSelected: boolean,
-  ) => {
-    const isPaid = event.resource.status === "Pagado";
-    const subId = event.resource.cabin_sub_number;
-
-    let bgColor = theme.palette.primary.main;
-
-    // Asignar color por unidad
-    if (subId === 2) bgColor = theme.palette.secondary.main;
-    else if (subId === 3) bgColor = theme.palette.info.main;
-    else if (subId >= 4) bgColor = theme.palette.warning.main;
-
-    return {
-      style: {
-        backgroundColor: alpha(bgColor, isPaid ? 0.9 : 0.6), // Más translúcido si no está pagado
-        borderRadius: "4px",
-        opacity: 0.9,
-        color: "white",
-        border: "none",
-        borderLeft: `5px solid ${isPaid ? theme.palette.success.main : theme.palette.error.main}`,
-        display: "block",
-        margin: "2px 0",
-      },
-    };
+  const deleteBooking = async (id: number) => {
+    if (!window.confirm("¿Eliminar reserva?")) return;
+    await supabase.from("cabin_bookings").delete().eq("id", id);
+    fetchData();
   };
-
-  const dayPropGetter = (date: Date) => {
-    const dateStr = moment(date).format("YYYY-MM-DD");
-    if (HOLIDAYS_2026[dateStr]) {
-      return {
-        style: {
-          backgroundColor: alpha(theme.palette.error.main, 0.05),
-        },
-      };
-    }
-    return {};
-  };
-
-  const CustomDateHeader = ({ label, date }: { label: string; date: Date }) => {
-    const dateStr = moment(date).format("YYYY-MM-DD");
-    const holidayName = HOLIDAYS_2026[dateStr];
-
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          width: "100%",
-          pt: 0.5,
-          px: 0.5,
-        }}
-      >
-        <Typography
-          variant="body2"
-          sx={{
-            fontWeight: holidayName ? 800 : 700,
-            color: holidayName ? "error.main" : "inherit",
-          }}
-        >
-          {label}
-        </Typography>
-        {holidayName && (
-          <Typography
-            variant="caption"
-            sx={{
-              color: "error.main",
-              fontSize: "0.65rem",
-              textAlign: "right",
-              lineHeight: 1.1,
-              width: "100%",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-            title={holidayName}
-          >
-            {holidayName}
-          </Typography>
-        )}
-      </Box>
-    );
-  };
-
-  const EventComponent = ({ event }: any) => {
-    const startDate = moment(event.resource.start_date).format("DD/MM");
-    const endDate = moment(event.resource.end_date)
-      .subtract(1, "days")
-      .format("DD/MM");
-
-    return (
-      <Tooltip title={`Ingreso: ${startDate} - Egreso: ${endDate}`}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-            px: 0.5,
-            py: 0.2,
-            overflow: "hidden",
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{ fontWeight: 800, color: "white", fontSize: "0.65rem" }}
-            noWrap
-          >
-            U{event.resource.cabin_sub_number} - {event.resource.user_name} (
-            {startDate}-{endDate})
-          </Typography>
-          <IconButton
-            size="small"
-            sx={{
-              color: "white",
-              p: 0,
-              opacity: 0.7,
-              "&:hover": { opacity: 1 },
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              deleteBooking(event.id, event.resource.status);
-            }}
-          >
-            <DeleteIcon sx={{ fontSize: 12 }} />
-          </IconButton>
-        </Box>
-      </Tooltip>
-    );
-  };
-
-  const currentCabinConfig = CABINS.find((c) => c.id === activeTab);
-  const subCabins = Array.from(
-    { length: currentCabinConfig?.max || 1 },
-    (_, i) => i + 1,
-  );
 
   return (
-    <Box sx={{ p: { xs: 1, md: 2 } }}>
-      <Box
-        sx={{
-          mb: 4,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>
-            Reservas de Cabañas (El Mollar)
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Selecciona el tipo de cabaña y arrastra en el calendario para
-            reservar fechas libres.
-          </Typography>
-        </Box>
-      </Box>
-
-      <Paper
-        elevation={0}
-        sx={{ mb: 3, border: "1px solid", borderColor: "divider" }}
-      >
-        <Tabs
-          value={activeTab}
-          onChange={(e, v) => setActiveTab(v)}
-          variant="fullWidth"
-        >
-          {CABINS.map((cabin) => (
-            <Tab
-              key={cabin.id}
-              value={cabin.id}
-              icon={<HouseSidingIcon />}
-              label={cabin.name}
-              iconPosition="start"
-              sx={{ fontWeight: 800 }}
-            />
-          ))}
-        </Tabs>
-      </Paper>
-
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2,
-          height: "95vh",
-          minHeight: 850,
-          border: "1px solid",
-          borderColor: "divider",
-          display: "flex",
-          flexDirection: "column",
-          mb: 4,
-          pb: 4,
-        }}
-      >
-        <Box
-          sx={{
-            flexGrow: 1,
-            width: "100%",
-            // Ajustes CSS para el popup "Ver más" de react-big-calendar
-            "& .rbc-show-more": {
-              backgroundColor: alpha(theme.palette.primary.main, 0.1),
-              color: theme.palette.primary.dark,
-              fontWeight: 800,
-              fontSize: "0.75rem",
-              padding: "2px 4px",
-              borderRadius: "4px",
-              marginTop: "2px",
-              textAlign: "center",
-              width: "calc(100% - 4px)",
-              margin: "2px auto",
-            },
-            "& .rbc-overlay": {
-              zIndex: 100,
-              boxShadow: theme.shadows[4],
-              borderRadius: 2,
-              border: `1px solid ${theme.palette.divider}`,
-              padding: 1,
-              backgroundColor: theme.palette.background.paper,
-            },
-            "& .rbc-overlay-header": {
-              fontWeight: 800,
-              borderBottom: `1px solid ${theme.palette.divider}`,
-              marginBottom: 1,
-              paddingBottom: 0.5,
-            },
-            "& .rbc-toolbar-label": {
-              textTransform: "capitalize",
-              fontWeight: 800,
-              fontSize: "1.2rem",
-              color: "text.primary",
-            },
-            // Estilización profunda del calendario para integrarlo con la página
-            "& .rbc-month-view": {
-              borderColor: "divider",
-              backgroundColor: "background.paper",
-            },
-            "& .rbc-month-row": {
-              borderColor: "divider",
-            },
-            "& .rbc-day-bg": {
-              borderColor: "divider",
-            },
-            "& .rbc-header": {
-              borderColor: "divider",
-              color: "text.secondary",
-              fontWeight: 800,
-              padding: 1,
-              backgroundColor: alpha(theme.palette.background.paper, 0.5),
-            },
-            "& .rbc-today": {
-              backgroundColor: alpha(theme.palette.primary.main, 0.08),
-            },
-            "& .rbc-off-range-bg": {
-              backgroundColor:
-                theme.palette.mode === "dark"
-                  ? alpha("#000", 0.2)
-                  : alpha(theme.palette.text.disabled, 0.05),
-            },
-            "& .rbc-date-cell": {
-              color: "text.primary",
-              fontWeight: 700,
-              padding: "4px",
-            },
-            "& .rbc-off-range": {
-              color: "text.disabled",
-            },
-            "& .rbc-btn-group button": {
-              color: "text.primary",
-              borderColor: "divider",
-              "&:hover": {
-                backgroundColor: "action.hover",
-              },
-              "&.rbc-active": {
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                color: "primary.main",
-                borderColor: "primary.main",
-                boxShadow: "none",
-              },
-            },
-          }}
-        >
-          <Calendar
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            views={["month"]}
-            defaultView="month"
-            date={currentDate}
-            onNavigate={(newDate) => setCurrentDate(newDate)}
-            culture="es"
-            selectable={true}
-            onSelectSlot={handleSelectSlot}
-            eventPropGetter={eventStyleGetter}
-            dayPropGetter={dayPropGetter}
-            components={{
-              event: EventComponent,
-              month: {
-                dateHeader: CustomDateHeader,
-              },
-            }}
-            popup={true}
-            style={{ height: "100%", width: "100%" }}
-            formats={{
-              monthHeaderFormat: (date: any) => {
-                const formatter = new Intl.DateTimeFormat("es-ES", {
-                  month: "long",
-                  year: "numeric",
-                });
-                return formatter.format(date);
-              },
-              weekdayFormat: (date: any) => {
-                const formatter = new Intl.DateTimeFormat("es-ES", {
-                  weekday: "short",
-                });
-                return formatter.format(date);
-              },
-              dayFormat: (date: any) => {
-                const formatter = new Intl.DateTimeFormat("es-ES", {
-                  day: "2-digit",
-                });
-                return formatter.format(date);
-              },
-            }}
-            messages={{
-              next: "Sig",
-              previous: "Ant",
-              today: "Hoy",
-              month: "Mes",
-              showMore: (total) => `+${total} más`,
-            }}
-          />
-        </Box>
-      </Paper>
-
-      {/* Dialogo de Reserva */}
-      <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ fontWeight: 800 }}>
-          Nueva Reserva: Cabaña para {activeTab}
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <Box
-              sx={{
-                p: 2,
-                bgcolor: alpha(theme.palette.primary.main, 0.05),
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.1),
-              }}
-            >
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 5 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: 700,
-                      color: "text.secondary",
-                      display: "block",
-                    }}
-                  >
-                    INGRESO
-                  </Typography>
-                  <TextField
-                    type="date"
-                    size="small"
-                    variant="standard"
-                    value={
-                      selectedRange
-                        ? moment(selectedRange.start).format("YYYY-MM-DD")
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const newStart = moment(e.target.value).toDate();
-                      setSelectedRange((prev) =>
-                        prev ? { ...prev, start: newStart } : null,
-                      );
-                    }}
-                    InputProps={{
-                      disableUnderline: true,
-                      sx: { fontWeight: 800, fontSize: "1.1rem" },
-                    }}
-                  />
-                </Grid>
-                <Grid
-                  size={{ xs: 2 }}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Box sx={{ width: 30, height: 2, bgcolor: "divider" }} />
-                </Grid>
-                <Grid size={{ xs: 5 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: 700,
-                      color: "text.secondary",
-                      display: "block",
-                    }}
-                  >
-                    EGRESO
-                  </Typography>
-                  <TextField
-                    type="date"
-                    size="small"
-                    variant="standard"
-                    value={
-                      selectedRange
-                        ? moment(selectedRange.end)
-                          .subtract(1, "days")
-                          .format("YYYY-MM-DD")
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const newEnd = moment(e.target.value)
-                        .add(1, "days")
-                        .toDate();
-                      setSelectedRange((prev) =>
-                        prev ? { ...prev, end: newEnd } : null,
-                      );
-                    }}
-                    InputProps={{
-                      disableUnderline: true,
-                      sx: { fontWeight: 800, fontSize: "1.1rem" },
-                    }}
-                  />
-                </Grid>
-              </Grid>
-              <Divider sx={{ my: 1.5 }} />
-              <Box sx={{ display: "flex", justifyContent: "center" }}>
-                <Chip
-                  label={`${selectedRange ? Math.max(0, moment(selectedRange.end).subtract(1, "days").diff(moment(selectedRange.start), "days")) : 0} Noches`}
-                  color="primary"
-                  size="small"
-                  sx={{ fontWeight: 900, px: 2 }}
-                />
-              </Box>
+    <Box sx={{ p: { xs: 1, md: 3 }, height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      
+      {/* HEADER: Navegación Compacta */}
+      <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box>
+                <Typography variant="h5" sx={{ fontWeight: 900, color: 'primary.main' }}>Tablero Global (15 Días)</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                    {viewStartDate.format('MMMM [de] YYYY').toUpperCase()}
+                </Typography>
             </Box>
+            <Stack direction="row" spacing={1}>
+                <Button size="small" variant="outlined" startIcon={<TodayIcon />} onClick={() => setViewStartDate(moment().startOf('day'))}>Hoy</Button>
+                <IconButton onClick={() => setViewStartDate(prev => prev.clone().subtract(15, 'days'))}><ChevronLeftIcon /></IconButton>
+                <IconButton onClick={() => setViewStartDate(prev => prev.clone().add(15, 'days'))}><ChevronRightIcon /></IconButton>
+            </Stack>
+        </Box>
+        
+        {/* Mini Calendario de ayuda (Opcional, pero se integra en la cabecera de la grilla) */}
+      </Paper>
 
-            <TextField
-              select
-              fullWidth
-              label="Unidad de Cabaña"
-              variant="outlined"
-              value={formData.subNumber}
-              onChange={(e) =>
-                setFormData({ ...formData, subNumber: Number(e.target.value) })
-              }
-            >
-              {subCabins.map((num) => (
-                <MenuItem key={num} value={num}>
-                  Unidad {num}
-                </MenuItem>
-              ))}
-            </TextField>
+      {/* GRID PRINCIPAL (Modo Hotel) */}
+      <Paper elevation={0} sx={{ flexGrow: 1, borderRadius: 4, border: '1px solid', borderColor: 'divider', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ overflowX: 'auto', flexGrow: 1 }}>
+            <Box sx={{ minWidth: 1000 }}>
+                {/* Header de la Grilla (Días) */}
+                <Box sx={{ display: 'flex', borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.background.paper, 0.5) }}>
+                    <Box sx={{ width: 180, p: 2, borderRight: '1px solid', borderColor: 'divider', fontWeight: 900 }}>UNIDAD</Box>
+                    {daysInView.map((day, i) => {
+                        const isToday = day.isSame(moment(), 'day');
+                        const isWeekend = day.day() === 0 || day.day() === 6;
+                        return (
+                            <Box key={i} sx={{ 
+                                flex: 1, p: 1, textAlign: 'center', borderRight: '1px solid', borderColor: 'divider',
+                                bgcolor: isToday ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                borderBottom: isToday ? `3px solid ${theme.palette.primary.main}` : 'none'
+                             }}>
+                                <Typography variant="caption" sx={{ fontWeight: 800, color: isWeekend ? 'error.main' : 'text.secondary' }}>
+                                    {day.format('ddd').toUpperCase()}
+                                </Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1 }}>{day.format('DD')}</Typography>
+                            </Box>
+                        );
+                    })}
+                </Box>
 
-            <TextField
-              fullWidth
-              label="Nombre del Solicitante / Afiliado"
-              placeholder="Ej: Juan Pérez"
-              value={formData.user_name}
-              onChange={(e) =>
-                setFormData({ ...formData, user_name: e.target.value })
-              }
-              InputProps={{
-                startAdornment: (
-                  <PersonIcon sx={{ mr: 1, color: "text.secondary" }} />
-                ),
-              }}
-            />
+                {/* Filas de Cabañas */}
+                {UNITS.map((unit, idx) => (
+                    <Box key={idx} sx={{ display: 'flex', height: 80, borderBottom: '1px solid', borderColor: 'divider' }}>
+                        {/* Celda de Nombre */}
+                        <Box sx={{ width: 180, p: 2, borderRight: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+                            <HouseSidingIcon color="primary" sx={{ fontSize: 20 }} />
+                            <Typography variant="body2" sx={{ fontWeight: 800 }}>{unit.name}</Typography>
+                        </Box>
 
-            <TextField
-              select
-              fullWidth
-              label="Condición del Huésped"
-              value={formData.is_affiliate ? "Afiliado" : "General"}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  is_affiliate: e.target.value === "Afiliado",
-                })
-              }
-            >
-              <MenuItem value="Afiliado">Afiliado (Precio Especial)</MenuItem>
-              <MenuItem value="General">Público General</MenuItem>
-            </TextField>
-          </Stack>
+                        {/* Celdas de Tiempo */}
+                        <Box sx={{ flex: 1, display: 'flex', position: 'relative' }}>
+                            {daysInView.map((day, i) => (
+                                <Box key={i} onClick={() => handleDayClick(day, unit)} sx={{ 
+                                    flex: 1, borderRight: '1px dotted', borderColor: 'divider', transition: '0.2s',
+                                    '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05), cursor: 'pointer' }
+                                }} />
+                            ))}
+
+                            {/* Render de Reservas encima (Relativo a la fila) */}
+                            {bookings.filter(b => b.cabin_type === unit.type && b.cabin_sub_number === unit.sub).map(booking => {
+                                const startDay = moment(booking.start_date);
+                                const endDay = moment(booking.end_date);
+                                
+                                // Calculamos posicion si está dentro del rango visible
+                                const gridStart = viewStartDate;
+                                const gridEnd = moment(viewStartDate).add(15, 'days');
+
+                                if (startDay.isAfter(gridEnd) || endDay.isBefore(gridStart)) return null;
+
+                                const offset = Math.max(0, startDay.diff(gridStart, 'days'));
+                                const duration = Math.min(15 - offset, endDay.diff(moment.max(startDay, gridStart), 'days'));
+                                
+                                if (duration <= 0) return null;
+
+                                const isPaid = booking.status === 'Pagada';
+                                const left = `${(offset / 15) * 100}%`;
+                                const width = `${(duration / 15) * 100}%`;
+
+                                return (
+                                    <Box key={booking.id} sx={{
+                                        position: 'absolute', top: 12, left, width, height: 56, zIndex: 1,
+                                        p: 1, cursor: 'pointer', transition: '0.2s',
+                                        '&:hover': { transform: 'scaleY(1.05)', zIndex: 2 }
+                                    }} onClick={(e) => { e.stopPropagation(); handleBookingClick(booking); }}>
+                                        <Paper elevation={3} sx={{
+                                            height: '100%', borderRadius: 2, p: 1, overflow: 'hidden',
+                                            bgcolor: isPaid ? 'success.main' : booking.status === 'Señada' ? 'warning.main' : 'primary.main',
+                                            color: 'white', border: '1px solid rgba(255,255,255,0.2)',
+                                            display: 'flex', flexDirection: 'column', justifyContent: 'center'
+                                        }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Typography variant="caption" sx={{ fontWeight: 900, whiteSpace: 'nowrap' }}>
+                                                    {booking.user_name}
+                                                </Typography>
+                                                <IconButton size="small" sx={{ p: 0, color: 'white', opacity: 0.7 }} onClick={(e) => { e.stopPropagation(); deleteBooking(booking.id); }}>
+                                                    <DeleteIcon sx={{ fontSize: 14 }} />
+                                                </IconButton>
+                                            </Box>
+                                            <Typography variant="caption" sx={{ fontSize: '0.6rem', opacity: 0.9 }}>
+                                                {booking.nights_count} Nts - Bal: ${booking.remaining_balance.toLocaleString()}
+                                            </Typography>
+                                        </Paper>
+                                    </Box>
+                                );
+                            })}
+                        </Box>
+                    </Box>
+                ))}
+            </Box>
+        </Box>
+      </Paper>
+
+      {/* MODAL DE RESERVA (Igual al anterior pero adaptado) */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 900, pb: 0 }}>Nueva Reserva: {selectedRange?.unit.name}</DialogTitle>
+        <DialogContent dividers sx={{ mt: 2 }}>
+            {conflictError && <Alert severity="error" sx={{ mb: 2 }}>{conflictError}</Alert>}
+            <Grid container spacing={3}>
+                <Grid item xs={12}>
+                    <Box sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>PERIODO SELECCIONADO</Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 900 }}>
+                                {moment(selectedRange?.start).format('ddd DD/MM')} al {moment(selectedRange?.end).subtract(1, 'd').format('ddd DD/MM')}
+                            </Typography>
+                        </Box>
+                        <Chip label={`${moment(selectedRange?.end).diff(moment(selectedRange?.start), 'days')} Noches`} color="primary" sx={{ fontWeight: 900 }} />
+                    </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                    <TextField label="Nombre del Titular" fullWidth value={formData.user_name} onChange={(e) => setFormData({ ...formData, user_name: e.target.value })} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <TextField select label="Categoría" fullWidth value={formData.is_affiliate ? 'Afil' : 'Gral'} onChange={(e) => setFormData({ ...formData, is_affiliate: e.target.value === 'Afil' })}>
+                        <MenuItem value="Afil">Afiliado</MenuItem>
+                        <MenuItem value="Gral">Público General</MenuItem>
+                    </TextField>
+                </Grid>
+
+                <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
+
+                <Grid item xs={12} sm={4}>
+                    <TextField label="Seña Recibida" fullWidth type="number" value={formData.deposit} onChange={(e) => setFormData({ ...formData, deposit: Number(e.target.value) })} InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} />
+                </Grid>
+                <Grid item xs={12} sm={8}>
+                    <TextField select label="Estado" fullWidth value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                        <MenuItem value="Pendiente">Pendiente</MenuItem>
+                        <MenuItem value="Señada">Señada</MenuItem>
+                        <MenuItem value="Pagada">Pagada</MenuItem>
+                    </TextField>
+                </Grid>
+
+                <Grid item xs={12}>
+                    <TextField label="Observaciones" fullWidth multiline rows={2} value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
+                </Grid>
+            </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpenDialog(false)} sx={{ fontWeight: 700 }}>
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSaveBooking}
-            disabled={!formData.user_name}
-            sx={{ fontWeight: 800, px: 4 }}
-          >
-            CONFIRMAR
-          </Button>
+        <DialogActions sx={{ p: 3, gap: 1 }}>
+            <Button onClick={() => setOpenDialog(false)} sx={{ fontWeight: 700 }}>Cancelar</Button>
+            <Button variant="contained" onClick={handleSaveBooking} disabled={!formData.user_name} sx={{ fontWeight: 900, px: 4 }}>Confirmar Reserva</Button>
         </DialogActions>
       </Dialog>
     </Box>

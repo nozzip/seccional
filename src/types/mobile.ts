@@ -6,4 +6,5 @@ export interface AffiliateData {
     telefono?: string;
     email?: string;
     es_jubilado?: boolean;
+    validation_token?: string;
 }

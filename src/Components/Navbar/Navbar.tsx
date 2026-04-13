@@ -151,7 +151,7 @@ function Navbar(props: any) {
               sx={{
                 display: { xs: "none", sm: "flex" },
                 bgcolor: "primary.main",
-                borderRadius: 2,
+                borderRadius: 1,
                 px: 3,
                 fontWeight: 700,
               }}

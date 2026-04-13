@@ -240,27 +240,25 @@ function Azucena() {
           <Box
             sx={{
               mt: "auto",
-              p: 3,
+              p: 4,
               bgcolor: alpha(theme.palette.primary.main, 0.05),
-              borderRadius: 3,
+              borderRadius: 4,
               display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 2,
+              flexDirection: "column",
+              gap: 3,
               border: "1px solid",
               borderColor: alpha(theme.palette.primary.main, 0.1),
             }}
           >
             <Box>
               <Typography
-                variant="h6"
+                variant="h5"
                 sx={{ fontWeight: 800, color: "primary.main", mb: 0.5 }}
               >
                 Informes y Consultas
               </Typography>
               <Typography
-                variant="body2"
+                variant="body1"
                 sx={{ color: "text.secondary", fontWeight: 600 }}
               >
                 Comunicate directamente con la administración del Club.
@@ -274,20 +272,23 @@ function Azucena() {
               href="https://wa.me/5493813545911"
               target="_blank"
               sx={{
-                fontWeight: 700,
-                borderRadius: 2,
-                boxShadow: "0 4px 14px rgba(46, 125, 50, 0.3)",
+                fontWeight: 800,
+                borderRadius: 3,
+                py: 2,
+                fontSize: "1.1rem",
+                textTransform: "none",
+                bgcolor: "#25D366",
+                boxShadow: "0 4px 12px rgba(37, 211, 102, 0.3)",
                 "&:hover": {
-                  bgcolor: "#2e7d32",
+                  bgcolor: "#128C7E",
                   transform: "translateY(-2px)",
+                  boxShadow: "0 6px 16px rgba(37, 211, 102, 0.4)",
                 },
-                transition: "all 0.2s ease",
-                px: 3,
-                py: 1.5,
-                width: { xs: "100%", sm: "auto" },
+                transition: "all 0.3s ease",
+                width: "100%",
               }}
             >
-              Contactar
+              Contactar por WhatsApp
             </Button>
           </Box>
         </CardContent>

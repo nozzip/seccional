@@ -99,7 +99,7 @@ const NoticiaItem = memo(function NoticiaItem({ item, index }: { item: NewsItem;
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        borderRadius: 4,
+        borderRadius: 1, // 4px
         overflow: "hidden",
         boxShadow: `0 10px 40px ${alpha(theme.palette.primary.main, 0.08)}`,
         border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,

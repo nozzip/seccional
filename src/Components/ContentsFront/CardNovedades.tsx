@@ -26,7 +26,7 @@ function NovedadItem({ item }: { item: any }) {
     <Card
       sx={{
         display: 'flex',
-        borderRadius: 3,
+        borderRadius: 1,
         overflow: 'hidden',
         boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
         border: '1px solid',

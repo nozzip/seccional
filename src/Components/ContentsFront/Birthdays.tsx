@@ -19,6 +19,7 @@ import { supabase } from "../../supabaseClient";
 interface Affiliate {
   nombre: string;
   apellido: string;
+  fecha_nacimiento?: string;
 }
 
 export default function Birthdays() {
@@ -29,16 +30,33 @@ export default function Birthdays() {
   useEffect(() => {
     async function fetchAffiliates() {
       try {
+        const today = new Date();
+        const currentMonth = today.getMonth() + 1;
+        
         const { data, error } = await supabase
           .from("affiliates")
-          .select("nombre, apellido")
+          .select("nombre, apellido, fecha_nacimiento")
           .eq("branch", "noroeste")
-          .range(3, 13); // Skip first 3 (used in carousel) to avoid direct visible duplicates
+          .not("fecha_nacimiento", "is", null);
 
         if (error) throw error;
-        setAffiliates(data || []);
+
+        // Filter and Sort in JS to be year-agnostic
+        const monthBirthdays = (data || [])
+          .filter(a => {
+            if (!a.fecha_nacimiento) return false;
+            const [y, m, d] = a.fecha_nacimiento.split("-");
+            return parseInt(m) === currentMonth;
+          })
+          .sort((a, b) => {
+            const dayA = parseInt(a.fecha_nacimiento!.split("-")[2]);
+            const dayB = parseInt(b.fecha_nacimiento!.split("-")[2]);
+            return dayA - dayB;
+          });
+
+        setAffiliates(monthBirthdays);
       } catch (error) {
-        console.error("Error fetching affiliate names for birthdays:", error);
+        console.error("Error fetching birthdays of the month:", error);
       } finally {
         setLoading(false);
       }
@@ -52,7 +70,7 @@ export default function Birthdays() {
       elevation={0}
       sx={{
         p: 3,
-        borderRadius: 4,
+        borderRadius: 1,
         bgcolor: alpha(theme.palette.background.paper, 0.4),
         backdropFilter: "blur(4px)",
         border: "1px solid",
@@ -63,7 +81,7 @@ export default function Birthdays() {
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-        <Avatar sx={{ bgcolor: "secondary.main", width: 40, height: 40 }}>
+        <Avatar sx={{ bgcolor: "secondary.main", width: 40, height: 40, borderRadius: 1 }}>
           <CakeIcon sx={{ color: "white" }} />
         </Avatar>
         <Typography
@@ -99,6 +117,7 @@ export default function Birthdays() {
                         color: "primary.main",
                         fontWeight: 700,
                         fontSize: "0.9rem",
+                        borderRadius: 1,
                       }}
                     >
                       {aff.nombre[0]}
@@ -107,7 +126,7 @@ export default function Birthdays() {
                   </ListItemAvatar>
                   <ListItemText
                     primary={`${aff.nombre} ${aff.apellido}`}
-                    secondary="Afiliado Seccional"
+                    secondary={aff.fecha_nacimiento ? `${new Date(aff.fecha_nacimiento).getUTCDate()} de ${new Date(aff.fecha_nacimiento).toLocaleString('es-AR', { month: 'long', timeZone: 'UTC' })}` : "Afiliado Seccional"}
                     primaryTypographyProps={{
                       fontWeight: 600,
                       color: "text.primary",
@@ -115,7 +134,7 @@ export default function Birthdays() {
                     }}
                     secondaryTypographyProps={{
                       variant: "caption",
-                      sx: { opacity: 0.7 },
+                      sx: { opacity: 0.7, textTransform: 'capitalize' },
                     }}
                   />
                 </ListItem>

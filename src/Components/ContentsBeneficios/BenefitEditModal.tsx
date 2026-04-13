@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SaveIcon from '@mui/icons-material/Save';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { supabase } from '../../supabaseClient';
 
 export interface Benefit {
@@ -53,6 +54,7 @@ const CATEGORIES = [
 export default function BenefitEditModal({ open, onClose, benefit, onSave }: BenefitEditModalProps) {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const theme = useTheme();
@@ -111,6 +113,41 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
             ...formData,
             [name]: type === 'checkbox' ? checked : value,
         });
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        setError('');
+
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('benefits')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('benefits')
+                .getPublicUrl(filePath);
+
+            setFormData({
+                ...formData,
+                thumbnail: data.publicUrl
+            });
+            setSuccess('Imagen subida correctamente');
+        } catch (err: any) {
+            console.error('Error uploading file:', err);
+            setError('Error al subir imagen: ' + err.message);
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleSave = async () => {
@@ -197,12 +234,12 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
             </DialogTitle>
             <DialogContent dividers>
                 {error && (
-                    <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                    <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
                         {error}
                     </Alert>
                 )}
                 {success && (
-                    <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
+                    <Alert severity="success" sx={{ mb: 2, borderRadius: 1 }}>
                         {success}
                     </Alert>
                 )}
@@ -233,15 +270,40 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                         ))}
                     </TextField>
 
-                    <TextField
-                        label="URL de Imagen"
-                        name="thumbnail"
-                        value={formData.thumbnail}
-                        onChange={handleChange}
-                        fullWidth
-                        size="small"
-                        placeholder="https://..."
-                    />
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                        <TextField
+                            label="URL de Imagen"
+                            name="thumbnail"
+                            value={formData.thumbnail}
+                            onChange={handleChange}
+                            fullWidth
+                            size="small"
+                            placeholder="https://..."
+                        />
+                        <Button
+                            variant="outlined"
+                            component="label"
+                            startIcon={uploading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+                            disabled={uploading}
+                            sx={{ 
+                                minWidth: '130px', 
+                                height: '40px', // Matches MUI small TextField height
+                                borderRadius: 1 
+                            }}
+                            size="small"
+                        >
+                            {uploading ? 'Subiendo...' : 'Subir'}
+                            <input
+                                type="file"
+                                hidden
+                                accept="image/*"
+                                onChange={handleFileUpload}
+                            />
+                        </Button>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: -1, ml: 1, display: 'block' }}>
+                        Opcional: puedes pegar una URL o subir un archivo local
+                    </Typography>
 
                     <TextField
                         label="Descripción"

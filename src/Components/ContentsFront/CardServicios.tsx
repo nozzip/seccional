@@ -30,7 +30,7 @@ function ServicioItem({ item, index }: { item: DataItem; index: number }) {
       sx={{
         position: "relative",
         height: { xs: 350, md: 480 },
-        borderRadius: 6,
+        borderRadius: 1,
         overflow: "hidden",
         boxShadow: `0 10px 40px ${alpha(theme.palette.primary.main, 0.1)}`,
         border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,

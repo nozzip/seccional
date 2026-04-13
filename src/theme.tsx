@@ -10,8 +10,8 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
       dark: "#5a9dc4",
     },
     secondary: {
-      main: "#2e7d32", // More vibrant green for buttons
-      dark: "#00340a", // User requested dark green as dark variant
+      main: "#1e3a8a", // Blue instead of green
+      dark: "#172554",
       contrastText: "#FEFEFE",
     },
     ...(mode === "light"
@@ -27,8 +27,8 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
         }
       : {
           background: {
-            default: "#121212",
-            paper: "#1e1e1e",
+            default: "#0f172a", // Darker blue-black
+            paper: "#1e293b",
           },
           text: {
             primary: "#FEFEFE",
@@ -45,13 +45,13 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     button: { textTransform: "none", fontWeight: 600 },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 4, // 90° not too rounded
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 4, // Consistent border radius
           padding: "10px 24px",
           boxShadow: "none",
           "&:hover": {

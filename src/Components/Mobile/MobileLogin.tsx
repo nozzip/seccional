@@ -34,7 +34,7 @@ export default function MobileLogin({ onLoginSuccess }: MobileLoginProps) {
 
             const { data, error: dbError } = await supabase
                 .from('affiliates')
-                .select('nombre, apellido, legajo, cuil, telefono, email, es_jubilado')
+                .select('nombre, apellido, legajo, cuil, telefono, email, es_jubilado, validation_token')
                 .in('legajo', legajoVariations)
                 .eq('branch', 'noroeste')
                 .limit(1);
@@ -54,6 +54,7 @@ export default function MobileLogin({ onLoginSuccess }: MobileLoginProps) {
                     telefono: affiliate.telefono,
                     email: affiliate.email,
                     es_jubilado: affiliate.es_jubilado,
+                    validation_token: affiliate.validation_token,
                 });
             }
         } catch (err) {

@@ -29,10 +29,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
-import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import { supabase } from '../../supabaseClient';
-import { AffiliateData } from '../../types/mobile';
-import TurismoForm from './TurismoForm';
 
 interface FamilyMember {
     id?: number;
@@ -57,7 +54,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
     const [editMode, setEditMode] = useState(false);
-    const [turismoOpen, setTurismoOpen] = useState(false);
     const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
     const [familyDialogOpen, setFamilyDialogOpen] = useState(false);
     const [editingMember, setEditingMember] = useState<Partial<FamilyMember> | null>(null);
@@ -388,31 +384,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 )}
             </Paper>
 
-            <Paper sx={{ p: 3, borderRadius: 3, mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <BeachAccessIcon color="primary" />
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                        Solicitudes
-                    </Typography>
-                </Box>
-
-                <Button
-                    fullWidth
-                    variant="outlined"
-                    onClick={() => setTurismoOpen(true)}
-                    sx={{
-                        py: 1.5,
-                        borderRadius: 2,
-                        fontWeight: 600,
-                    }}
-                >
-                    Solicitar Turismo
-                </Button>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
-                    Bariloche • Mar del Plata • Huerta Grande
-                </Typography>
-            </Paper>
-
             <Button
                 fullWidth
                 variant="text"
@@ -472,12 +443,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     </Button>
                 </DialogActions>
             </Dialog>
-
-            <TurismoForm
-                open={turismoOpen}
-                onClose={() => setTurismoOpen(false)}
-                affiliateData={affiliateData}
-            />
         </Box>
     );
 }

@@ -141,46 +141,7 @@ function StatCard({ icon: Icon, value, suffix, label, delay }: { icon: any; valu
   );
 }
 
-function WaveSeparator() {
-  const theme = useTheme();
-  return (
-    <Box
-      sx={{
-        position: "relative",
-        height: "100px",
-        overflow: "hidden",
-        mt: -1,
-        zIndex: 3,
-      }}
-    >
-      <svg
-        viewBox="0 0 1440 100"
-        preserveAspectRatio="none"
-        style={{
-          position: "absolute",
-          bottom: 0,
-          width: "100%",
-          height: "100%",
-        }}
-      >
-        <defs>
-          <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={theme.palette.primary.main} />
-            <stop offset="50%" stopColor={theme.palette.primary.light} />
-            <stop offset="100%" stopColor={theme.palette.primary.main} />
-          </linearGradient>
-        </defs>
-        <path
-          fill="url(#waveGradient)"
-          d="M0,40 C360,100 720,0 1080,60 C1260,90 1380,70 1440,50 L1440,100 L0,100 Z"
-          style={{
-            animation: `${waveAnimation} 8s ease-in-out infinite`,
-          }}
-        />
-      </svg>
-    </Box>
-  );
-}
+
 
 function Particle({ delay }: { delay: number }) {
   const theme = useTheme();
@@ -322,6 +283,7 @@ function Inicio() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.6 }}
+          sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}
         >
           <Button
             component={Link}
@@ -331,80 +293,50 @@ function Inicio() {
             sx={{
               background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`,
               color: "white",
-              px: { xs: 4, md: 8 },
+              px: { xs: 4, md: 6 },
               py: 2.5,
-              fontSize: "1.2rem",
+              fontSize: "1.1rem",
               fontWeight: 900,
-              borderRadius: "50px",
+              borderRadius: 1,
               boxShadow: `0 10px 30px ${alpha(theme.palette.secondary.main, 0.4)}`,
-              position: "relative",
-              zIndex: 1,
-              overflow: "hidden",
-              transition: "all 0.3s ease",
+              textTransform: 'none',
               "&:hover": {
                 transform: "translateY(-4px)",
                 boxShadow: `0 20px 40px ${alpha(theme.palette.secondary.main, 0.5)}`,
-                background: `linear-gradient(135deg, ${theme.palette.secondary.dark} 0%, ${theme.palette.secondary.main} 100%)`,
               },
             }}
           >
             Conocenos
           </Button>
+          <Button
+            component={Link}
+            to="/afiliar"
+            variant="outlined"
+            size="large"
+            sx={{
+              borderColor: 'white',
+              color: "white",
+              px: { xs: 4, md: 6 },
+              py: 2.5,
+              fontSize: "1.1rem",
+              fontWeight: 900,
+              borderRadius: 1,
+              borderWidth: 2,
+              textTransform: 'none',
+              "&:hover": {
+                transform: "translateY(-4px)",
+                borderColor: 'white',
+                bgcolor: alpha('#fff', 0.1),
+                borderWidth: 2,
+              },
+            }}
+          >
+            Afiliate
+          </Button>
         </MotionBox>
       </Box>
 
-      {/* Wave Separator */}
-      <WaveSeparator />
 
-      {/* Stats Section */}
-      <Box
-        ref={statsRef}
-        sx={{
-          bgcolor: "primary.main",
-          py: 8,
-          position: "relative",
-          zIndex: 4,
-        }}
-      >
-        <Container maxWidth="lg">
-          <Grid2 container spacing={4}>
-            <Grid2 size={{ xs: 6, md: 3 }}>
-              <StatCard
-                icon={GroupsIcon}
-                value={1250}
-                label="Afiliados"
-                delay={0}
-              />
-            </Grid2>
-            <Grid2 size={{ xs: 6, md: 3 }}>
-              <StatCard
-                icon={AutoAwesomeIcon}
-                value={25}
-                suffix="+"
-                label="Años de Trayectoria"
-                delay={0.2}
-              />
-            </Grid2>
-            <Grid2 size={{ xs: 6, md: 3 }}>
-              <StatCard
-                icon={LocationOnIcon}
-                value={5}
-                label="Provincias"
-                delay={0.4}
-              />
-            </Grid2>
-            <Grid2 size={{ xs: 6, md: 3 }}>
-              <StatCard
-                icon={VerifiedIcon}
-                value={100}
-                suffix="%"
-                label="Compromiso"
-                delay={0.6}
-              />
-            </Grid2>
-          </Grid2>
-        </Container>
-      </Box>
 
       {/* Main Content */}
       <Container
@@ -427,9 +359,9 @@ function Inicio() {
             >
               <Box
                 sx={{
-                  ...getGlassStyles(theme),
+                   ...getGlassStyles(theme),
                   p: { xs: 3, md: 8 },
-                  borderRadius: 8,
+                  borderRadius: 2, // Consistent with theme (4px * 2 = 8px or just use 1 for 4px)
                   boxShadow: `0 20px 60px ${alpha(theme.palette.primary.main, 0.1)}`,
                   border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
                 }}
@@ -488,8 +420,8 @@ function Inicio() {
                     component={Link}
                     to="/prensa"
                     variant="outlined"
-                    sx={{
-                      borderRadius: "50px",
+                     sx={{
+                      borderRadius: 1,
                       px: 4,
                       fontWeight: 700,
                       borderWidth: 2,
@@ -534,8 +466,8 @@ function Inicio() {
                   component={Link}
                   to="/servicios"
                   variant="outlined"
-                  sx={{
-                    borderRadius: "50px",
+                   sx={{
+                    borderRadius: 1,
                     px: 4,
                     fontWeight: 700,
                     borderWidth: 2,

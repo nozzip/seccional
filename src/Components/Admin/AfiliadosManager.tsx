@@ -42,8 +42,9 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import * as XLSX from "xlsx";
 import { supabase } from "../../supabaseClient";
-import FamilyMembersModal from "./FamilyMembersModal";
+import AffiliateDetailsModal from "./AffiliateDetailsModal";
 import AddAffiliateModal from "./AddAffiliateModal";
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 
 interface Affiliate {
   id: number;
@@ -57,6 +58,10 @@ interface Affiliate {
   branch: string;
   family_count?: number;
   _searchStr?: string;
+  telefono?: string;
+  email?: string;
+  es_jubilado?: boolean;
+  fecha_nacimiento?: string;
 }
 
 export interface FamilyMemberDetail {
@@ -256,8 +261,9 @@ export default function AfiliadosManager() {
 
   // Modal State
   const [selectedAffiliate, setSelectedAffiliate] = useState<any>(null);
-  const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [syncingBirthdays, setSyncingBirthdays] = useState(false);
 
   // Pagination State
   const [page, setPage] = useState(0);
@@ -617,6 +623,64 @@ export default function AfiliadosManager() {
     }
   };
 
+  const handleSyncBirthdays = async () => {
+    if (!window.confirm("¿Desea sincronizar los cumpleaños desde el CSV? Esto actualizará la información de los afiliados que coincidan por nombre y apellido.")) return;
+    
+    setSyncingBirthdays(true);
+    try {
+      const response = await fetch("/cumples DI RSAL.csv");
+      const text = await response.text();
+      const rows = text.split("\n").map(line => line.split(";"));
+      
+      // Remove header
+      rows.shift();
+
+      const monthMap: Record<string, string> = {
+        'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 'may': '05', 'jun': '06',
+        'jul': '07', 'ago': '08', 'sept': '09', 'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+      };
+
+      let count = 0;
+      for (const row of rows) {
+        if (row.length < 3) continue;
+        const [fechaRaw, apellidoCSV, nombreCSV] = row;
+        
+        // Parse date "1-ene" -> "1900-01-01"
+        const dateParts = fechaRaw.toLowerCase().split("-");
+        if (dateParts.length !== 2) continue;
+        const day = dateParts[0].padStart(2, "0");
+        const monthShort = dateParts[1].trim();
+        const month = monthMap[monthShort];
+        
+        if (!month) continue;
+        const formattedDate = `2000-${month}-${day}`;
+
+        // Find match in current affiliates
+        const match = affiliates.find(a => 
+          a.apellido.trim().toLowerCase() === apellidoCSV.trim().toLowerCase() &&
+          a.nombre.trim().toLowerCase() === nombreCSV.trim().toLowerCase()
+        );
+
+        if (match) {
+          const { error } = await supabase
+            .from("affiliates")
+            .update({ fecha_nacimiento: formattedDate })
+            .eq("id", match.id);
+          
+          if (!error) count++;
+        }
+      }
+
+      alert(`Sincronización finalizada. Se actualizaron ${count} cumpleaños.`);
+      fetchAffiliates();
+    } catch (error: any) {
+      console.error("Sync error:", error);
+      setErrorMessage("Error al sincronizar cumpleaños: " + error.message);
+    } finally {
+      setSyncingBirthdays(false);
+    }
+  };
+
   const handleDeleteAffiliate = async (id: number) => {
     if (!window.confirm("¿Está seguro de eliminar este afiliado?")) return;
     try {
@@ -836,6 +900,21 @@ export default function AfiliadosManager() {
             }}
           >
             Nuevo Afiliado
+          </Button>
+
+          <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={syncingBirthdays ? <CircularProgress size={20} color="inherit" /> : <AssignmentIndIcon />}
+            onClick={handleSyncBirthdays}
+            disabled={syncingBirthdays}
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 600,
+            }}
+          >
+            {syncingBirthdays ? "Sincronizando..." : "Sincronizar Cumpleaños"}
           </Button>
 
           <Button
@@ -1201,12 +1280,12 @@ export default function AfiliadosManager() {
                           spacing={1}
                           justifyContent="center"
                         >
-                          <Tooltip title="Grupo Familiar">
+                          <Tooltip title="Ficha del Afiliado">
                             <IconButton
                               color="primary"
                               onClick={() => {
                                 setSelectedAffiliate(affiliate);
-                                setIsFamilyModalOpen(true);
+                                setIsDetailsModalOpen(true);
                               }}
                             >
                               <Badge
@@ -1224,7 +1303,7 @@ export default function AfiliadosManager() {
                                   },
                                 }}
                               >
-                                <ChildCareIcon fontSize="small" />
+                                <AssignmentIndIcon fontSize="small" />
                               </Badge>
                             </IconButton>
                           </Tooltip>
@@ -1376,10 +1455,11 @@ export default function AfiliadosManager() {
         </Alert>
       </Snackbar>
 
-      <FamilyMembersModal
-        open={isFamilyModalOpen}
-        onClose={() => setIsFamilyModalOpen(false)}
+      <AffiliateDetailsModal
+        open={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
         affiliate={selectedAffiliate}
+        onUpdate={fetchAffiliates}
       />
 
       <AddAffiliateModal

@@ -8,11 +8,13 @@ import {
     Chip,
     alpha,
     useTheme,
+    CircularProgress,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import BadgeIcon from '@mui/icons-material/Badge';
 import { AffiliateData } from '../../types/mobile';
 import { jsPDF } from 'jspdf';
+import { generateQRCodeDataURL } from '../../utils/qrGenerator';
 
 interface CarnetViewProps {
     affiliateData: AffiliateData | null;
@@ -20,8 +22,24 @@ interface CarnetViewProps {
 
 export default function CarnetView({ affiliateData }: CarnetViewProps) {
     const theme = useTheme();
+    const [qrDataUrl, setQrDataUrl] = React.useState<string>('');
 
-    const generatePDF = () => {
+    React.useEffect(() => {
+        const fetchQR = async () => {
+            if (affiliateData?.validation_token) {
+                console.log("Generating QR for token:", affiliateData.validation_token);
+                // Construct the validation URL
+                const validationUrl = `${window.location.origin}${window.location.pathname}#/validar/${affiliateData.validation_token}`;
+                const url = await generateQRCodeDataURL(validationUrl);
+                setQrDataUrl(url);
+            } else {
+                console.warn("No validation token found in affiliateData");
+            }
+        };
+        fetchQR();
+    }, [affiliateData]);
+
+    const generatePDF = async () => {
         if (!affiliateData) return;
 
         const doc = new jsPDF({
@@ -30,13 +48,16 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
             format: [85.6, 53.98],
         });
 
+        // Background
         const bgColor = [255, 255, 255];
         doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
         doc.rect(0, 0, 85.6, 53.98, 'F');
 
+        // Header
         doc.setFillColor(26, 95, 122);
         doc.rect(0, 0, 85.6, 18, 'F');
 
+        // Text in Header - ALWAYS SOLID
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -71,14 +92,23 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
         doc.setFont('helvetica', 'normal');
         doc.text(affiliateData.legajo, 20, 46);
 
-        const currentDate = new Date().toLocaleDateString('es-AR');
-        doc.setFontSize(6);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Emitido: ${currentDate}`, 5, 51);
+        // Date and Time of Download - ENSURE SOLID GRAY
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('es-AR');
+        const timeStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        
+        doc.setFontSize(4);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Descargado el: ${dateStr} ${timeStr}`, 5, 52);
 
-        doc.setFontSize(7);
+        doc.setFontSize(6);
         doc.setTextColor(26, 95, 122);
-        doc.text('Válido presentando DNI', 42.8, 51, { align: 'center' });
+        doc.text('Válido presenting DNI', 75, 52, { align: 'right' });
+
+        // QR Code - In PDF
+        if (qrDataUrl) {
+            doc.addImage(qrDataUrl, 'PNG', 68, 30, 15, 15);
+        }
 
         doc.save(`Carnet_AEFIP_${affiliateData.legajo}.pdf`);
     };
@@ -134,7 +164,26 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
                     </Typography>
                 </Box>
 
-                <Box sx={{ p: 3 }}>
+                <Box sx={{ p: 3, position: 'relative' }}>
+                    {/* UI Watermark */}
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: '80%',
+                            height: '80%',
+                            backgroundImage: `url("seccionalLogo.png")`,
+                            backgroundSize: 'contain',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'center',
+                            opacity: 0.03,
+                            zIndex: 0,
+                            pointerEvents: 'none',
+                        }}
+                    />
+
                     <Typography
                         variant="h5"
                         sx={{
@@ -143,14 +192,16 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
                             color: 'primary.main',
                             textAlign: 'center',
                             textTransform: 'uppercase',
+                            position: 'relative',
+                            zIndex: 1,
                         }}
                     >
                         {affiliateData.nombre} {affiliateData.apellido}
                     </Typography>
 
-                    <Divider sx={{ my: 2 }} />
+                    <Divider sx={{ my: 2, position: 'relative', zIndex: 1 }} />
 
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, position: 'relative', zIndex: 1 }}>
                         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
                             CUIL
                         </Typography>
@@ -159,7 +210,7 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
                         </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, position: 'relative', zIndex: 1 }}>
                         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
                             Legajo
                         </Typography>
@@ -168,19 +219,42 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
                         </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, position: 'relative', zIndex: 1 }}>
                         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
                             Estado
                         </Typography>
                         <Chip label="Afiliado Activo" color="success" size="small" sx={{ fontWeight: 700 }} />
                     </Box>
 
-                    <Divider sx={{ my: 2 }} />
+                    <Divider sx={{ my: 2, position: 'relative', zIndex: 1 }} />
 
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" color="text.secondary">
-                            Documento válido con presentación de DNI
+                    <Box sx={{ textAlign: 'center', position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'left', maxWidth: '60%' }}>
+                            Documento válido con presentación de DNI. Escanee el QR para validar vigencia.
                         </Typography>
+                        {qrDataUrl ? (
+                            <Box 
+                                component="img" 
+                                src={qrDataUrl} 
+                                alt="QR Validation"
+                                sx={{ 
+                                    width: 50, 
+                                    height: 50, 
+                                    borderRadius: 1,
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    bgcolor: 'white',
+                                    p: 0.5,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                }}
+                            />
+                        ) : affiliateData.validation_token ? (
+                            <CircularProgress size={24} />
+                        ) : (
+                            <Typography variant="caption" color="error" sx={{ fontSize: '0.6rem' }}>
+                                [Token pendiente. Reingresa a la App]
+                            </Typography>
+                        )}
                     </Box>
                 </Box>
             </Paper>

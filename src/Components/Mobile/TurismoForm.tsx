@@ -25,6 +25,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { supabase } from '../../supabaseClient';
 import { AffiliateData } from '../../types/mobile';
 
@@ -40,6 +42,8 @@ interface TurismoFormProps {
     open: boolean;
     onClose: () => void;
     affiliateData: AffiliateData | null;
+    isSubsidized?: boolean;
+    subsidizedType?: string;
 }
 
 const DESTINOS = [
@@ -57,10 +61,11 @@ const PARENTESCOS = [
     'Otro',
 ];
 
-export default function TurismoForm({ open, onClose, affiliateData }: TurismoFormProps) {
+export default function TurismoForm({ open, onClose, affiliateData, isSubsidized = false, subsidizedType = '' }: TurismoFormProps) {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
+    const [file, setFile] = useState<File | null>(null);
     const [guests, setGuests] = useState<Guest[]>([]);
     const [newGuest, setNewGuest] = useState<Guest>({
         nombre: '',
@@ -112,6 +117,13 @@ export default function TurismoForm({ open, onClose, affiliateData }: TurismoFor
             return;
         }
 
+        const needsFile = isSubsidized && subsidizedType !== 'Jubilados';
+
+        if (needsFile && !file) {
+            setError('Para este beneficio es obligatorio adjuntar el Certificado de Matrimonio');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
@@ -139,7 +151,28 @@ export default function TurismoForm({ open, onClose, affiliateData }: TurismoFor
                 plazas_req: formData.plazas_req + guests.length,
                 observaciones: formData.observaciones,
                 estado: 'pendiente',
+                is_subsidized: isSubsidized,
+                attachment_url: '',
             };
+
+            // 1. Upload file if subsidized
+            if (isSubsidized && file) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}_${affiliateData.legajo}.${fileExt}`;
+                const filePath = `turismo_subsidiado/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('request-attachments')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('request-attachments')
+                    .getPublicUrl(filePath);
+                
+                requestData.attachment_url = publicUrl;
+            }
 
             const { data: requestResult, error: requestError } = await supabase
                 .from('tourism_requests')
@@ -181,6 +214,7 @@ export default function TurismoForm({ open, onClose, affiliateData }: TurismoFor
                     plazas_req: 1,
                     observaciones: '',
                 });
+                setFile(null);
             }, 2000);
         } catch (err: any) {
             console.error('Error submitting tourism request:', err);
@@ -194,7 +228,7 @@ export default function TurismoForm({ open, onClose, affiliateData }: TurismoFor
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth scroll="paper">
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <BeachAccessIcon color="primary" />
-                Solicitud de Turismo
+                {isSubsidized ? `Turismo: ${subsidizedType}` : 'Solicitud de Turismo'}
                 <IconButton onClick={onClose} size="small" sx={{ ml: 'auto' }}>
                     <CloseIcon />
                 </IconButton>
@@ -315,6 +349,37 @@ export default function TurismoForm({ open, onClose, affiliateData }: TurismoFor
                                 rows={2}
                                 size="small"
                             />
+
+                            {isSubsidized && subsidizedType !== 'Jubilados' && (
+                                <Box sx={{ mt: 1 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'primary.main' }}>
+                                        Certificado de Matrimonio *
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                                        Es requisito indispensable para tramitar el beneficio de Matrimonio o Bodas de Plata.
+                                    </Typography>
+                                    <Button
+                                        component="label"
+                                        variant="outlined"
+                                        startIcon={file ? <AttachFileIcon /> : <CloudUploadIcon />}
+                                        fullWidth
+                                        sx={{ 
+                                            borderRadius: 2, 
+                                            height: 50, 
+                                            borderStyle: 'dashed',
+                                            bgcolor: file ? alpha(theme.palette.success.main, 0.05) : 'transparent'
+                                        }}
+                                    >
+                                        {file ? file.name : 'Subir Certificado (PDF/JPG)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            onChange={(e) => e.target.files && setFile(e.target.files[0])}
+                                        />
+                                    </Button>
+                                </Box>
+                            )}
 
                             <Divider sx={{ my: 1 }} />
 

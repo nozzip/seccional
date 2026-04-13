@@ -16,6 +16,9 @@ const Login = lazy(() => import("./Pages/Login"));
 const AdminDashboard = lazy(() => import("./Pages/Admin/AdminDashboard"));
 const MobileBeneficiosApp = lazy(() => import("./Pages/MobileBeneficiosApp"));
 const Servicios = lazy(() => import("./Components/Servicios/Servicios"));
+const MobileAppView = lazy(() => import("./Components/MobileApp/MobileAppView"));
+const AffiliateValidator = lazy(() => import("./Components/Public/AffiliateValidator"));
+const AffiliateForm = lazy(() => import("./Pages/AffiliateForm"));
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -97,6 +100,18 @@ const router = createHashRouter([
       {
         path: "admin",
         element: <AdminDashboard />,
+      },
+      {
+        path: "app",
+        element: <MobileAppView />,
+      },
+      {
+        path: "validar/:token",
+        element: <AffiliateValidator />,
+      },
+      {
+        path: "afiliar",
+        element: <AffiliateForm />,
       },
     ],
   },

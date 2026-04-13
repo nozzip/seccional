@@ -4,6 +4,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import HomeIcon from '@mui/icons-material/Home';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import BadgeIcon from '@mui/icons-material/Badge';
+import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import PersonIcon from '@mui/icons-material/Person';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
@@ -13,8 +14,10 @@ import { Helmet } from 'react-helmet-async';
 import ServiciosView from '../Components/Mobile/ServiciosView';
 import CarnetView from '../Components/Mobile/CarnetView';
 import PerfilView from '../Components/Mobile/PerfilView';
+import SolicitudesView from '../Components/Mobile/SolicitudesView';
 import { AffiliateData } from '../types/mobile';
 import { useColorMode } from '../ColorModeContext';
+import { supabase } from '../supabaseClient';
 
 export default function MobileBeneficiosApp() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -28,6 +31,7 @@ export default function MobileBeneficiosApp() {
         const storedLegajo = localStorage.getItem('mobile_app_legajo');
         const storedName = localStorage.getItem('mobile_app_name');
         const storedCuil = localStorage.getItem('mobile_app_cuil');
+        const storedToken = localStorage.getItem('mobile_app_validation_token');
 
         if (storedLegajo && storedName) {
             setIsAuthenticated(true);
@@ -37,14 +41,40 @@ export default function MobileBeneficiosApp() {
                 nombre: storedName.split(' ')[0] || '',
                 apellido: storedName.split(' ').slice(1).join(' ') || '',
                 cuil: storedCuil || '',
+                validation_token: storedToken || undefined,
             });
         }
     }, []);
+
+    // Effect to fetch validation_token if it's missing (for existing sessions)
+    useEffect(() => {
+        const fetchMissingToken = async () => {
+            if (isAuthenticated && affiliateData && !affiliateData.validation_token) {
+                try {
+                    const { data, error } = await supabase
+                        .from('affiliates')
+                        .select('validation_token')
+                        .eq('legajo', affiliateData.legajo)
+                        .eq('branch', 'noroeste')
+                        .single();
+                    
+                    if (data?.validation_token) {
+                        localStorage.setItem('mobile_app_validation_token', data.validation_token);
+                        setAffiliateData(prev => prev ? { ...prev, validation_token: data.validation_token } : null);
+                    }
+                } catch (err) {
+                    console.error("Error fetching missing token:", err);
+                }
+            }
+        };
+        fetchMissingToken();
+    }, [isAuthenticated, affiliateData]);
 
     const handleLoginSuccess = (data: AffiliateData) => {
         localStorage.setItem('mobile_app_legajo', data.legajo);
         localStorage.setItem('mobile_app_name', `${data.nombre} ${data.apellido}`);
         localStorage.setItem('mobile_app_cuil', data.cuil || '');
+        localStorage.setItem('mobile_app_validation_token', data.validation_token || '');
         localStorage.setItem('mobile_app_telefono', data.telefono || '');
         localStorage.setItem('mobile_app_email', data.email || '');
         localStorage.setItem('mobile_app_jubilado', String(data.es_jubilado || false));
@@ -61,6 +91,7 @@ export default function MobileBeneficiosApp() {
         localStorage.removeItem('mobile_app_telefono');
         localStorage.removeItem('mobile_app_email');
         localStorage.removeItem('mobile_app_jubilado');
+        localStorage.removeItem('mobile_app_validation_token');
         setIsAuthenticated(false);
         setUserName('');
         setAffiliateData(null);
@@ -86,6 +117,8 @@ export default function MobileBeneficiosApp() {
             case 2:
                 return <CarnetView affiliateData={affiliateData} />;
             case 3:
+                return <SolicitudesView affiliateData={affiliateData} />;
+            case 4:
                 return <PerfilView affiliateData={affiliateData} onUpdate={updateAffiliateData} onLogout={handleLogout} />;
             default:
                 return <GridBeneficios />;
@@ -180,6 +213,7 @@ export default function MobileBeneficiosApp() {
                     <BottomNavigationAction label="Inicio" icon={<HomeIcon />} />
                     <BottomNavigationAction label="Servicios" icon={<AssignmentIcon />} />
                     <BottomNavigationAction label="Carnet" icon={<BadgeIcon />} />
+                    <BottomNavigationAction label="Solicitudes" icon={<BeachAccessIcon />} />
                     <BottomNavigationAction label="Perfil" icon={<PersonIcon />} />
                 </BottomNavigation>
             </Paper>
