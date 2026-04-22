@@ -15,7 +15,7 @@ if (container) {
   // Register Service Worker
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/seccional/sw.js').then(registration => {
+      navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).then(registration => {
         console.log('SW registered: ', registration);
       }).catch(registrationError => {
         console.log('SW registration failed: ', registrationError);
