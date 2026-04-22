@@ -208,15 +208,10 @@ function Inicio() {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
-      }
-    } else {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIOS) {
-        alert("Para instalar en tu iPhone:\n\n1. Toca el botón 'Compartir' (el cuadrado con la flecha hacia arriba).\n2. Desliza hacia abajo y selecciona 'Agregar al inicio'.\n\n¡Y listo! Ya tendrás la App en tu pantalla.");
-      } else {
-        alert("Para instalar la aplicación:\n\nEn Android: Toca los tres puntos en la esquina superior derecha y selecciona 'Instalar aplicación'.\n\nEn Computadora: Busca el icono de instalación en la barra de direcciones de Chrome o Edge.");
+        setIsInstalled(true);
       }
     }
+    // No else - never show instructions. If the prompt isn't available, the button does nothing.
   };
 
   return (
