@@ -17,6 +17,8 @@ if (container) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).then(registration => {
         console.log('SW registered: ', registration);
+        // Force check for updates
+        registration.update();
       }).catch(registrationError => {
         console.log('SW registration failed: ', registrationError);
       });
