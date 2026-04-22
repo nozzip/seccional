@@ -15,6 +15,9 @@
 3. **Activos:**
    - Generación de icono PWA de alta resolución (`public/icon-512.png`).
    - Actualización de `public/manifest.json` con iconos y `start_url` apuntando a `#/app` para iniciar directamente en la vista de afiliados.
+4. **Correcciones:**
+   - Se cambiaron las rutas de `manifest.json`, iconos y registro de Service Worker a rutas relativas (`./`) para asegurar la compatibilidad con el subdirectorio `/seccional/` en GitHub Pages.
+   - Se actualizó el `apple-touch-icon` en `index.html`.
 
 ### Arquitecturas Aprobadas (Actualización):
-- **PWA:** Se utiliza una implementación estándar de Service Worker y Manifest para permitir la instalación nativa en dispositivos móviles (Android/iOS).
+- **PWA:** Se utiliza una implementación estándar de Service Worker y Manifest para permitir la instalación nativa en dispositivos móviles (Android/iOS). Rutas configuradas como relativas para compatibilidad con subdirectorios de hosting.
