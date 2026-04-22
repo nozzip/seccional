@@ -203,7 +203,33 @@ function Inicio() {
   }, []);
 
   const handleInstallClick = async () => {
-    const prompt = (window as any).deferredPrompt;
+    // Check if prompt is already available
+    let prompt = (window as any).deferredPrompt;
+
+    // If not available yet, wait for the browser to fire beforeinstallprompt (up to 5 seconds)
+    if (!prompt) {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        // iOS never fires beforeinstallprompt, show instructions
+        alert("Para instalar en tu iPhone:\n\n1. Toca el botón 'Compartir' (el cuadrado con la flecha hacia arriba).\n2. Selecciona 'Agregar al inicio'.\n\n¡Listo!");
+        return;
+      }
+
+      // For Android/Desktop: wait for the event instead of showing instructions
+      prompt = await new Promise<any>((resolve) => {
+        const handler = () => {
+          resolve((window as any).deferredPrompt);
+          window.removeEventListener('pwa_prompt_ready', handler);
+        };
+        window.addEventListener('pwa_prompt_ready', handler);
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          window.removeEventListener('pwa_prompt_ready', handler);
+          resolve((window as any).deferredPrompt);
+        }, 5000);
+      });
+    }
+
     if (prompt) {
       prompt.prompt();
       const { outcome } = await prompt.userChoice;
@@ -212,12 +238,8 @@ function Inicio() {
         setCanInstall(false);
       }
     } else {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIOS) {
-        alert("Para instalar en tu iPhone:\n\n1. Toca el botón 'Compartir' (el cuadrado con la flecha hacia arriba).\n2. Selecciona 'Agregar al inicio'.\n\n¡Listo!");
-      } else {
-        alert("Para instalar:\n\n1. Toca los tres puntos de tu navegador.\n2. Selecciona 'Instalar aplicación'.");
-      }
+      // Only as absolute last resort after waiting 5 seconds
+      alert("Para instalar:\n\n1. Toca los tres puntos de tu navegador.\n2. Selecciona 'Instalar aplicación'.");
     }
   };
 
