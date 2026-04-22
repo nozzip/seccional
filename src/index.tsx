@@ -22,12 +22,4 @@ if (container) {
       });
     });
   }
-
-  // Global PWA Prompt Handler
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    (window as any).deferredPrompt = e;
-    // Dispatch a custom event so components can react if needed
-    window.dispatchEvent(new CustomEvent('pwa_prompt_ready'));
-  });
 }

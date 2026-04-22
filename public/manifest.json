@@ -22,12 +22,12 @@
             "purpose": "any maskable"
         }
     ],
-    "start_url": "/seccional/#/app",
+    "start_url": "./",
     "display": "standalone",
     "display_override": ["window-controls-overlay", "minimal-ui"],
     "theme_color": "#1a5f7a",
     "background_color": "#ffffff",
     "orientation": "portrait",
-    "scope": "/seccional/",
+    "scope": "./",
     "lang": "es-AR"
 }

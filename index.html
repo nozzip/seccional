@@ -9,6 +9,14 @@
   <meta name="description" content="Sitio oficial de la Seccional Noroeste - A.E.F.I.P." />
   <link rel="apple-touch-icon" href="/seccional/icon-512.png" />
   <link rel="manifest" href="/seccional/manifest.json" />
+  <script>
+    window.deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredPrompt = e;
+      window.dispatchEvent(new CustomEvent('pwa_prompt_ready'));
+    });
+  </script>
 
   <title>Seccional Noroeste | A.E.F.I.P.</title>
 

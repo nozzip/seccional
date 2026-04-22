@@ -1,17 +1,16 @@
-const CACHE_NAME = 'aefip-cache-v3';
+const CACHE_NAME = 'aefip-cache-v4';
 const ASSETS_TO_CACHE = [
-  '/seccional/',
-  '/seccional/index.html',
-  '/seccional/manifest.json',
-  '/seccional/seccionalLogo.png',
-  '/seccional/favicon.ico',
-  '/seccional/icon-512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './seccionalLogo.png',
+  './favicon.ico',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('Opened cache');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
