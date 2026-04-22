@@ -9,6 +9,14 @@
   <meta name="description" content="Sitio oficial de la Seccional Noroeste - A.E.F.I.P." />
   <link rel="apple-touch-icon" href="/seccional/icon-512.png" />
   <link rel="manifest" href="/seccional/manifest.json" />
+  <script>
+    window.deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredPrompt = e;
+      window.dispatchEvent(new CustomEvent('pwa_prompt_ready'));
+    });
+  </script>
 
   <title>Seccional Noroeste | A.E.F.I.P.</title>
 
@@ -17,7 +25,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;800&display=swap"
     rel="stylesheet" />
-  <script type="module" crossorigin src="/seccional/assets/index-B2Js6qkL.js"></script>
+  <script type="module" crossorigin src="/seccional/assets/index-CC6Xwyoz.js"></script>
   <link rel="modulepreload" crossorigin href="/seccional/assets/vendor-Vhbg4Fbr.js">
   <link rel="modulepreload" crossorigin href="/seccional/assets/mui-BGUWGJ9z.js">
   <link rel="modulepreload" crossorigin href="/seccional/assets/utils-BCNxd9jD.js">
