@@ -172,7 +172,7 @@ function Inicio() {
   const theme = useTheme();
   const statsRef = useRef(null);
   const statsInView = useInView(statsRef, { once: true });
-  const [canInstall, setCanInstall] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
@@ -180,16 +180,16 @@ function Inicio() {
   }, []);
 
   useEffect(() => {
-    const checkCanInstall = () => {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIOS || (window as any).deferredPrompt) {
-        setCanInstall(true);
-      }
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
     };
 
-    checkCanInstall();
-    window.addEventListener('pwa_prompt_ready', checkCanInstall);
-    return () => window.removeEventListener('pwa_prompt_ready', checkCanInstall);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
   useEffect(() => {
@@ -203,43 +203,19 @@ function Inicio() {
   }, []);
 
   const handleInstallClick = async () => {
-    // Check if prompt is already available
-    let prompt = (window as any).deferredPrompt;
-
-    // If not available yet, wait for the browser to fire beforeinstallprompt (up to 5 seconds)
-    if (!prompt) {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIOS) {
-        // iOS never fires beforeinstallprompt, show instructions
-        alert("Para instalar en tu iPhone:\n\n1. Toca el botón 'Compartir' (el cuadrado con la flecha hacia arriba).\n2. Selecciona 'Agregar al inicio'.\n\n¡Listo!");
-        return;
-      }
-
-      // For Android/Desktop: wait for the event instead of showing instructions
-      prompt = await new Promise<any>((resolve) => {
-        const handler = () => {
-          resolve((window as any).deferredPrompt);
-          window.removeEventListener('pwa_prompt_ready', handler);
-        };
-        window.addEventListener('pwa_prompt_ready', handler);
-        // Timeout after 5 seconds
-        setTimeout(() => {
-          window.removeEventListener('pwa_prompt_ready', handler);
-          resolve((window as any).deferredPrompt);
-        }, 5000);
-      });
-    }
-
-    if (prompt) {
-      prompt.prompt();
-      const { outcome } = await prompt.userChoice;
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
-        (window as any).deferredPrompt = null;
-        setCanInstall(false);
+        setDeferredPrompt(null);
       }
     } else {
-      // Only as absolute last resort after waiting 5 seconds
-      alert("Para instalar:\n\n1. Toca los tres puntos de tu navegador.\n2. Selecciona 'Instalar aplicación'.");
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        alert("Para instalar en tu iPhone:\n\n1. Toca el botón 'Compartir' (el cuadrado con la flecha hacia arriba).\n2. Desliza hacia abajo y selecciona 'Agregar al inicio'.\n\n¡Y listo! Ya tendrás la App en tu pantalla.");
+      } else {
+        alert("Para instalar la aplicación:\n\nEn Android: Toca los tres puntos en la esquina superior derecha y selecciona 'Instalar aplicación'.\n\nEn Computadora: Busca el icono de instalación en la barra de direcciones de Chrome o Edge.");
+      }
     }
   };
 

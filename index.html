@@ -3,14 +3,6 @@
 
 <head>
   <meta charset="utf-8" />
-  <script>
-    window.deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      window.deferredPrompt = e;
-      window.dispatchEvent(new CustomEvent('pwa_prompt_ready'));
-    });
-  </script>
   <link rel="icon" href="/seccional/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
   <meta name="theme-color" content="#1a5f7a" />
