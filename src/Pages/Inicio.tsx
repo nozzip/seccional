@@ -172,7 +172,7 @@ function Inicio() {
   const theme = useTheme();
   const statsRef = useRef(null);
   const statsInView = useInView(statsRef, { once: true });
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
@@ -180,16 +180,16 @@ function Inicio() {
   }, []);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    const checkCanInstall = () => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS || (window as any).deferredPrompt) {
+        setCanInstall(true);
+      }
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    checkCanInstall();
+    window.addEventListener('pwa_prompt_ready', checkCanInstall);
+    return () => window.removeEventListener('pwa_prompt_ready', checkCanInstall);
   }, []);
 
   useEffect(() => {
@@ -203,18 +203,20 @@ function Inicio() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
+    const prompt = (window as any).deferredPrompt;
+    if (prompt) {
+      prompt.prompt();
+      const { outcome } = await prompt.userChoice;
       if (outcome === 'accepted') {
-        setDeferredPrompt(null);
+        (window as any).deferredPrompt = null;
+        setCanInstall(false);
       }
     } else {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       if (isIOS) {
-        alert("Para instalar en tu iPhone:\n\n1. Toca el botón 'Compartir' (el cuadrado con la flecha hacia arriba).\n2. Desliza hacia abajo y selecciona 'Agregar al inicio'.\n\n¡Y listo! Ya tendrás la App en tu pantalla.");
+        alert("Para instalar en tu iPhone:\n\n1. Toca el botón 'Compartir' (el cuadrado con la flecha hacia arriba).\n2. Selecciona 'Agregar al inicio'.\n\n¡Listo!");
       } else {
-        alert("Para instalar la aplicación:\n\nEn Android: Toca los tres puntos en la esquina superior derecha y selecciona 'Instalar aplicación'.\n\nEn Computadora: Busca el icono de instalación en la barra de direcciones de Chrome o Edge.");
+        alert("Para instalar:\n\n1. Toca los tres puntos de tu navegador.\n2. Selecciona 'Instalar aplicación'.");
       }
     }
   };
