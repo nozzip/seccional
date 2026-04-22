@@ -174,7 +174,7 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
                             transform: 'translate(-50%, -50%)',
                             width: '80%',
                             height: '80%',
-                            backgroundImage: `url("seccionalLogo.png")`,
+                            backgroundImage: `url("${import.meta.env.BASE_URL}seccionalLogo.png")`,
                             backgroundSize: 'contain',
                             backgroundRepeat: 'no-repeat',
                             backgroundPosition: 'center',

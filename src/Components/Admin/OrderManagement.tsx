@@ -35,6 +35,7 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import UnarchiveIcon from "@mui/icons-material/Unarchive";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import ReportIcon from "@mui/icons-material/Report";
 import { supabase } from "../../supabaseClient";
 
 interface MaintenanceRequest {
@@ -155,6 +156,8 @@ export default function OrderManagement() {
 
   const getIcon = (type: string) => {
     switch (type) {
+      case "Reporte de Convenio":
+        return <ReportIcon fontSize="small" />;
       case "Reparación":
         return <BuildIcon fontSize="small" />;
       case "Compra":

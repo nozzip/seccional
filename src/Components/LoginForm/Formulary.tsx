@@ -7,23 +7,17 @@ import {
   alpha,
   Typography,
 } from "@mui/material";
-import FormSignup from "./FormSignup";
 import FormLogin from "./FormLogin";
 import FormSuccess from "./FormSuccess";
 import { getGlassStyles } from "../../theme";
 
 const Formulary = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
   const theme = useTheme();
 
   function submitForm() {
     setIsSubmitted(true);
   }
-
-  const toggleAuthMode = () => {
-    setIsLogin(!isLogin);
-  };
 
   return (
     <Box
@@ -38,7 +32,8 @@ const Formulary = () => {
           theme.palette.mode === "light"
             ? `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.2)} 0%, ${alpha(theme.palette.background.default, 1)} 100%)`
             : `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0.1)} 0%, ${alpha(theme.palette.background.default, 1)} 100%)`,
-        py: { xs: 4, md: 8 },
+        pt: { xs: 12, md: 14 },
+        pb: { xs: 4, md: 8 },
         "&::before": {
           content: '""',
           position: "absolute",
@@ -46,7 +41,7 @@ const Formulary = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundImage: 'url("/auth_bg.png")',
+          backgroundImage: `url("${import.meta.env.BASE_URL}auth_bg.png")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           opacity: theme.palette.mode === "light" ? 0.4 : 0.2,
@@ -85,7 +80,7 @@ const Formulary = () => {
             <Box style={{ textAlign: "center", zIndex: 2 }}>
               <Box
                 component="img"
-                src="/seccionalLogo.png"
+                src={`${import.meta.env.BASE_URL}seccionalLogo.png`}
                 alt="logo"
                 sx={{ width: "70%", mb: 4, filter: "brightness(0) invert(1)" }}
               />
@@ -154,17 +149,11 @@ const Formulary = () => {
           >
             {isSubmitted ? (
               <FormSuccess key="success" />
-            ) : isLogin ? (
+            ) : (
               <FormLogin
                 key="login"
                 submitForm={submitForm}
-                toggleForm={toggleAuthMode}
-              />
-            ) : (
-              <FormSignup
-                key="signup"
-                submitForm={submitForm}
-                toggleForm={toggleAuthMode}
+                toggleForm={() => {}} // No longer used
               />
             )}
           </Box>

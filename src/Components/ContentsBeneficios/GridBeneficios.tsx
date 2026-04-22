@@ -16,28 +16,35 @@ import {
   Fab,
   Tooltip,
   TablePagination,
+  TextField,
+  MenuItem,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import ReportIcon from "@mui/icons-material/ReportProblem";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import PhoneIcon from "@mui/icons-material/Phone";
+import SearchIcon from "@mui/icons-material/Search";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { dataBeneficios } from "../mockData";
 import { supabase } from "../../supabaseClient";
 import BenefitEditModal, { Benefit } from "./BenefitEditModal";
 
 const ITEMS_PER_PAGE = 9;
 
-type BenefitItem = Benefit & {
-  thumbnail?: string | null;
-  short_description?: string | null;
-  mail?: string | null;
-  telephone?: string | null;
-};
+type BenefitItem = Benefit;
 
 export default function GridBeneficios() {
   const [beneficios, setBeneficios] = useState<BenefitItem[]>([]);
   const [dbBenefits, setDbBenefits] = useState<Benefit[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [selectedRubro, setSelectedRubro] = useState("Todos");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [rubros, setRubros] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedBenefit, setSelectedBenefit] = useState<Benefit | null>(null);
@@ -56,7 +63,22 @@ export default function GridBeneficios() {
 
   useEffect(() => {
     fetchBenefits();
+    fetchRubros();
   }, []);
+
+  const fetchRubros = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('benefit_categories')
+        .select('name')
+        .order('name');
+      if (data) {
+        setRubros(["Todos", ...data.map(r => r.name)]);
+      }
+    } catch (err) {
+      console.error('Error fetching rubros:', err);
+    }
+  };
 
   const fetchBenefits = async () => {
     setLoading(true);
@@ -88,12 +110,31 @@ export default function GridBeneficios() {
   };
 
   const filteredBenefits = useMemo(() => {
-    const all = getAllBenefits();
-    if (selectedCategory === "Todos") {
-      return all;
+    let all = getAllBenefits();
+    
+    // Filter by Provincia (category)
+    if (selectedCategory !== "Todos") {
+      all = all.filter((item) => item.category === selectedCategory);
     }
-    return all.filter((item) => item.category === selectedCategory);
-  }, [selectedCategory, dbBenefits]);
+
+    // Filter by Rubro
+    if (selectedRubro !== "Todos") {
+      all = all.filter((item) => item.rubro === selectedRubro);
+    }
+
+    // Filter by Search Term
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      all = all.filter(
+        (item) =>
+          item.title.toLowerCase().includes(lowerSearch) ||
+          (item.short_description?.toLowerCase() || "").includes(lowerSearch) ||
+          (item.rubro?.toLowerCase() || "").includes(lowerSearch)
+      );
+    }
+
+    return all;
+  }, [selectedCategory, selectedRubro, searchTerm, dbBenefits]);
 
   const paginatedBenefits = useMemo(() => {
     const start = page * ITEMS_PER_PAGE;
@@ -123,40 +164,105 @@ export default function GridBeneficios() {
     fetchBenefits();
   };
 
+  const [currentAffiliate, setCurrentAffiliate] = useState<any>(null);
+
+  useEffect(() => {
+    const checkUser = () => {
+      // Check web session
+      const stored = localStorage.getItem("current_affiliate");
+      if (stored) {
+        setCurrentAffiliate(JSON.parse(stored));
+        return;
+      }
+
+      // Check mobile session
+      const mobileName = localStorage.getItem("mobile_app_name");
+      const mobileLegajo = localStorage.getItem("mobile_app_legajo");
+      if (mobileName && mobileLegajo) {
+        const [nombre, ...apellidoParts] = mobileName.split(" ");
+        setCurrentAffiliate({
+          nombre: nombre,
+          apellido: apellidoParts.join(" "),
+          legajo: mobileLegajo
+        });
+      } else {
+        setCurrentAffiliate(null);
+      }
+    };
+
+    checkUser();
+    window.addEventListener("affiliate_login", checkUser);
+    return () => window.removeEventListener("affiliate_login", checkUser);
+  }, []);
+
   return (
     <Box>
       <Box
         sx={{
           display: "flex",
-          flexWrap: "wrap",
-          gap: 1.5,
-          justifyContent: "center",
-          mb: 4,
+          flexDirection: "column",
+          gap: 3,
+          mb: 5,
+          alignItems: "center"
         }}
       >
-        {categories.map((cat) => (
-          <Chip
-            key={cat}
-            label={cat}
-            onClick={() => handleCategoryChange(cat)}
-            color={selectedCategory === cat ? "primary" : "default"}
-            variant={selectedCategory === cat ? "filled" : "outlined"}
-            sx={{
-              fontWeight: 800,
-              px: { xs: 2, md: 3 },
-              py: 3,
-              fontSize: "1rem",
-              borderRadius: 1,
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              borderWidth: 2,
-              "&:hover": {
-                transform: "translateY(-3px)",
-                boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
-                borderWidth: 2,
-              },
+        <Box sx={{ width: "100%", maxWidth: 800, display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
+          <TextField
+            fullWidth
+            placeholder="Buscar por nombre, descripción o rubro..."
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
+            InputProps={{
+              startAdornment: <SearchIcon sx={{ color: "text.secondary", mr: 1 }} />,
+              sx: { borderRadius: 3, bgcolor: "background.paper" }
             }}
           />
-        ))}
+          <TextField
+            select
+            value={selectedRubro}
+            onChange={(e) => { setSelectedRubro(e.target.value); setPage(0); }}
+            sx={{ minWidth: { sm: 200 } }}
+            InputProps={{ sx: { borderRadius: 3, bgcolor: "background.paper" } }}
+            label="Rubro"
+          >
+            {rubros.length > 0 ? rubros.map(r => (
+              <MenuItem key={r} value={r}>{r}</MenuItem>
+            )) : <MenuItem value="Todos">Cargando rubros...</MenuItem>}
+          </TextField>
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 1.5,
+            justifyContent: "center",
+          }}
+        >
+          {categories.map((cat) => (
+            <Chip
+              key={cat}
+              label={cat}
+              onClick={() => handleCategoryChange(cat)}
+              color={selectedCategory === cat ? "primary" : "default"}
+              variant={selectedCategory === cat ? "filled" : "outlined"}
+              sx={{
+                fontWeight: 800,
+                px: { xs: 2, md: 3 },
+                py: 2.5,
+                fontSize: "0.9rem",
+                borderRadius: 2,
+                transition: "all 0.3s ease",
+                borderWidth: 2,
+                "&:hover": {
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                  borderWidth: 2,
+                },
+              }}
+            />
+          ))}
+        </Box>
       </Box>
 
       {loading ? (
@@ -168,7 +274,11 @@ export default function GridBeneficios() {
           <Grid container spacing={4}>
             {paginatedBenefits.map((item, i) => (
               <Grid key={item.id || `paginated-${i}`} size={{ xs: 12, sm: 6, lg: 4 }}>
-                <BenefitItemComponent item={item} onEdit={() => handleEdit(item)} />
+                <BenefitItemComponent 
+                  item={item} 
+                  onEdit={() => handleEdit(item)} 
+                  currentAffiliate={currentAffiliate}
+                />
               </Grid>
             ))}
           </Grid>
@@ -212,12 +322,94 @@ export default function GridBeneficios() {
   );
 }
 
-function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () => void }) {
+function BenefitItemComponent({ 
+  item, 
+  onEdit, 
+  currentAffiliate 
+}: { 
+  item: BenefitItem; 
+  onEdit: () => void;
+  currentAffiliate: any;
+}) {
   const [open, setOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportOtherReason, setReportOtherReason] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
+  const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const theme = useTheme();
 
-  const handleOpen = useCallback(() => setOpen(true), []);
+  const handleOpen = useCallback(() => {
+    setOpen(true);
+    setCurrentImgIndex(0);
+  }, []);
   const handleClose = useCallback(() => setOpen(false), []);
+
+  const gallery = useMemo(() => {
+    const list = [];
+    if (item.thumbnail) list.push(item.thumbnail);
+    if (item.images && Array.isArray(item.images)) {
+      list.push(...item.images);
+    }
+    return list;
+  }, [item]);
+
+  const handleNextImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImgIndex((prev) => (prev + 1) % gallery.length);
+  };
+
+  const handlePrevImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImgIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+  };
+
+  const handleContact = () => {
+    if (!item.telephone) return;
+
+    if (item.telephone_type === 'whatsapp') {
+      const nombre = currentAffiliate ? `${currentAffiliate.nombre} ${currentAffiliate.apellido}` : "[Tu Nombre]";
+      const message = `Hola, mi nombre es ${nombre} soy afiliado/a de AEFIP Seccional Noroeste y me gustaría hacer uso del convenio establecido`;
+      const encodedMsg = encodeURIComponent(message);
+      // Remove symbols from phone
+      const cleanPhone = item.telephone.replace(/\D/g, '');
+      const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
+      window.open(waUrl, '_blank');
+    } else {
+      window.open(`tel:${item.telephone}`, '_self');
+    }
+  };
+
+  const handleReportSubmit = async () => {
+    if (!reportReason || !currentAffiliate) return;
+    
+    setReportLoading(true);
+    try {
+      const reasonText = reportReason === "Otro inconveniente" ? reportOtherReason : reportReason;
+      const description = `REPORTE DE CONVENIO: ${item.title}. Motivo: ${reasonText}.`;
+      const { error } = await supabase.from("maintenance_requests").insert({
+        user_name: `${currentAffiliate.nombre} ${currentAffiliate.apellido} (Legajo: ${currentAffiliate.legajo})`,
+        description: description,
+        request_type: "Reporte de Convenio",
+        status: "Pendiente",
+      });
+
+      if (error) throw error;
+      setReportSuccess(true);
+      setTimeout(() => {
+        setReportDialogOpen(false);
+        setReportSuccess(false);
+        setReportReason("");
+        setReportOtherReason("");
+      }, 2000);
+    } catch (err) {
+      console.error("Error submitting report:", err);
+      alert("Error al enviar el reporte. Por favor intenta más tarde.");
+    } finally {
+      setReportLoading(false);
+    }
+  };
 
   return (
     <>
@@ -338,28 +530,93 @@ function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () 
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ p: 4 }}>
-          <Box
-            sx={{
-              width: "100%",
-              height: 300,
-              borderRadius: 1,
-              mb: 4,
-              backgroundImage: `url(${item.thumbnail})`,
-              backgroundSize: "contain",
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "center",
-              bgcolor: alpha(theme.palette.background.default, 0.5),
-              border: "1px solid",
-              borderColor: "divider",
-              p: 4,
-            }}
-          />
-          <Typography
-            variant="h6"
-            sx={{ color: "secondary.main", fontWeight: 800, mb: 2 }}
-          >
-            {item.category}
-          </Typography>
+          {/* Carousel Section */}
+          <Box sx={{ position: "relative", mb: 4 }}>
+            <Box
+              sx={{
+                width: "100%",
+                height: 350,
+                borderRadius: 4,
+                backgroundImage: `url(${gallery[currentImgIndex]})`,
+                backgroundSize: "contain",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "center",
+                bgcolor: alpha(theme.palette.background.default, 0.5),
+                border: "1px solid",
+                borderColor: "divider",
+                p: 4,
+                transition: "background-image 0.5s ease",
+              }}
+            />
+            {gallery.length > 1 && (
+              <>
+                <IconButton 
+                  onClick={handlePrevImg}
+                  sx={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", bgcolor: "white", "&:hover": { bgcolor: alpha("#fff", 0.9) } }}
+                >
+                  <ArrowBackIosNewIcon />
+                </IconButton>
+                <IconButton 
+                  onClick={handleNextImg}
+                  sx={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", bgcolor: "white", "&:hover": { bgcolor: alpha("#fff", 0.9) } }}
+                >
+                  <ArrowForwardIosIcon />
+                </IconButton>
+                
+                {/* Thumbnails */}
+                <Box sx={{ display: "flex", gap: 1, mt: 1, overflowX: "auto", pb: 1, justifyContent: "center" }}>
+                  {gallery.map((img, idx) => (
+                    <Box
+                      key={idx}
+                      onClick={() => setCurrentImgIndex(idx)}
+                      sx={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: 1,
+                        border: "2px solid",
+                        borderColor: currentImgIndex === idx ? "primary.main" : "transparent",
+                        cursor: "pointer",
+                        backgroundImage: `url(${img})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        opacity: currentImgIndex === idx ? 1 : 0.6,
+                      }}
+                    />
+                  ))}
+                </Box>
+              </>
+            )}
+          </Box>
+
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+            <Box>
+              <Typography variant="h6" sx={{ color: "primary.main", fontWeight: 800 }}>
+                {item.rubro || "General"}
+              </Typography>
+              <Typography variant="subtitle1" color="secondary" sx={{ fontWeight: 700 }}>
+                {item.category}
+              </Typography>
+            </Box>
+            
+            {item.telephone && (
+              <Button
+                variant="contained"
+                onClick={handleContact}
+                startIcon={item.telephone_type === 'whatsapp' ? <WhatsAppIcon /> : <PhoneIcon />}
+                sx={{
+                  bgcolor: item.telephone_type === 'whatsapp' ? "#25D366" : "primary.main",
+                  "&:hover": {
+                    bgcolor: item.telephone_type === 'whatsapp' ? "#128C7E" : "primary.dark",
+                  },
+                  borderRadius: 2,
+                  fontWeight: 800,
+                  boxShadow: 2
+                }}
+              >
+                {item.telephone_type === 'whatsapp' ? "WhatsApp" : "Llamar"}
+              </Button>
+            )}
+          </Box>
           <Typography
             variant="body1"
             sx={{ color: "text.secondary", lineHeight: 1.8, mb: 4, fontSize: "1.1rem" }}
@@ -429,6 +686,27 @@ function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () 
               )}
             </Box>
           </Paper>
+
+          {currentAffiliate && (
+            <Box sx={{ mt: 4 }}>
+              <Button
+                variant="outlined"
+                color="error"
+                fullWidth
+                startIcon={<ReportIcon />}
+                onClick={() => setReportDialogOpen(true)}
+                sx={{
+                  py: 1.5,
+                  borderRadius: 2,
+                  fontWeight: 800,
+                  borderWidth: 2,
+                  "&:hover": { borderWidth: 2 },
+                }}
+              >
+                Reportar Problema con este Convenio
+              </Button>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 4, pt: 0 }}>
           <Button
@@ -446,6 +724,84 @@ function BenefitItemComponent({ item, onEdit }: { item: BenefitItem; onEdit: () 
             Cerrar
           </Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={reportDialogOpen}
+        onClose={() => !reportLoading && setReportDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4, p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>Reportar Convenio</DialogTitle>
+        <DialogContent>
+          {reportSuccess ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <CheckCircleIcon sx={{ fontSize: 60, color: "success.main", mb: 2 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Reporte Enviado</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Gracias por ayudarnos a mejorar. Revisaremos el inconveniente a la brevedad.
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ mb: 3, color: "text.secondary" }}>
+                Cuéntanos qué sucede con <strong>{item.title}</strong>:
+              </Typography>
+              <TextField
+                select
+                fullWidth
+                label="Motivo del reporte"
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                disabled={reportLoading}
+                sx={{ mb: 3 }}
+                InputProps={{ sx: { borderRadius: 2 } }}
+              >
+                <MenuItem value="El convenio ya no existe">El convenio ya no existe</MenuItem>
+                <MenuItem value="El lugar/establecimiento ya no existe">El lugar/establecimiento ya no existe</MenuItem>
+                <MenuItem value="Hay que renovar los datos">Hay que renovar los datos</MenuItem>
+                <MenuItem value="El % de descuento no corresponde">El % de descuento no corresponde</MenuItem>
+                <MenuItem value="La imagen no corresponde">La imagen no corresponde</MenuItem>
+                <MenuItem value="Otro inconveniente">Otro inconveniente</MenuItem>
+              </TextField>
+              {reportReason === "Otro inconveniente" && (
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Detalla el problema"
+                  placeholder="Escribe aquí los detalles..."
+                  value={reportOtherReason}
+                  onChange={(e) => setReportOtherReason(e.target.value)}
+                  disabled={reportLoading}
+                  sx={{ mb: 2 }}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                />
+              )}
+            </>
+          )}
+        </DialogContent>
+        {!reportSuccess && (
+          <DialogActions sx={{ p: 3, pt: 0 }}>
+            <Button 
+              onClick={() => setReportDialogOpen(false)} 
+              disabled={reportLoading}
+              sx={{ fontWeight: 700, color: "text.secondary" }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              disabled={!reportReason || reportLoading}
+              onClick={handleReportSubmit}
+              sx={{ fontWeight: 800, borderRadius: 2, px: 4 }}
+            >
+              {reportLoading ? <CircularProgress size={24} color="inherit" /> : "Enviar Reporte"}
+            </Button>
+          </DialogActions>
+        )}
       </Dialog>
     </>
   );

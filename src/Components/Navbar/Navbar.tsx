@@ -47,6 +47,29 @@ function Navbar(props: any) {
     { name: "Admin", path: "/admin" },
   ];
 
+  const [currentAffiliate, setCurrentAffiliate] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    const checkUser = () => {
+      const stored = localStorage.getItem("current_affiliate");
+      if (stored) {
+        setCurrentAffiliate(JSON.parse(stored));
+      } else {
+        setCurrentAffiliate(null);
+      }
+    };
+
+    checkUser();
+    window.addEventListener("affiliate_login", checkUser);
+    return () => window.removeEventListener("affiliate_login", checkUser);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("current_affiliate");
+    setCurrentAffiliate(null);
+    window.dispatchEvent(new Event("affiliate_login"));
+  };
+
   return (
     <HideOnScroll {...props}>
       <AppBar
@@ -144,20 +167,42 @@ function Navbar(props: any) {
               )}
             </IconButton>
 
-            <Button
-              component={Link}
-              to="/login"
-              variant="contained"
-              sx={{
-                display: { xs: "none", sm: "flex" },
-                bgcolor: "primary.main",
-                borderRadius: 1,
-                px: 3,
-                fontWeight: 700,
-              }}
-            >
-              Ingresar
-            </Button>
+            {currentAffiliate ? (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                {!isMobile && (
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
+                    Hola, {currentAffiliate.nombre}
+                  </Typography>
+                )}
+                <Button
+                  onClick={handleLogout}
+                  variant="outlined"
+                  size="small"
+                  sx={{
+                    borderRadius: 1,
+                    textTransform: "none",
+                    fontWeight: 700,
+                  }}
+                >
+                  Salir
+                </Button>
+              </Box>
+            ) : (
+              <Button
+                component={Link}
+                to="/login"
+                variant="contained"
+                sx={{
+                  display: { xs: "none", sm: "flex" },
+                  bgcolor: "primary.main",
+                  borderRadius: 1,
+                  px: 3,
+                  fontWeight: 700,
+                }}
+              >
+                Ingresar
+              </Button>
+            )}
 
             <Tooltip title="App Afiliados">
               <IconButton

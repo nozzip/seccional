@@ -12,24 +12,26 @@ import {
   useTheme,
   InputAdornment,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
-import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material";
+import { Link } from "react-router-dom";
+import { AssignmentInd as AssignmentIndIcon } from "@mui/icons-material";
 import { z } from "zod";
+import { supabase } from "../../supabaseClient";
 
 const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+  identifier: z.string().min(4, "Ingresa un legajo o DNI válido"),
 });
 
 const FormLogin = ({
   submitForm,
-  toggleForm,
 }: {
   submitForm: any;
-  toggleForm: () => void;
+  toggleForm?: () => void;
 }) => {
   const theme = useTheme();
-  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -39,9 +41,39 @@ const FormLogin = ({
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: any) => {
-    console.log(data);
-    submitForm();
+  const onSubmit = async (data: any) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const id = data.identifier.trim();
+      const baseId = id.replace(/^0+/, "");
+      const variations = Array.from(new Set([id, baseId, `0${baseId}`]));
+
+      // Search by legajo OR by CUIL (containing the identifier as DNI)
+      const { data: results, error: dbError } = await supabase
+        .from("affiliates")
+        .select("*")
+        .or(`legajo.in.(${variations.join(",")}),cuil.ilike.%${id}%`)
+        .eq("branch", "noroeste")
+        .limit(1);
+
+      if (dbError) throw dbError;
+
+      if (!results || results.length === 0) {
+        setError("No se encontró un afiliado con esos datos en la seccional Noroeste.");
+      } else {
+        const affiliate = results[0];
+        localStorage.setItem("current_affiliate", JSON.stringify(affiliate));
+        // Also trigger a custom event so other components know the state changed
+        window.dispatchEvent(new Event("affiliate_login"));
+        submitForm();
+      }
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError("Error al conectar con el servidor. Intenta nuevamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,13 +97,13 @@ const FormLogin = ({
           letterSpacing: "-0.5px",
         }}
       >
-        Bienvenido de nuevo
+        Portal de Afiliados
       </Typography>
       <Typography
         variant="body1"
         sx={{ mb: 4, color: "text.secondary", textAlign: "center" }}
       >
-        Ingresa tus credenciales para acceder a tu cuenta.
+        Ingresa tu Legajo o DNI para acceder a tus beneficios.
       </Typography>
 
       <Box
@@ -83,71 +115,29 @@ const FormLogin = ({
         <Stack spacing={3}>
           <TextField
             fullWidth
-            label="Email"
-            type="email"
-            placeholder="tu@ejemplo.com"
+            label="Legajo o DNI"
+            placeholder="Ej: 33296 o 12345678"
             variant="outlined"
-            {...register("email")}
-            error={!!errors.email}
-            helperText={errors.email?.message as string}
+            {...register("identifier")}
+            error={!!errors.identifier || !!error}
+            helperText={(errors.identifier?.message as string) || error}
+            disabled={loading}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Email color="action" />
+                  <AssignmentIndIcon color="action" />
                 </InputAdornment>
               ),
               sx: { borderRadius: 3 },
             }}
           />
 
-          <Box>
-            <TextField
-              fullWidth
-              label="Contraseña"
-              type={showPassword ? "text" : "password"}
-              variant="outlined"
-              {...register("password")}
-              error={!!errors.password}
-              helperText={errors.password?.message as string}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Lock color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-                sx: { borderRadius: 3 },
-              }}
-            />
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
-              <MuiLink
-                href="#"
-                variant="body2"
-                sx={{
-                  color: "primary.main",
-                  textDecoration: "none",
-                  fontWeight: 600,
-                }}
-              >
-                ¿Olvidaste tu contraseña?
-              </MuiLink>
-            </Box>
-          </Box>
-
           <Button
             type="submit"
             fullWidth
             variant="contained"
             size="large"
+            disabled={loading}
             sx={{
               mt: 1,
               py: 2,
@@ -162,7 +152,7 @@ const FormLogin = ({
               },
             }}
           >
-            Iniciar Sesión
+            {loading ? <CircularProgress size={24} color="inherit" /> : "Ingresar"}
           </Button>
 
           <Typography
@@ -170,24 +160,19 @@ const FormLogin = ({
             align="center"
             sx={{ mt: 2, color: "text.secondary" }}
           >
-            ¿No tienes una cuenta?{" "}
+            ¿Aún no eres afiliado?{" "}
             <MuiLink
-              component="button"
-              type="button"
-              onClick={toggleForm}
+              component={Link}
+              to="/afiliar"
               sx={{
                 fontWeight: 700,
                 color: "primary.main",
                 textDecoration: "none",
-                border: "none",
-                background: "none",
                 cursor: "pointer",
-                padding: 0,
-                fontSize: "inherit",
                 "&:hover": { textDecoration: "underline" },
               }}
             >
-              Regístrate aquí
+              Solicita tu afiliación aquí
             </MuiLink>
           </Typography>
         </Stack>

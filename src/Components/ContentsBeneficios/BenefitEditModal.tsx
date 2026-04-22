@@ -24,10 +24,13 @@ export interface Benefit {
     id: number;
     title: string;
     category: string;
+    rubro?: string | null;
     thumbnail: string | null;
+    images?: string[] | null;
     short_description: string | null;
     mail: string | null;
     telephone: string | null;
+    telephone_type?: 'fixed' | 'whatsapp' | null;
     contact_person: string | null;
     address: string | null;
     discount_description: string | null;
@@ -42,7 +45,7 @@ interface BenefitEditModalProps {
     onSave: () => void;
 }
 
-const CATEGORIES = [
+const PROVINCIAS = [
     'Tucumán',
     'Catamarca',
     'Salta',
@@ -57,15 +60,20 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [rubros, setRubros] = useState<string[]>([]);
+    const [newRubro, setNewRubro] = useState('');
     const theme = useTheme();
 
     const [formData, setFormData] = useState<Partial<Benefit>>({
         title: '',
         category: 'Tucumán',
+        rubro: '',
         thumbnail: '',
+        images: [],
         short_description: '',
         mail: '',
         telephone: '',
+        telephone_type: 'fixed',
         contact_person: '',
         address: '',
         discount_description: '',
@@ -74,14 +82,35 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
     });
 
     useEffect(() => {
+        fetchRubros();
+    }, []);
+
+    const fetchRubros = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('benefit_categories')
+                .select('name')
+                .order('name');
+            if (data) {
+                setRubros(data.map(r => r.name));
+            }
+        } catch (err) {
+            console.error('Error fetching rubros:', err);
+        }
+    };
+
+    useEffect(() => {
         if (benefit) {
             setFormData({
                 title: benefit.title || '',
                 category: benefit.category || 'Tucumán',
+                rubro: benefit.rubro || '',
                 thumbnail: benefit.thumbnail || '',
+                images: benefit.images || [],
                 short_description: benefit.short_description || '',
                 mail: benefit.mail || '',
                 telephone: benefit.telephone || '',
+                telephone_type: benefit.telephone_type || 'fixed',
                 contact_person: benefit.contact_person || '',
                 address: benefit.address || '',
                 discount_description: benefit.discount_description || '',
@@ -92,10 +121,13 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
             setFormData({
                 title: '',
                 category: 'Tucumán',
+                rubro: '',
                 thumbnail: '',
+                images: [],
                 short_description: '',
                 mail: '',
                 telephone: '',
+                telephone_type: 'fixed',
                 contact_person: '',
                 address: '',
                 discount_description: '',
@@ -115,7 +147,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
         });
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isGallery = false) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -137,10 +169,17 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                 .from('benefits')
                 .getPublicUrl(filePath);
 
-            setFormData({
-                ...formData,
-                thumbnail: data.publicUrl
-            });
+            if (isGallery) {
+                setFormData({
+                    ...formData,
+                    images: [...(formData.images || []), data.publicUrl]
+                });
+            } else {
+                setFormData({
+                    ...formData,
+                    thumbnail: data.publicUrl
+                });
+            }
             setSuccess('Imagen subida correctamente');
         } catch (err: any) {
             console.error('Error uploading file:', err);
@@ -152,7 +191,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
 
     const handleSave = async () => {
         if (!formData.title || !formData.category) {
-            setError('El título y la categoría son obligatorios');
+            setError('El título y la provincia son obligatorios');
             return;
         }
 
@@ -160,13 +199,27 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
         setError('');
 
         try {
+            // Check if we need to add a new rubro
+            let finalRubro = formData.rubro;
+            if (newRubro) {
+                const { error: rubroError } = await supabase
+                    .from('benefit_categories')
+                    .insert([{ name: newRubro }]);
+                if (!rubroError || rubroError.code === '23505') { // 23505 is unique constraint violation
+                    finalRubro = newRubro;
+                }
+            }
+
             const dataToSave = {
                 title: formData.title,
                 category: formData.category,
+                rubro: finalRubro || null,
                 thumbnail: formData.thumbnail || null,
+                images: formData.images || [],
                 short_description: formData.short_description || null,
                 mail: formData.mail || null,
                 telephone: formData.telephone || null,
+                telephone_type: formData.telephone_type || 'fixed',
                 contact_person: formData.contact_person || null,
                 address: formData.address || null,
                 discount_description: formData.discount_description || null,
@@ -246,7 +299,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <TextField
-                        label="Título"
+                        label="Título / Nombre del Convenio"
                         name="title"
                         value={formData.title}
                         onChange={handleChange}
@@ -256,7 +309,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                     />
 
                     <TextField
-                        label="Categoría"
+                        label="Provincia"
                         name="category"
                         value={formData.category}
                         onChange={handleChange}
@@ -265,79 +318,132 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                         select
                         size="small"
                     >
-                        {CATEGORIES.map((cat) => (
+                        {PROVINCIAS.map((cat) => (
                             <MenuItem key={cat} value={cat}>{cat}</MenuItem>
                         ))}
                     </TextField>
 
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
                         <TextField
-                            label="URL de Imagen"
-                            name="thumbnail"
-                            value={formData.thumbnail}
+                            label="Rubro"
+                            name="rubro"
+                            value={formData.rubro}
                             onChange={handleChange}
                             fullWidth
+                            select
                             size="small"
-                            placeholder="https://..."
+                        >
+                            <MenuItem value=""><em>Ninguno</em></MenuItem>
+                            {rubros.map((r) => (
+                                <MenuItem key={r} value={r}>{r}</MenuItem>
+                            ))}
+                        </TextField>
+                        <TextField
+                            label="Nuevo Rubro"
+                            placeholder="Agregar..."
+                            value={newRubro}
+                            onChange={(e) => setNewRubro(e.target.value)}
+                            fullWidth
+                            size="small"
                         />
+                    </Box>
+
+                    <Box sx={{ border: '1px solid', borderColor: 'divider', p: 2, borderRadius: 1 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Imagen Principal</Typography>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <TextField
+                                label="URL de Imagen"
+                                name="thumbnail"
+                                value={formData.thumbnail}
+                                onChange={handleChange}
+                                fullWidth
+                                size="small"
+                            />
+                            <Button
+                                variant="outlined"
+                                component="label"
+                                startIcon={uploading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+                                disabled={uploading}
+                                size="small"
+                            >
+                                {uploading ? '...' : 'Subir'}
+                                <input type="file" hidden accept="image/*" onChange={(e) => handleFileUpload(e, false)} />
+                            </Button>
+                        </Box>
+                        {formData.thumbnail && (
+                            <Box sx={{ mt: 1, width: 60, height: 60, borderRadius: 1, overflow: 'hidden', border: '1px solid divider' }}>
+                                <img src={formData.thumbnail} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </Box>
+                        )}
+                    </Box>
+
+                    <Box sx={{ border: '1px solid', borderColor: 'divider', p: 2, borderRadius: 1 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Galería de Imágenes (Carrusel)</Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                            {formData.images?.map((img, i) => (
+                                <Box key={i} sx={{ position: 'relative', width: 60, height: 60, borderRadius: 1, overflow: 'hidden', border: '1px solid divider' }}>
+                                    <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <IconButton 
+                                        size="small" 
+                                        sx={{ position: 'absolute', top: 0, right: 0, bgcolor: 'rgba(255,255,255,0.7)', p: 0 }}
+                                        onClick={() => setFormData({ ...formData, images: formData.images?.filter((_, idx) => idx !== i) })}
+                                    >
+                                        <CloseIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                            ))}
+                        </Box>
                         <Button
                             variant="outlined"
                             component="label"
-                            startIcon={uploading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+                            fullWidth
+                            startIcon={<CloudUploadIcon />}
                             disabled={uploading}
-                            sx={{ 
-                                minWidth: '130px', 
-                                height: '40px', // Matches MUI small TextField height
-                                borderRadius: 1 
-                            }}
                             size="small"
                         >
-                            {uploading ? 'Subiendo...' : 'Subir'}
-                            <input
-                                type="file"
-                                hidden
-                                accept="image/*"
-                                onChange={handleFileUpload}
-                            />
+                            Añadir imagen a la galería
+                            <input type="file" hidden accept="image/*" onChange={(e) => handleFileUpload(e, true)} />
                         </Button>
                     </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: -1, ml: 1, display: 'block' }}>
-                        Opcional: puedes pegar una URL o subir un archivo local
-                    </Typography>
 
                     <TextField
-                        label="Descripción"
+                        label="Descripción Completa"
                         name="short_description"
                         value={formData.short_description}
                         onChange={handleChange}
                         fullWidth
                         multiline
-                        rows={2}
+                        rows={3}
                         size="small"
                     />
 
-                    <TextField
-                        label="Teléfono"
-                        name="telephone"
-                        value={formData.telephone}
-                        onChange={handleChange}
-                        fullWidth
-                        size="small"
-                    />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                            label="Teléfono"
+                            name="telephone"
+                            value={formData.telephone}
+                            onChange={handleChange}
+                            fullWidth
+                            size="small"
+                        />
+                        <TextField
+                            label="Tipo"
+                            name="telephone_type"
+                            value={formData.telephone_type}
+                            onChange={handleChange}
+                            select
+                            size="small"
+                            sx={{ minWidth: 120 }}
+                        >
+                            <MenuItem value="fixed">Fijo</MenuItem>
+                            <MenuItem value="whatsapp">WhatsApp</MenuItem>
+                        </TextField>
+                    </Box>
 
                     <TextField
                         label="Email"
                         name="mail"
                         value={formData.mail}
-                        onChange={handleChange}
-                        fullWidth
-                        size="small"
-                    />
-
-                    <TextField
-                        label="Persona de contacto"
-                        name="contact_person"
-                        value={formData.contact_person}
                         onChange={handleChange}
                         fullWidth
                         size="small"
@@ -353,7 +459,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                     />
 
                     <TextField
-                        label="Descripción del descuento"
+                        label="Descripción del descuento (Promo)"
                         name="discount_description"
                         value={formData.discount_description}
                         onChange={handleChange}
@@ -365,7 +471,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                     />
 
                     <TextField
-                        label="Orden de visualización"
+                        label="Orden"
                         name="display_order"
                         type="number"
                         value={formData.display_order}

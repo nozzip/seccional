@@ -24,6 +24,7 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import VerifiedIcon from "@mui/icons-material/Verified";
+import GetAppIcon from "@mui/icons-material/GetApp";
 
 const MotionBox = motion.create(Box);
 const MotionTypography = motion.create(Typography);
@@ -175,6 +176,32 @@ function Inicio() {
 
   const statsRef = useRef(null);
   const statsInView = useInView(statsRef, { once: true });
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      alert("Para instalar la aplicación:\n\nEn Android: Toca los tres puntos en la esquina superior derecha y selecciona 'Instalar aplicación'.\n\nEn iPhone/iOS: Toca el botón 'Compartir' y selecciona 'Agregar a inicio'.");
+    }
+  };
 
   return (
     <Box sx={{ overflowX: "hidden" }}>
@@ -286,10 +313,10 @@ function Inicio() {
           sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}
         >
           <Button
-            component={Link}
-            to="/gremio"
+            onClick={handleInstallClick}
             variant="contained"
             size="large"
+            startIcon={<GetAppIcon />}
             sx={{
               background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`,
               color: "white",
@@ -306,7 +333,7 @@ function Inicio() {
               },
             }}
           >
-            Conocenos
+            Descargar la App
           </Button>
           <Button
             component={Link}
