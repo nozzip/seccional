@@ -23,5 +23,14 @@
    - Se cambiaron las rutas de `manifest.json`, iconos y registro de Service Worker a rutas relativas (`./`) para asegurar la compatibilidad con el subdirectorio `/seccional/` en GitHub Pages.
    - Se actualizó el `apple-touch-icon` en `index.html`.
 
+## [ÉXITO] - Actualización de Identidad Visual (Logo)
+**Fecha:** 2026-04-22
+**Modo:** Mejorar
+**Descripción:** Se actualizó el logo oficial de la PWA utilizando el archivo de alta resolución proporcionado por el usuario.
+
+### Cambios realizados:
+1. **Activos:** Se reemplazó `icon-512.png` por el nuevo `Logo PNG.png` para asegurar la mejor calidad visual en dispositivos móviles.
+2. **PWA:** Se actualizó `manifest.json` para incluir la variante de 192x192, mejorando la compatibilidad con diferentes launchers de Android e iOS.
+
 ### Arquitecturas Aprobadas (Actualización):
 - **PWA:** Se utiliza una implementación estándar de Service Worker y Manifest para permitir la instalación nativa en dispositivos móviles (Android/iOS). Rutas configuradas como relativas para compatibilidad con subdirectorios de hosting.

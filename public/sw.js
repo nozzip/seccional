@@ -1,6 +1,20 @@
 const CACHE_NAME = 'aefip-cache-v3';
+const ASSETS_TO_CACHE = [
+  '/seccional/',
+  '/seccional/index.html',
+  '/seccional/manifest.json',
+  '/seccional/seccionalLogo.png',
+  '/seccional/favicon.ico',
+  '/seccional/icon-512.png'
+];
 
 self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      console.log('Opened cache');
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
   self.skipWaiting();
 });
 
@@ -25,7 +39,23 @@ self.addEventListener('fetch', event => {
         if (response) {
           return response;
         }
-        return fetch(event.request);
+        return fetch(event.request).then(response => {
+          // Check if we received a valid response
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+
+          // Cache clones of successful fetches for future offline use
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            // Only cache assets from our own origin
+            if (event.request.url.startsWith(self.location.origin)) {
+              cache.put(event.request, responseToCache);
+            }
+          });
+
+          return response;
+        });
       })
   );
 });
