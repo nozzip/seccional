@@ -170,13 +170,14 @@ function Particle({ delay }: { delay: number }) {
 
 function Inicio() {
   const theme = useTheme();
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
   const statsRef = useRef(null);
   const statsInView = useInView(statsRef, { once: true });
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
@@ -189,6 +190,16 @@ function Inicio() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
+  }, []);
+
+  useEffect(() => {
+    const checkInstallStatus = () => {
+      const installed = window.matchMedia('(display-mode: standalone)').matches;
+      setIsInstalled(installed);
+    };
+    checkInstallStatus();
+    window.addEventListener('resize', checkInstallStatus);
+    return () => window.removeEventListener('resize', checkInstallStatus);
   }, []);
 
   const handleInstallClick = async () => {
@@ -207,8 +218,6 @@ function Inicio() {
       }
     }
   };
-
-  const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
 
   return (
     <Box sx={{ overflowX: "hidden" }}>
