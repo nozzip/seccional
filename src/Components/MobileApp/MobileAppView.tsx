@@ -174,7 +174,7 @@ export default function MobileAppView() {
           borderColor: "divider",
         }}
       >
-        <Box component="img" src="/seccionalLogo.png" sx={{ height: 35 }} />
+        <Box component="img" src="./seccionalLogo.png" sx={{ height: 35 }} />
         <IconButton color="primary">
           <NotificationsIcon />
         </IconButton>
