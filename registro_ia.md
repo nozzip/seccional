@@ -6,14 +6,15 @@
 **Descripción:** Se reemplazó el botón "Conocenos" por "Descargar la App" en la página de Inicio para facilitar la instalación de la PWA.
 
 ### Cambios realizados:
-1. **Visual:** Reemplazo de botón en `Inicio.tsx` con icono de descarga (`GetAppIcon`).
+1. **Visual:** Reemplazo de botón en `Inicio.tsx` con icono de descarga (`GetAppIcon`). El botón se oculta automáticamente si la app ya está instalada.
 2. **Lógica:** 
    - Implementación de escucha del evento `beforeinstallprompt` en `Inicio.tsx`.
+   - Detección inteligente de sistema operativo (Android/iOS) para mostrar instrucciones personalizadas.
    - Creación de `public/sw.js` (Service Worker) para habilitar capacidades PWA.
    - Registro del Service Worker en `src/index.tsx`.
 3. **Activos:**
    - Generación de icono PWA de alta resolución (`public/icon-512.png`).
-   - Actualización de `public/manifest.json` con iconos y configuración correcta.
+   - Actualización de `public/manifest.json` con iconos y `start_url` apuntando a `#/app` para iniciar directamente en la vista de afiliados.
 
 ### Arquitecturas Aprobadas (Actualización):
 - **PWA:** Se utiliza una implementación estándar de Service Worker y Manifest para permitir la instalación nativa en dispositivos móviles (Android/iOS).

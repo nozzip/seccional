@@ -199,9 +199,16 @@ function Inicio() {
         setDeferredPrompt(null);
       }
     } else {
-      alert("Para instalar la aplicación:\n\nEn Android: Toca los tres puntos en la esquina superior derecha y selecciona 'Instalar aplicación'.\n\nEn iPhone/iOS: Toca el botón 'Compartir' y selecciona 'Agregar a inicio'.");
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        alert("Para instalar en tu iPhone:\n\n1. Toca el botón 'Compartir' (el cuadrado con la flecha hacia arriba).\n2. Desliza hacia abajo y selecciona 'Agregar al inicio'.\n\n¡Y listo! Ya tendrás la App en tu pantalla.");
+      } else {
+        alert("Para instalar la aplicación:\n\nEn Android: Toca los tres puntos en la esquina superior derecha y selecciona 'Instalar aplicación'.\n\nEn Computadora: Busca el icono de instalación en la barra de direcciones de Chrome o Edge.");
+      }
     }
   };
+
+  const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
 
   return (
     <Box sx={{ overflowX: "hidden" }}>
@@ -312,29 +319,31 @@ function Inicio() {
           transition={{ duration: 0.8, delay: 0.6 }}
           sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}
         >
-          <Button
-            onClick={handleInstallClick}
-            variant="contained"
-            size="large"
-            startIcon={<GetAppIcon />}
-            sx={{
-              background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`,
-              color: "white",
-              px: { xs: 4, md: 6 },
-              py: 2.5,
-              fontSize: "1.1rem",
-              fontWeight: 900,
-              borderRadius: 1,
-              boxShadow: `0 10px 30px ${alpha(theme.palette.secondary.main, 0.4)}`,
-              textTransform: 'none',
-              "&:hover": {
-                transform: "translateY(-4px)",
-                boxShadow: `0 20px 40px ${alpha(theme.palette.secondary.main, 0.5)}`,
-              },
-            }}
-          >
-            Descargar la App
-          </Button>
+          {!isInstalled && (
+            <Button
+              onClick={handleInstallClick}
+              variant="contained"
+              size="large"
+              startIcon={<GetAppIcon />}
+              sx={{
+                background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`,
+                color: "white",
+                px: { xs: 4, md: 6 },
+                py: 2.5,
+                fontSize: "1.1rem",
+                fontWeight: 900,
+                borderRadius: 1,
+                boxShadow: `0 10px 30px ${alpha(theme.palette.secondary.main, 0.4)}`,
+                textTransform: 'none',
+                "&:hover": {
+                  transform: "translateY(-4px)",
+                  boxShadow: `0 20px 40px ${alpha(theme.palette.secondary.main, 0.5)}`,
+                },
+              }}
+            >
+              Descargar la App
+            </Button>
+          )}
           <Button
             component={Link}
             to="/afiliar"
