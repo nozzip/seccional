@@ -19,10 +19,33 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import QrCode2Icon from "@mui/icons-material/QrCode2";
 import GridBeneficios from "../ContentsBeneficios/GridBeneficios";
 import BirthdayCarousel from "../ContentsFront/BirthdayCarousel";
+import { useEffect } from "react";
+import { supabase } from "../../supabaseClient";
+import FormLogin from "../LoginForm/FormLogin";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 export default function MobileAppView() {
   const theme = useTheme();
   const [value, setValue] = useState(0);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const renderContent = () => {
     switch (value) {
@@ -66,20 +89,56 @@ export default function MobileAppView() {
           </Box>
         );
       case 3: // Perfil
+        if (loading) {
+          return (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography>Cargando...</Typography>
+            </Box>
+          );
+        }
+
+        if (!user) {
+          return (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="h5" sx={{ fontWeight: 800, mb: 3 }}>
+                Área de Afiliados
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                Inicia sesión para acceder a tu credencial digital y beneficios exclusivos.
+              </Typography>
+              <FormLogin submitForm={() => {}} toggleForm={() => {}} />
+            </Box>
+          );
+        }
+
         return (
           <Box sx={{ p: 2, textAlign: "center" }}>
             <Avatar 
+              src={user.user_metadata?.avatar_url}
               sx={{ width: 100, height: 100, mx: "auto", mb: 2, bgcolor: "primary.main" }}
             >
-              U
+              {user.email?.charAt(0).toUpperCase()}
             </Avatar>
-            <Typography variant="h6" sx={{ fontWeight: 800 }}>Juan Manuel Arterie</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>Afiliado N° 4521 - Noroeste</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+              {user.user_metadata?.full_name || user.email}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Afiliado - Noroeste
+            </Typography>
             
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, textAlign: "left" }}>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, textAlign: "left", mb: 2 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main" }}>ESTADO DE CUENTA</Typography>
               <Typography variant="body1" sx={{ fontWeight: 700 }}>Al día ✅</Typography>
             </Paper>
+
+            <IconButton 
+              onClick={handleLogout}
+              color="error"
+              sx={{ mt: 2 }}
+            >
+              <LogoutIcon sx={{ mr: 1 }} />
+              <Typography variant="button">Cerrar Sesión</Typography>
+            </IconButton>
           </Box>
         );
       default:

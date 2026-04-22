@@ -13,9 +13,13 @@
    - Creación de `public/sw.js` (Service Worker) para habilitar capacidades PWA.
    - Registro del Service Worker en `src/index.tsx`.
 3. **Activos:**
-   - Generación de icono PWA de alta resolución (`public/icon-512.png`).
-   - Actualización de `public/manifest.json` con iconos y `start_url` apuntando a `#/app` para iniciar directamente en la vista de afiliados.
-4. **Correcciones:**
+   - Generación de icono PWA de alta resolución (`public/icon-512.png`) basado en la simbología oficial de AEFIP.
+   - Actualización de `public/manifest.json` con el nombre exacto "AEFIP Seccional Noroeste" y `start_url` a `#/app`.
+4. **Perfil y Autenticación:**
+   - Integración de Supabase en `MobileAppView.tsx`.
+   - La pestaña de Perfil ahora detecta el estado de sesión y muestra el formulario de login si el usuario no está autenticado.
+   - Muestra datos dinámicos del afiliado y opción de cerrar sesión tras el login.
+5. **Correcciones:**
    - Se cambiaron las rutas de `manifest.json`, iconos y registro de Service Worker a rutas relativas (`./`) para asegurar la compatibilidad con el subdirectorio `/seccional/` en GitHub Pages.
    - Se actualizó el `apple-touch-icon` en `index.html`.
 
