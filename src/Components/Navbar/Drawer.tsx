@@ -15,6 +15,22 @@ import { Link, useLocation } from "react-router-dom";
 function DrawerComponent() {
   const [openDrawer, setOpenDrawer] = useState(false);
   const location = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  React.useEffect(() => {
+    const checkAdmin = () => {
+      const stored = localStorage.getItem("current_affiliate");
+      if (stored) {
+        const user = JSON.parse(stored);
+        setIsAdmin(user.role === "admin");
+      } else {
+        setIsAdmin(false);
+      }
+    };
+    checkAdmin();
+    window.addEventListener("affiliate_login", checkAdmin);
+    return () => window.removeEventListener("affiliate_login", checkAdmin);
+  }, []);
 
   const navLinks = [
     { name: "Inicio", path: "/" },
@@ -22,7 +38,7 @@ function DrawerComponent() {
     { name: "Servicios", path: "/servicios" },
     { name: "Beneficios", path: "/beneficios" },
     { name: "Prensa", path: "/prensa" },
-    { name: "Admin", path: "/admin" },
+    ...(isAdmin ? [{ name: "Admin", path: "/admin" }] : []),
   ];
 
   return (

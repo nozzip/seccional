@@ -29,6 +29,7 @@ import {
   FormControlLabel,
   Switch,
   Alert,
+  Chip,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -215,6 +216,18 @@ export default function AffiliateDetailsModal({
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
               {affiliate.apellido}, {affiliate.nombre} | CUIL: {affiliate.cuil}
             </Typography>
+            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+              {affiliate.is_ups && <Chip label="UPS" size="small" color="warning" sx={{ fontWeight: 800, height: 20 }} />}
+              {affiliate.es_jubilado && (
+                <Chip 
+                  label={affiliate.is_aportante ? "Jubilado Aportante" : "Jubilado No Aportante"} 
+                  size="small" 
+                  color="secondary" 
+                  sx={{ fontWeight: 800, height: 20 }} 
+                />
+              )}
+              {affiliate.legajo && <Chip label="AEFIP" size="small" color="info" sx={{ fontWeight: 800, height: 20 }} />}
+            </Stack>
           </Box>
         </Stack>
       </DialogTitle>
@@ -298,7 +311,7 @@ export default function AffiliateDetailsModal({
               />
             </Stack>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -307,6 +320,24 @@ export default function AffiliateDetailsModal({
                   />
                 }
                 label="Es Jubilado"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editData.is_aportante || false}
+                    onChange={(e) => setEditData({...editData, is_aportante: e.target.checked})}
+                  />
+                }
+                label="Es Aportante (AP)"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editData.is_ups || false}
+                    onChange={(e) => setEditData({...editData, is_ups: e.target.checked})}
+                  />
+                }
+                label="Afiliado UPS"
               />
               <Button
                 variant="contained"

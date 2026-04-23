@@ -39,16 +39,18 @@ function Navbar(props: any) {
   const location = useLocation();
   const { toggleColorMode } = useColorMode();
 
+  const [currentAffiliate, setCurrentAffiliate] = React.useState<any>(null);
+
+  const isAdmin = currentAffiliate?.role === "admin";
+
   const navLinks = [
     { name: "Inicio", path: "/" },
     { name: "Gremio", path: "/gremio" },
     { name: "Servicios", path: "/servicios" },
     { name: "Beneficios", path: "/beneficios" },
     { name: "Prensa", path: "/prensa" },
-    { name: "Admin", path: "/admin" },
+    ...(isAdmin ? [{ name: "Admin", path: "/admin" }] : []),
   ];
-
-  const [currentAffiliate, setCurrentAffiliate] = React.useState<any>(null);
 
   React.useEffect(() => {
     const checkUser = () => {

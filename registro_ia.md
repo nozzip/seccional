@@ -32,5 +32,23 @@
 1. **Activos:** Se reemplazó `icon-512.png` por el nuevo `Logo PNG.png` para asegurar la mejor calidad visual en dispositivos móviles.
 2. **PWA:** Se actualizó `manifest.json` para incluir la variante de 192x192, mejorando la compatibilidad con diferentes launchers de Android e iOS.
 
+## [ÉXITO] - Sistema de Privilegios y Acceso Administrativo
+**Fecha:** 2026-04-23
+**Modo:** Desarrollar
+**Descripción:** Se implementó un sistema de roles para restringir el acceso al panel de administración y permitir un acceso especial para el superusuario.
+
+### Cambios realizados:
+1. **Lógica:**
+   - **Login Condicional:** En `FormLogin.tsx`, se detecta el DNI del administrador (`34185803`). Al ingresarlo, se despliega dinámicamente un campo de contraseña.
+   - **Validación de Superusuario:** Se configuró la clave `Lecongy@290` para el administrador. Al loguearse con éxito, se asigna el rol `admin` en el objeto del usuario guardado en `localStorage`.
+   - **Roles de Afiliados:** A los afiliados normales que se loguean vía Supabase se les asigna automáticamente el rol `user`.
+2. **Visual:**
+   - **Navbar y Drawer:** Se modificaron `Navbar.tsx` y `Drawer.tsx` para filtrar los enlaces de navegación. La pestaña "Admin" ahora solo es visible si el usuario tiene el rol `admin`.
+   - **Feedback de Login:** Mensajes personalizados en el formulario de login dependiendo de si se está intentando acceder como admin o como afiliado.
+3. **Seguridad (Rutas):**
+   - **ProtectedRoute:** Se implementó un componente `ProtectedRoute` en `App.tsx` que envuelve la ruta `/admin`. Si un usuario sin privilegios intenta acceder vía URL, es redirigido al inicio.
+
 ### Arquitecturas Aprobadas (Actualización):
-- **PWA:** Se utiliza una implementación estándar de Service Worker y Manifest para permitir la instalación nativa en dispositivos móviles (Android/iOS). Rutas configuradas como relativas para compatibilidad con subdirectorios de hosting.
+- **Privilegios:** Sistema basado en roles (`admin` / `user`) almacenados en el estado de sesión local. Protección de rutas a nivel de React Router.
+- **PWA:** Rutas relativas y Service Worker configurado para actualizaciones forzadas (`v7`).
+

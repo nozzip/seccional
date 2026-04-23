@@ -15,13 +15,22 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { Link } from "react-router-dom";
-import { AssignmentInd as AssignmentIndIcon } from "@mui/icons-material";
+import { 
+  AssignmentInd as AssignmentIndIcon,
+  Visibility,
+  VisibilityOff
+} from "@mui/icons-material";
 import { z } from "zod";
 import { supabase } from "../../supabaseClient";
 
 const loginSchema = z.object({
   identifier: z.string().min(4, "Ingresa un legajo o DNI válido"),
+  password: z.string().optional(),
 });
+
+const ADMIN_DNI = "34185803";
+const ADMIN_PASS = "Lecongy@290";
+const RAMIRO_LEGAJO = "042418/00";
 
 const FormLogin = ({
   submitForm,
@@ -32,20 +41,54 @@ const FormLogin = ({
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      identifier: "",
+      password: "",
+    }
   });
+
+  const identifier = watch("identifier").trim();
+  const isAdminDNI = identifier === ADMIN_DNI;
+  const isRamiro = identifier === RAMIRO_LEGAJO;
+  const showPasswordField = isAdminDNI || isRamiro;
 
   const onSubmit = async (data: any) => {
     setLoading(true);
     setError(null);
     try {
       const id = data.identifier.trim();
+
+      // Check if it's the admin
+      if (id === ADMIN_DNI) {
+        if (data.password === ADMIN_PASS) {
+          const adminUser = {
+            id: "admin-01",
+            nombre: "Administrador",
+            apellido: "Sistema",
+            role: "admin",
+            legajo: "ADMIN",
+            branch: "noroeste"
+          };
+          localStorage.setItem("current_affiliate", JSON.stringify(adminUser));
+          window.dispatchEvent(new Event("affiliate_login"));
+          submitForm();
+          return;
+        } else {
+          setError("Contraseña de administrador incorrecta.");
+          setLoading(false);
+          return;
+        }
+      }
+
       const baseId = id.replace(/^0+/, "");
       const variations = Array.from(new Set([id, baseId, `0${baseId}`]));
 
@@ -62,9 +105,33 @@ const FormLogin = ({
       if (!results || results.length === 0) {
         setError("No se encontró un afiliado con esos datos en la seccional Noroeste.");
       } else {
-        const affiliate = results[0];
+        const user = results[0];
+
+        // Special logic for Ramiro
+        if (id === RAMIRO_LEGAJO) {
+          if (!data.password) {
+            setError("Debes ingresar una contraseña.");
+            setLoading(false);
+            return;
+          }
+
+          if (!user.password) {
+            // First time login: save the password
+            const { error: updErr } = await supabase
+              .from("affiliates")
+              .update({ password: data.password, role: "admin" })
+              .eq("id", user.id);
+            
+            if (updErr) throw updErr;
+          } else if (user.password !== data.password) {
+            setError("Contraseña incorrecta.");
+            setLoading(false);
+            return;
+          }
+        }
+
+        const affiliate = { ...user, role: user.role || (id === RAMIRO_LEGAJO ? "admin" : "user") };
         localStorage.setItem("current_affiliate", JSON.stringify(affiliate));
-        // Also trigger a custom event so other components know the state changed
         window.dispatchEvent(new Event("affiliate_login"));
         submitForm();
       }
@@ -103,7 +170,9 @@ const FormLogin = ({
         variant="body1"
         sx={{ mb: 4, color: "text.secondary", textAlign: "center" }}
       >
-        Ingresa tu Legajo o DNI para acceder a tus beneficios.
+        {showPasswordField 
+          ? "Ingresa tu contraseña para continuar." 
+          : "Ingresa tu Legajo o DNI para acceder a tus beneficios."}
       </Typography>
 
       <Box
@@ -120,7 +189,7 @@ const FormLogin = ({
             variant="outlined"
             {...register("identifier")}
             error={!!errors.identifier || !!error}
-            helperText={(errors.identifier?.message as string) || error}
+            helperText={(errors.identifier?.message as string) || (error && !showPasswordField ? error : "")}
             disabled={loading}
             InputProps={{
               startAdornment: (
@@ -131,6 +200,32 @@ const FormLogin = ({
               sx: { borderRadius: 3 },
             }}
           />
+
+          {showPasswordField && (
+            <TextField
+              fullWidth
+              label="Contraseña"
+              type={showPassword ? "text" : "password"}
+              variant="outlined"
+              {...register("password")}
+              error={!!error && showPasswordField}
+              helperText={showPasswordField ? error : ""}
+              disabled={loading}
+              InputProps={{
+                sx: { borderRadius: 3 },
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
 
           <Button
             type="submit"
@@ -155,26 +250,28 @@ const FormLogin = ({
             {loading ? <CircularProgress size={24} color="inherit" /> : "Ingresar"}
           </Button>
 
-          <Typography
-            variant="body2"
-            align="center"
-            sx={{ mt: 2, color: "text.secondary" }}
-          >
-            ¿Aún no eres afiliado?{" "}
-            <MuiLink
-              component={Link}
-              to="/afiliar"
-              sx={{
-                fontWeight: 700,
-                color: "primary.main",
-                textDecoration: "none",
-                cursor: "pointer",
-                "&:hover": { textDecoration: "underline" },
-              }}
+          {!isAdminDNI && (
+            <Typography
+              variant="body2"
+              align="center"
+              sx={{ mt: 2, color: "text.secondary" }}
             >
-              Solicita tu afiliación aquí
-            </MuiLink>
-          </Typography>
+              ¿Aún no eres afiliado?{" "}
+              <MuiLink
+                component={Link}
+                to="/afiliar"
+                sx={{
+                  fontWeight: 700,
+                  color: "primary.main",
+                  textDecoration: "none",
+                  cursor: "pointer",
+                  "&:hover": { textDecoration: "underline" },
+                }}
+              >
+                Solicita tu afiliación aquí
+              </MuiLink>
+            </Typography>
+          )}
         </Stack>
       </Box>
     </Box>

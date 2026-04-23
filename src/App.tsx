@@ -1,4 +1,4 @@
-import { createHashRouter, RouterProvider, Outlet, useLocation } from "react-router-dom";
+import { createHashRouter, RouterProvider, Outlet, useLocation, Navigate } from "react-router-dom";
 import { CssBaseline, Box, CircularProgress } from "@mui/material";
 import { HelmetProvider } from "react-helmet-async";
 import { ColorModeProvider } from "./ColorModeContext";
@@ -48,6 +48,21 @@ const LoadingFallback = () => (
     <CircularProgress />
   </Box>
 );
+
+const ProtectedRoute = ({ children, role }: { children: React.ReactNode; role?: string }) => {
+  const stored = localStorage.getItem("current_affiliate");
+  const user = stored ? JSON.parse(stored) : null;
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (role && user.role !== role) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
 
 const Layout = () => (
   <ColorModeProvider>
@@ -99,7 +114,11 @@ const router = createHashRouter([
       },
       {
         path: "admin",
-        element: <AdminDashboard />,
+        element: (
+          <ProtectedRoute role="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "app",
