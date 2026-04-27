@@ -111,7 +111,7 @@ export default function GridBeneficios() {
 
   const filteredBenefits = useMemo(() => {
     let all = getAllBenefits();
-    
+
     // Filter by Provincia (category)
     if (selectedCategory !== "Todos") {
       all = all.filter((item) => item.category === selectedCategory);
@@ -274,15 +274,15 @@ export default function GridBeneficios() {
           <Grid container spacing={4}>
             {paginatedBenefits.map((item, i) => (
               <Grid key={item.id || `paginated-${i}`} size={{ xs: 12, sm: 6, lg: 4 }}>
-                <BenefitItemComponent 
-                  item={item} 
-                  onEdit={() => handleEdit(item)} 
+                <BenefitItemComponent
+                  item={item}
+                  onEdit={() => handleEdit(item)}
                   currentAffiliate={currentAffiliate}
                 />
               </Grid>
             ))}
           </Grid>
-          
+
           <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
             <TablePagination
               component="div"
@@ -322,12 +322,12 @@ export default function GridBeneficios() {
   );
 }
 
-function BenefitItemComponent({ 
-  item, 
-  onEdit, 
-  currentAffiliate 
-}: { 
-  item: BenefitItem; 
+function BenefitItemComponent({
+  item,
+  onEdit,
+  currentAffiliate
+}: {
+  item: BenefitItem;
   onEdit: () => void;
   currentAffiliate: any;
 }) {
@@ -383,7 +383,7 @@ function BenefitItemComponent({
 
   const handleReportSubmit = async () => {
     if (!reportReason || !currentAffiliate) return;
-    
+
     setReportLoading(true);
     try {
       const reasonText = reportReason === "Otro inconveniente" ? reportOtherReason : reportReason;
@@ -413,95 +413,152 @@ function BenefitItemComponent({
 
   return (
     <>
-      <Paper
-        onClick={handleOpen}
-        elevation={0}
-        sx={{
-          height: 380,
-          position: "relative",
-          borderRadius: 1,
-          overflow: "hidden",
-          cursor: "pointer",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
-          border: "1px solid",
-          borderColor: alpha(theme.palette.divider, 0.5),
-          transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-          "&:hover": {
-            transform: "translateY(-12px)",
-            boxShadow: `0 30px 60px ${alpha(theme.palette.primary.main, 0.1)}`,
-            borderColor: alpha(theme.palette.primary.main, 0.2),
-            "& .benefit-overlay": {
-              opacity: 1,
-              transform: "translateY(0)",
-            },
-            "& .benefit-img": {
-              transform: "scale(1.1)",
-            },
-          },
-        }}
-      >
-        <Box
-          className="benefit-img"
+      <Box sx={{ position: "relative", height: 380 }}>
+        {item.discount_percentage && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: -20,
+              right: -20,
+              width: 110,
+              height: 110,
+              background: "#d50000",
+              color: "white",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              clipPath: "polygon(50% 0%, 55% 3%, 60% 1%, 65% 5%, 70% 3%, 75% 9%, 80% 8%, 85% 15%, 89% 15%, 93% 23%, 95% 25%, 98% 34%, 98% 38%, 100% 48%, 98% 58%, 98% 62%, 95% 71%, 93% 73%, 89% 81%, 85% 81%, 80% 88%, 75% 87%, 70% 93%, 65% 91%, 60% 95%, 55% 93%, 50% 96%, 45% 93%, 40% 95%, 35% 91%, 30% 93%, 25% 87%, 20% 88%, 15% 81%, 11% 81%, 7% 73%, 5% 71%, 2% 62%, 2% 58%, 0% 48%, 2% 38%, 2% 34%, 5% 25%, 7% 23%, 11% 15%, 15% 15%, 20% 8%, 25% 9%, 30% 3%, 35% 5%, 40% 1%, 45% 3%)",
+              boxShadow: "0 15px 35px rgba(213, 0, 0, 0.6)",
+              transform: "rotate(12deg)",
+              zIndex: 1000,
+              animation: "float 3s infinite ease-in-out",
+              "@keyframes float": {
+                "0%": { transform: "rotate(12deg) translateY(0px) scale(1)" },
+                "50%": { transform: "rotate(12deg) translateY(-5px) scale(1.05)" },
+                "100%": { transform: "rotate(12deg) translateY(0px) scale(1)" },
+              },
+            }}
+          >
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 900,
+                lineHeight: 1,
+                textShadow: "3px 3px 6px rgba(0,0,0,0.4)",
+                fontSize: "1.9rem",
+                mb: -0.5
+              }}
+            >
+              {item.discount_percentage}%
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 950,
+                textTransform: "uppercase",
+                fontSize: "0.85rem",
+                letterSpacing: 1.5,
+                textShadow: "1px 1px 2px rgba(0,0,0,0.3)"
+              }}
+            >
+              OFF
+            </Typography>
+          </Box>
+        )}
+
+        <Paper
+          onClick={handleOpen}
+          elevation={0}
           sx={{
-            width: "100%",
             height: "100%",
-            backgroundImage: `url(${item.thumbnail})`,
-            backgroundSize: "contain",
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "center",
-            bgcolor: "#fff",
-            p: 4,
-            transition: "transform 0.6s ease",
-          }}
-        />
-        <Box
-          className="benefit-overlay"
-          sx={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            width: "100%",
-            height: "50%",
-            background: `linear-gradient(to top, ${theme.palette.primary.main} 0%, ${alpha(theme.palette.primary.main, 0.8)} 100%)`,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            p: 4,
-            opacity: 0,
-            transform: "translateY(20px)",
-            transition: "all 0.4s ease",
-            color: "white",
-            textAlign: "center",
-          }}
-        >
-          <Typography variant="h5" sx={{ fontWeight: 900, mb: 1.5, lineHeight: 1.2 }}>
-            {item.title}
-          </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>
-            Click para más info
-          </Typography>
-        </Box>
-        <Box
-          sx={{
-            position: "absolute",
-            top: 16,
-            right: 16,
-            bgcolor: "white",
-            color: "primary.main",
-            px: 2,
-            py: 0.5,
-            borderRadius: 1,
-            fontWeight: 800,
-            fontSize: "0.75rem",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+            position: "relative",
+            borderRadius: 4,
+            overflow: "hidden",
+            cursor: "pointer",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
             border: "1px solid",
-            borderColor: "divider",
+            borderColor: alpha(theme.palette.divider, 0.5),
+            transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+            "&:hover": {
+              transform: "translateY(-12px)",
+              boxShadow: `0 30px 60px ${alpha(theme.palette.primary.main, 0.1)}`,
+              borderColor: alpha(theme.palette.primary.main, 0.2),
+              "& .benefit-overlay": {
+                opacity: 1,
+                transform: "translateY(0)",
+              },
+              "& .benefit-img": {
+                transform: "scale(1.1)",
+              },
+            },
           }}
         >
-          {item.category}
-        </Box>
-      </Paper>
+          <Box
+            className="benefit-img"
+            sx={{
+              width: "100%",
+              height: "100%",
+              backgroundImage: `url(${item.thumbnail})`,
+              backgroundSize: "contain",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center",
+              bgcolor: "#fff",
+              p: 4,
+              transition: "transform 0.6s ease",
+            }}
+          />
+
+          <Box
+            className="benefit-overlay"
+            sx={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              width: "100%",
+              height: "50%",
+              background: `linear-gradient(to top, ${theme.palette.primary.main} 0%, ${alpha(theme.palette.primary.main, 0.8)} 100%)`,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              p: 4,
+              opacity: 0,
+              transform: "translateY(20px)",
+              transition: "all 0.4s ease",
+              color: "white",
+              textAlign: "center",
+            }}
+          >
+            <Typography variant="h5" sx={{ fontWeight: 900, mb: 1.5, lineHeight: 1.2 }}>
+              {item.title}
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>
+              Click para más info
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              position: "absolute",
+              top: 16,
+              left: 16,
+              bgcolor: "white",
+              color: "primary.main",
+              px: 2,
+              py: 0.5,
+              borderRadius: 1,
+              fontWeight: 800,
+              fontSize: "0.75rem",
+              boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+              border: "1px solid",
+              borderColor: "divider",
+              zIndex: 5,
+            }}
+          >
+            {item.category}
+          </Box>
+        </Paper>
+      </Box>
 
       <Dialog
         open={open}
@@ -550,19 +607,19 @@ function BenefitItemComponent({
             />
             {gallery.length > 1 && (
               <>
-                <IconButton 
+                <IconButton
                   onClick={handlePrevImg}
                   sx={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", bgcolor: "white", "&:hover": { bgcolor: alpha("#fff", 0.9) } }}
                 >
                   <ArrowBackIosNewIcon />
                 </IconButton>
-                <IconButton 
+                <IconButton
                   onClick={handleNextImg}
                   sx={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", bgcolor: "white", "&:hover": { bgcolor: alpha("#fff", 0.9) } }}
                 >
                   <ArrowForwardIosIcon />
                 </IconButton>
-                
+
                 {/* Thumbnails */}
                 <Box sx={{ display: "flex", gap: 1, mt: 1, overflowX: "auto", pb: 1, justifyContent: "center" }}>
                   {gallery.map((img, idx) => (
@@ -597,7 +654,7 @@ function BenefitItemComponent({
                 {item.category}
               </Typography>
             </Box>
-            
+
             {item.telephone && (
               <Button
                 variant="contained"
@@ -784,8 +841,8 @@ function BenefitItemComponent({
         </DialogContent>
         {!reportSuccess && (
           <DialogActions sx={{ p: 3, pt: 0 }}>
-            <Button 
-              onClick={() => setReportDialogOpen(false)} 
+            <Button
+              onClick={() => setReportDialogOpen(false)}
               disabled={reportLoading}
               sx={{ fontWeight: 700, color: "text.secondary" }}
             >

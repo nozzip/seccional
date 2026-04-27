@@ -9,6 +9,7 @@ export interface Beneficio extends DataItem {
   category: string;
   mail?: string;
   telephone?: string;
+  discount_percentage?: number;
 }
 
 export interface Noticia extends DataItem {
@@ -56,6 +57,7 @@ export const dataBeneficios: Beneficio[] = [
     short_description: "Beneficio exclusivo para afiliados.",
     mail: "",
     telephone: "",
+    discount_percentage: 20,
   },
   {
     id: 2,
@@ -65,6 +67,7 @@ export const dataBeneficios: Beneficio[] = [
     short_description: "Beneficio exclusivo para afiliados.",
     mail: "",
     telephone: "",
+    discount_percentage: 15,
   },
   {
     id: 3,

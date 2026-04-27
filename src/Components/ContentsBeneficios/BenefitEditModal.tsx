@@ -34,6 +34,7 @@ export interface Benefit {
     contact_person: string | null;
     address: string | null;
     discount_description: string | null;
+    discount_percentage?: number | null;
     is_active: boolean;
     display_order: number;
 }
@@ -77,6 +78,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
         contact_person: '',
         address: '',
         discount_description: '',
+        discount_percentage: null,
         is_active: true,
         display_order: 0,
     });
@@ -114,6 +116,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                 contact_person: benefit.contact_person || '',
                 address: benefit.address || '',
                 discount_description: benefit.discount_description || '',
+                discount_percentage: benefit.discount_percentage || null,
                 is_active: benefit.is_active ?? true,
                 display_order: benefit.display_order || 0,
             });
@@ -131,6 +134,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                 contact_person: '',
                 address: '',
                 discount_description: '',
+                discount_percentage: null,
                 is_active: true,
                 display_order: 0,
             });
@@ -223,6 +227,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                 contact_person: formData.contact_person || null,
                 address: formData.address || null,
                 discount_description: formData.discount_description || null,
+                discount_percentage: formData.discount_percentage || null,
                 is_active: formData.is_active ?? true,
                 display_order: formData.display_order || 0,
                 updated_at: new Date().toISOString(),
@@ -459,15 +464,14 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                     />
 
                     <TextField
-                        label="Descripción del descuento (Promo)"
-                        name="discount_description"
-                        value={formData.discount_description}
+                        label="% Descuento"
+                        name="discount_percentage"
+                        type="number"
+                        value={formData.discount_percentage || ''}
                         onChange={handleChange}
                         fullWidth
-                        multiline
-                        rows={2}
                         size="small"
-                        placeholder="Ej: 20% de descuento en..."
+                        placeholder="Ej: 15"
                     />
 
                     <TextField
