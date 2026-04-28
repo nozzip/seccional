@@ -52,3 +52,19 @@
 - **Privilegios:** Sistema basado en roles (`admin` / `user`) almacenados en el estado de sesión local. Protección de rutas a nivel de React Router.
 - **PWA:** Rutas relativas y Service Worker configurado para actualizaciones forzadas (`v7`).
 
+## [ÉXITO] - Carga de Imágenes de Convenios Salta a Supabase
+**Fecha:** 2026-04-28
+**Modo:** Desarrollar
+**Descripción:** Se subieron las imágenes locales de `public/Convenios Salta` a Supabase Storage y se actualizaron los registros en la tabla `benefits`.
+
+### Cambios realizados:
+1. **Activos:** Se subieron 24 imágenes (`2.png` a `25.png`) al bucket `benefits` de Supabase.
+2. **Lógica/Datos:** 
+   - Se actualizaron las URLs de los `thumbnails` en la base de datos para que apunten a los nuevos archivos en Supabase.
+   - Se unificó la categoría a "Salta" para todos los beneficios contenidos en la carpeta procesada (incluyendo los que originalmente estaban marcados como Jujuy en los mocks, siguiendo la estructura de carpetas actual).
+   - Se utilizó el ID del nombre del archivo para mapear correctamente cada beneficio.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Almacenamiento:** Uso del bucket `benefits` en Supabase para activos de convenios.
+
+

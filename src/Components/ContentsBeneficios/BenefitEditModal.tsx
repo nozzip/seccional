@@ -89,13 +89,19 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
 
     const fetchRubros = async () => {
         try {
-            const { data, error } = await supabase
+            const { data: catData } = await supabase
                 .from('benefit_categories')
-                .select('name')
-                .order('name');
-            if (data) {
-                setRubros(data.map(r => r.name));
-            }
+                .select('name');
+            
+            const { data: benData } = await supabase
+                .from('benefits')
+                .select('rubro');
+            
+            const allRubrosSet = new Set<string>();
+            if (catData) catData.forEach(c => allRubrosSet.add(c.name));
+            if (benData) benData.forEach(b => { if (b.rubro) allRubrosSet.add(b.rubro); });
+            
+            setRubros(Array.from(allRubrosSet).sort());
         } catch (err) {
             console.error('Error fetching rubros:', err);
         }
@@ -206,12 +212,12 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
             // Check if we need to add a new rubro
             let finalRubro = formData.rubro;
             if (newRubro) {
-                const { error: rubroError } = await supabase
+                // Attempt to add to categories, but don't block if it fails (e.g. already exists)
+                await supabase
                     .from('benefit_categories')
                     .insert([{ name: newRubro }]);
-                if (!rubroError || rubroError.code === '23505') { // 23505 is unique constraint violation
-                    finalRubro = newRubro;
-                }
+                
+                finalRubro = newRubro;
             }
 
             const dataToSave = {

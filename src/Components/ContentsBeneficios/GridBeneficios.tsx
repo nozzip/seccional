@@ -66,15 +66,31 @@ export default function GridBeneficios() {
     fetchRubros();
   }, []);
 
-  const fetchRubros = async () => {
+  const fetchRubros = async (currentBenefits?: BenefitItem[]) => {
     try {
-      const { data, error } = await supabase
+      const { data: catData } = await supabase
         .from('benefit_categories')
         .select('name')
         .order('name');
-      if (data) {
-        setRubros(["Todos", ...data.map(r => r.name)]);
+      
+      const benefitList = currentBenefits || beneficios;
+      const dynamicRubros = [...new Set(benefitList.map(b => b.rubro).filter(Boolean) as string[])];
+      
+      const allRubros = ["Todos"];
+      
+      // Add from categories table
+      if (catData) {
+        catData.forEach(c => {
+          if (!allRubros.includes(c.name)) allRubros.push(c.name);
+        });
       }
+      
+      // Add from actual benefits (safety net)
+      dynamicRubros.forEach(r => {
+        if (!allRubros.includes(r)) allRubros.push(r);
+      });
+
+      setRubros(allRubros.sort((a, b) => a === "Todos" ? -1 : b === "Todos" ? 1 : a.localeCompare(b)));
     } catch (err) {
       console.error('Error fetching rubros:', err);
     }
@@ -91,8 +107,11 @@ export default function GridBeneficios() {
       if (!error && data && data.length > 0) {
         setDbBenefits(data);
         setBeneficios(data);
+        fetchRubros(data);
       } else {
-        setBeneficios(dataBeneficios as BenefitItem[]);
+        const mock = dataBeneficios as BenefitItem[];
+        setBeneficios(mock);
+        fetchRubros(mock);
       }
     } catch (err) {
       console.error("Error fetching benefits:", err);
@@ -162,6 +181,7 @@ export default function GridBeneficios() {
 
   const handleSaveEdit = () => {
     fetchBenefits();
+    fetchRubros();
   };
 
   const [currentAffiliate, setCurrentAffiliate] = useState<any>(null);
