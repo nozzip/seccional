@@ -20,7 +20,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
 import { Link } from "react-router-dom";
 import { supabase } from "../../supabaseClient";
-const seccionalLogo = "/seccionalLogo2.png";
+const seccionalLogo = `${import.meta.env.BASE_URL}seccionalLogo2.png`;
 
 interface PrensaCardProps {
   isAdmin?: boolean;

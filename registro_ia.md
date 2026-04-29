@@ -112,5 +112,6 @@
   - **Sincronización en Tiempo Real:** Tras la eliminación en Supabase, la grilla se actualiza automáticamente mediante el disparo del `onRefresh`.
   - **Estabilización de Imágenes:** Se optimizó la lógica de fallbacks en `newsFetcher.ts` y `PrensaCard.tsx` para evitar parpadeos visuales al cargar noticias sin imagen, asegurando transiciones suaves y el uso correcto del logo institucional como placeholder estático.
   - **Correcciones Técnicas:** Se resolvió un error de anidamiento HTML (`h5` dentro de `h2`) en el diálogo de noticias y se previno un bucle infinito en el manejo de errores de imagen (`onError`) que saturaba la red con peticiones 404.
+  - **Compatibilidad de Rutas:** Se ajustaron las referencias a recursos estáticos (logos) para utilizar `import.meta.env.BASE_URL`, asegurando que funcionen correctamente bajo el subdirectorio `/seccional/` definido en la configuración de Vite.
 
 

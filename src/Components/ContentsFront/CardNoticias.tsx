@@ -15,7 +15,7 @@ import Grid from "@mui/material/Grid2";
 import { motion } from "framer-motion";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
 
-const seccionalLogo = "/seccionalLogo2.png";
+const seccionalLogo = `${import.meta.env.BASE_URL}seccionalLogo2.png`;
 
 const MotionCard = motion.create(Card);
 
