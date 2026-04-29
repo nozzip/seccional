@@ -42,6 +42,11 @@ export default function MobileBeneficiosApp() {
                 apellido: storedName.split(' ').slice(1).join(' ') || '',
                 cuil: storedCuil || '',
                 validation_token: storedToken || undefined,
+                telefono: localStorage.getItem('mobile_app_telefono') || '',
+                email: localStorage.getItem('mobile_app_email') || '',
+                es_jubilado: localStorage.getItem('mobile_app_jubilado') === 'true',
+                fecha_nacimiento: localStorage.getItem('mobile_app_fecha_nacimiento') || '',
+                capacidades_digitales: localStorage.getItem('mobile_app_capacidades_digitales') || '',
             });
         }
     }, []);
@@ -78,6 +83,8 @@ export default function MobileBeneficiosApp() {
         localStorage.setItem('mobile_app_telefono', data.telefono || '');
         localStorage.setItem('mobile_app_email', data.email || '');
         localStorage.setItem('mobile_app_jubilado', String(data.es_jubilado || false));
+        localStorage.setItem('mobile_app_fecha_nacimiento', data.fecha_nacimiento || '');
+        localStorage.setItem('mobile_app_capacidades_digitales', data.capacidades_digitales || '');
         
         setUserName(`${data.nombre} ${data.apellido}`);
         setAffiliateData(data);
@@ -105,6 +112,8 @@ export default function MobileBeneficiosApp() {
             if (updates.telefono !== undefined) localStorage.setItem('mobile_app_telefono', updates.telefono || '');
             if (updates.email !== undefined) localStorage.setItem('mobile_app_email', updates.email || '');
             if (updates.es_jubilado !== undefined) localStorage.setItem('mobile_app_jubilado', String(updates.es_jubilado));
+            if (updates.fecha_nacimiento !== undefined) localStorage.setItem('mobile_app_fecha_nacimiento', updates.fecha_nacimiento || '');
+            if (updates.capacidades_digitales !== undefined) localStorage.setItem('mobile_app_capacidades_digitales', updates.capacidades_digitales || '');
         }
     };
 

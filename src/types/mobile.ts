@@ -7,4 +7,6 @@ export interface AffiliateData {
     email?: string;
     es_jubilado?: boolean;
     validation_token?: string;
+    fecha_nacimiento?: string;
+    capacidades_digitales?: string;
 }

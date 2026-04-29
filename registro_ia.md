@@ -114,5 +114,6 @@
   - **Correcciones Técnicas:** Se resolvió un error de anidamiento HTML (`h5` dentro de `h2`) en el diálogo de noticias y se previno un bucle infinito en el manejo de errores de imagen (`onError`) que saturaba la red con peticiones 404.
   - **Compatibilidad de Rutas:** Se ajustaron las referencias a recursos estáticos (logos) para utilizar `import.meta.env.BASE_URL`, asegurando que funcionen correctamente bajo el subdirectorio `/seccional/` definido en la configuración de Vite.
   - **Banner de Detalle:** Se incorporó una imagen de encabezado obligatoria en `NoticiaDetalle.tsx` que utiliza el logo institucional como fallback, manteniendo la integridad visual de los artículos sin fotos.
+  - **Perfil de Afiliado Extendido:** Se habilitó la posibilidad de que los afiliados completen su perfil (Email, Teléfono, Fecha de Nacimiento y Capacidades Digitales) desde la PWA, con persistencia en Supabase y sincronización en tiempo real.
 
 
