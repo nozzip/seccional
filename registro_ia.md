@@ -67,4 +67,18 @@
 ### Arquitecturas Aprobadas (Actualización):
 - **Almacenamiento:** Uso del bucket `benefits` en Supabase para activos de convenios.
 
+## [ÉXITO] - Cargador Dinámico con Porcentaje en Prensa
+**Fecha:** 2026-04-29
+**Modo:** Mejorar
+**Descripción:** Se añadió un sistema de feedback visual avanzado (barra de progreso + porcentaje) sobre el skeleton loader en la sección de Prensa para mitigar la percepción de lentitud en la carga de noticias del MDN.
+
+### Cambios realizados:
+1. **Visual:** 
+   - Creación del componente `LoadingProgress` en `PrensaCard.tsx` con estética premium (gradientes, animaciones de pulso y tipografía monoespaciada para el %).
+   - Barra de progreso con gradiente de `primary` a `secondary`.
+2. **Lógica:**
+   - Implementación de un simulador de progreso inteligente que desacelera al acercarse al 100%, sincronizado con el ciclo de vida de la petición `fetch`.
+   - Manejo de estados `progress` y `loading` para una transición fluida una vez que los datos están listos.
+3. **UX:** Se añadió un delay de 400ms tras alcanzar el 100% para permitir que el usuario perciba la finalización del proceso antes de revelar el contenido.
+
 

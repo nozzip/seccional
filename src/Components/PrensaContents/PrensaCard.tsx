@@ -13,24 +13,57 @@ import {
 import Grid from "@mui/material/Grid2";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import LinearProgress from "@mui/material/LinearProgress";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
 const seccionalLogo = "/seccionalLogo2.png";
 
 export default function PrensaCard() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading) {
+      // Simulación de progreso inteligente
+      timer = setInterval(() => {
+        setProgress((oldProgress) => {
+          if (oldProgress >= 90) {
+            // Desacelerar mucho después de 90%
+            return Math.min(oldProgress + 0.5, 98);
+          }
+          const diff = Math.random() * 15;
+          return Math.min(oldProgress + diff, 90);
+        });
+      }, 400);
+    }
+
     async function loadNews() {
-      const data = await fetchLatestNews();
-      setNews(data);
-      setLoading(false);
+      try {
+        const data = await fetchLatestNews();
+        setNews(data);
+      } finally {
+        setProgress(100);
+        // Pequeño delay para que se vea el 100% antes de desaparecer
+        setTimeout(() => {
+          setLoading(false);
+        }, 400);
+      }
     }
     loadNews();
-  }, []);
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [loading]);
 
   if (loading) {
-    return <NewsSkeleton />;
+    return (
+      <Box sx={{ width: "100%" }}>
+        <LoadingProgress value={progress} />
+        <NewsSkeleton />
+      </Box>
+    );
   }
 
   if (news.length === 0) {
@@ -332,6 +365,78 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+function LoadingProgress({ value }: { value: number }) {
+  const theme = useTheme();
+  return (
+    <Box sx={{ width: "100%", mb: 6 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 2,
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontWeight: 800,
+            color: "text.secondary",
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
+          <Box
+            component="span"
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              bgcolor: "secondary.main",
+              display: "inline-block",
+              animation: "pulse 1.5s infinite",
+              "@keyframes pulse": {
+                "0%": { opacity: 1, transform: "scale(1)" },
+                "50%": { opacity: 0.4, transform: "scale(0.8)" },
+                "100%": { opacity: 1, transform: "scale(1)" },
+              },
+            }}
+          />
+          Sincronizando noticias de MDN
+        </Typography>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 900,
+            color: "primary.main",
+            fontFamily: "monospace",
+          }}
+        >
+          {Math.round(value)}%
+        </Typography>
+      </Box>
+      <LinearProgress
+        variant="determinate"
+        value={value}
+        sx={{
+          height: 12,
+          borderRadius: 6,
+          bgcolor: alpha(theme.palette.primary.main, 0.08),
+          "& .MuiLinearProgress-bar": {
+            borderRadius: 6,
+            backgroundImage: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+            boxShadow: `0 0 10px ${alpha(theme.palette.primary.main, 0.5)}`,
+            transition: "transform 0.4s ease-out",
+          },
+        }}
+      />
+    </Box>
   );
 }
 
