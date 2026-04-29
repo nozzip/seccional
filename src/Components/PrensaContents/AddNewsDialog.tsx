@@ -142,8 +142,8 @@ export default function AddNewsDialog({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent dividers sx={{ border: "none" }}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3, py: 1 }}>
+      <DialogContent sx={{ border: "none", px: 4, py: 2 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3.5, mt: 1 }}>
           <TextField
             label="Título de la Noticia"
             name="title"
@@ -152,6 +152,12 @@ export default function AddNewsDialog({
             onChange={handleTextChange}
             required
             variant="outlined"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.background.paper, 0.5),
+              },
+            }}
           />
           
           <TextField
@@ -163,6 +169,12 @@ export default function AddNewsDialog({
             value={formData.summary}
             onChange={handleTextChange}
             required
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.background.paper, 0.5),
+              },
+            }}
           />
 
           <TextField
@@ -172,33 +184,58 @@ export default function AddNewsDialog({
             value={formData.link}
             onChange={handleTextChange}
             placeholder="https://..."
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.background.paper, 0.5),
+              },
+            }}
           />
 
           <Box>
-            <Typography variant="subtitle2" gutterBottom fontWeight={700}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: "text.primary", ml: 0.5 }}>
               Imagen de la Noticia
             </Typography>
             <Box 
               sx={{ 
                 border: "2px dashed", 
-                borderColor: alpha(theme.palette.primary.main, 0.3),
-                borderRadius: 3,
-                p: 2,
+                borderColor: alpha(theme.palette.primary.main, 0.4),
+                borderRadius: 4,
+                p: 3,
                 textAlign: "center",
-                bgcolor: alpha(theme.palette.primary.main, 0.02),
+                bgcolor: alpha(theme.palette.primary.main, 0.03),
                 cursor: "pointer",
-                "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.05) }
+                display: "block",
+                transition: "all 0.3s ease",
+                "&:hover": { 
+                  bgcolor: alpha(theme.palette.primary.main, 0.08),
+                  borderColor: theme.palette.primary.main,
+                  transform: "scale(1.01)"
+                }
               }}
               component="label"
             >
               <input type="file" hidden accept="image/*" onChange={handleImageChange} />
               {imagePreview ? (
-                <Box component="img" src={imagePreview} sx={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 2 }} />
+                <Box 
+                  component="img" 
+                  src={imagePreview} 
+                  sx={{ 
+                    width: "100%", 
+                    maxHeight: 250, 
+                    objectFit: "cover", 
+                    borderRadius: 3,
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.2)"
+                  }} 
+                />
               ) : (
-                <Box sx={{ py: 2 }}>
-                  <PhotoCameraIcon sx={{ fontSize: 40, color: "primary.main", mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
+                <Box sx={{ py: 3 }}>
+                  <PhotoCameraIcon sx={{ fontSize: 48, color: "primary.main", mb: 1.5, opacity: 0.8 }} />
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
                     Haz clic para subir una imagen
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "text.disabled", mt: 1, display: "block" }}>
+                    Formatos soportados: JPG, PNG, WEBP
                   </Typography>
                 </Box>
               )}
@@ -207,8 +244,16 @@ export default function AddNewsDialog({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3 }}>
-        <Button onClick={handleClose} color="inherit" sx={{ fontWeight: 700 }}>
+      <DialogActions sx={{ p: 4, pt: 2, justifyContent: "flex-end", gap: 2 }}>
+        <Button 
+          onClick={handleClose} 
+          sx={{ 
+            fontWeight: 800, 
+            color: "text.secondary",
+            px: 3,
+            "&:hover": { color: "error.main" }
+          }}
+        >
           Cancelar
         </Button>
         <Button
@@ -217,9 +262,15 @@ export default function AddNewsDialog({
           disabled={loading}
           sx={{ 
             borderRadius: 10, 
-            px: 4, 
-            fontWeight: 800,
-            boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.3)}`
+            px: 5, 
+            py: 1.5,
+            fontWeight: 900,
+            fontSize: "1rem",
+            textTransform: "none",
+            boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.4)}`,
+            "&:hover": {
+              boxShadow: `0 12px 32px ${alpha(theme.palette.primary.main, 0.5)}`,
+            }
           }}
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : "Publicar Noticia"}
