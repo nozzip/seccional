@@ -1202,75 +1202,48 @@ export default function AfiliadosManager() {
     <Box sx={{ p: { xs: 1, md: 2 }, pb: 4 }}>
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Paper
-            elevation={0}
+          <InfoCard
+            title="Total Afiliados AEFIP"
+            value={stats.totalAefip}
+            icon={PeopleIcon}
+            selected={filterActive}
             onClick={() => {
               setFilterActive(!filterActive);
               setFilterUPS(false);
               setFilterJubiladosAP(false);
             }}
-            sx={{
-              p: 2,
-              borderRadius: 4,
-              border: "1px solid",
-              borderColor: filterActive ? "primary.main" : "divider",
-              bgcolor: filterActive ? alpha(theme.palette.primary.main, 0.05) : "background.paper",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }
-            }}
-          >
-            <Typography variant="overline" sx={{ fontWeight: 700, color: "text.secondary" }}>Total Afiliados AEFIP</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: "primary.main" }}>{stats.totalAefip}</Typography>
-          </Paper>
+          />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Paper
-            elevation={0}
+          <InfoCard
+            title="Doble Afiliación (UPS)"
+            value={stats.totalDouble}
+            icon={AssignmentIndIcon}
+            color="warning.main"
+            selected={filterUPS}
             onClick={() => {
               setFilterUPS(!filterUPS);
               setFilterActive(false);
               setFilterJubiladosAP(false);
             }}
-            sx={{
-              p: 2,
-              borderRadius: 4,
-              border: "1px solid",
-              borderColor: filterUPS ? "warning.main" : "divider",
-              bgcolor: filterUPS ? alpha(theme.palette.warning.main, 0.05) : "background.paper",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }
-            }}
-          >
-            <Typography variant="overline" sx={{ fontWeight: 700, color: "text.secondary" }}>Doble Afiliación (UPS)</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: "warning.main" }}>{stats.totalDouble}</Typography>
-          </Paper>
+          />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Paper
-            elevation={0}
+          <InfoCard
+            title="Jubilados Aportantes"
+            value={stats.totalJubiladosAP}
+            icon={PeopleIcon}
+            color="secondary.main"
+            selected={filterJubiladosAP}
             onClick={() => {
               setFilterJubiladosAP(!filterJubiladosAP);
               setFilterActive(false);
               setFilterUPS(false);
             }}
-            sx={{
-              p: 2,
-              borderRadius: 4,
-              border: "1px solid",
-              borderColor: filterJubiladosAP ? "secondary.main" : "divider",
-              bgcolor: filterJubiladosAP ? alpha(theme.palette.secondary.main, 0.05) : "background.paper",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }
-            }}
-          >
-            <Typography variant="overline" sx={{ fontWeight: 700, color: "text.secondary" }}>Jubilados Aportantes</Typography>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: "secondary.main" }}>{stats.totalJubiladosAP}</Typography>
-          </Paper>
+          />
         </Grid>
       </Grid>
+
 
       <Box
         sx={{
