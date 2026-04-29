@@ -205,6 +205,37 @@ export default function DeudaAfiliadosManager() {
           mapByKey.set(buildKey(item), item);
         });
 
+        const parseAmount = (val: string): number => {
+          if (!val) return 0;
+          const clean = val.replace(/[^0-9,.]/g, "");
+          if (clean.includes(",") && clean.includes(".")) {
+            return parseFloat(clean.replace(/\./g, "").replace(",", "."));
+          }
+          if (clean.includes(",")) {
+            return parseFloat(clean.replace(",", "."));
+          }
+          if (clean.includes(".")) {
+            const parts = clean.split(".");
+            if (parts[parts.length - 1].length === 3) {
+              return parseFloat(clean.replace(/\./g, ""));
+            }
+          }
+          return parseFloat(clean);
+        };
+
+        const aggregateImporte = (v1: string, v2: string) => {
+          if (!v1 || v1.toLowerCase() === "undefined" || v1.toLowerCase().includes("no se registran")) return v2;
+          if (!v2 || v2.toLowerCase() === "undefined" || v2.toLowerCase().includes("no se registran")) return v1;
+          if (v1 === v2) return v1;
+          const n1 = parseAmount(v1);
+          const n2 = parseAmount(v2);
+          if (!isNaN(n1) && !isNaN(n2) && (n1 !== 0 || n2 !== 0)) {
+            const sum = n1 + n2;
+            return sum % 1 === 0 ? sum.toString() : sum.toFixed(2).replace(".", ",");
+          }
+          return `${v1} + ${v2}`;
+        };
+
         const inserts = [];
         const updates = [];
 
@@ -272,23 +303,29 @@ export default function DeudaAfiliadosManager() {
 
           if (mapByKey.has(rowKey)) {
             const existing = mapByKey.get(rowKey);
-            // If we've already set id to -1, it means we pushed it to inserts in a previous iteration of THIS excel file.
+            
+            // Agregamos/Sumamos el nuevo importe al existente
+            existing.importe = aggregateImporte(existing.importe, importe);
+            
             if (existing.id === -1) {
-              // We just skip it to avoid duplicates from the same excel file
+              // Ya está en inserts para este mismo archivo, continuamos (el valor ya se actualizó en el mapa)
               continue;
             }
-            updates.push({
-              id: existing.id,
-              nombre_apellido: nombreApellido,
-              cuil_dni: cuilDni || existing.cuil_dni,
-              importe,
-              mes: mes || existing.mes,
-              created_at: existing.created_at,
-            });
-            // Update the map to prevent duplicate updates if excel has the same row repeatedly
-            existing.importe = importe;
-            existing.cuil_dni = cuilDni || existing.cuil_dni;
-            existing.mes = mes || existing.mes;
+            
+            // Si ya estaba en la base de datos, actualizamos su entrada en la lista de updates
+            const upIdx = updates.findIndex((u: any) => (u as any).id === existing.id);
+            if (upIdx >= 0) {
+              updates[upIdx].importe = existing.importe;
+            } else {
+              updates.push({
+                id: existing.id,
+                nombre_apellido: nombreApellido,
+                cuil_dni: cuilDni || existing.cuil_dni,
+                importe: existing.importe,
+                mes: mes || existing.mes,
+                created_at: existing.created_at,
+              });
+            }
           } else {
             const newItem = {
               nombre_apellido: nombreApellido,
@@ -297,7 +334,7 @@ export default function DeudaAfiliadosManager() {
               mes,
             };
             inserts.push(newItem);
-            // Give it a dummy map entry so duplicates in the same file don't insert twice
+            // Dummy entry con id -1 para manejar duplicados en el mismo archivo
             mapByKey.set(rowKey, { ...newItem, id: -1 });
           }
         }

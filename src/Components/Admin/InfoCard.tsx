@@ -1,11 +1,10 @@
 import React from "react";
-import { Paper, Typography, Box, alpha, useTheme, Avatar } from "@mui/material";
-import { SvgIconComponent } from "@mui/icons-material";
+import { Paper, Typography, Box, alpha, useTheme, Avatar, SvgIconProps } from "@mui/material";
 
 interface InfoCardProps {
   title: string;
   value: string | number;
-  icon: SvgIconComponent;
+  icon: React.ElementType<SvgIconProps>;
   color?: string;
   onClick?: () => void;
   selected?: boolean;
