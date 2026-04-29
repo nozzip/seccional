@@ -30,6 +30,7 @@ import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
 import { supabase } from '../../supabaseClient';
+import { AffiliateData } from '../../types/mobile';
 
 interface FamilyMember {
     id?: number;

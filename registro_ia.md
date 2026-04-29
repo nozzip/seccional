@@ -115,5 +115,6 @@
   - **Compatibilidad de Rutas:** Se ajustaron las referencias a recursos estáticos (logos) para utilizar `import.meta.env.BASE_URL`, asegurando que funcionen correctamente bajo el subdirectorio `/seccional/` definido en la configuración de Vite.
   - **Banner de Detalle:** Se incorporó una imagen de encabezado obligatoria en `NoticiaDetalle.tsx` que utiliza el logo institucional como fallback, manteniendo la integridad visual de los artículos sin fotos.
   - **Perfil de Afiliado Extendido:** Se habilitó la posibilidad de que los afiliados completen su perfil (Email, Teléfono, Fecha de Nacimiento y Capacidades Digitales) desde la PWA, con persistencia en Supabase y sincronización en tiempo real.
+  - **Corrección Técnica (TS):** Se resolvió un error de compilación en `PerfilView.tsx` mediante la correcta importación de la interfaz `AffiliateData`.
 
 
