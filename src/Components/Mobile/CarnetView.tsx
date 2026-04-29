@@ -133,6 +133,8 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
                     overflow: 'hidden',
                     mb: 3,
                     boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                    maxWidth: 500,
+                    mx: 'auto',
                 }}
             >
                 <Box
@@ -259,28 +261,31 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
                 </Box>
             </Paper>
 
-            <Button
-                fullWidth
-                variant="contained"
-                size="large"
-                startIcon={<DownloadIcon />}
-                onClick={generatePDF}
-                sx={{
-                    py: 1.5,
-                    borderRadius: 2,
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    boxShadow: '0 4px 14px rgba(26, 95, 122, 0.3)',
-                }}
-            >
-                Descargar Carnet PDF
-            </Button>
-
-            <Paper sx={{ mt: 3, p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.08) }}>
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-                    Presentá este carnet junto con tu DNI en todos los beneficios de AEFIP Seccional Noroeste.
-                </Typography>
-            </Paper>
+            <Box sx={{ maxWidth: 500, mx: 'auto' }}>
+                <Button
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    startIcon={<DownloadIcon />}
+                    onClick={generatePDF}
+                    sx={{
+                        py: 1.5,
+                        borderRadius: 2,
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        boxShadow: '0 4px 14px rgba(26, 95, 122, 0.3)',
+                        mb: 3,
+                    }}
+                >
+                    Descargar Carnet PDF
+                </Button>
+    
+                <Paper sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.08) }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                        Presentá este carnet junto con tu DNI en todos los beneficios de AEFIP Seccional Noroeste.
+                    </Typography>
+                </Paper>
+            </Box>
         </Box>
     );
 }

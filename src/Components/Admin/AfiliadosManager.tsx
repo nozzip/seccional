@@ -49,7 +49,7 @@ import AffiliateDetailsModal from "./AffiliateDetailsModal";
 import AddAffiliateModal from "./AddAffiliateModal";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import { normalizeName, parseFullName } from "../../utils/nameNormalization";
-import InfoCard from "./InfoCard"; // We will create this or use a Box
+import InfoCard from './InfoCard';
 
 interface Affiliate {
   id: number;

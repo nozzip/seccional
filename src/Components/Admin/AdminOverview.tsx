@@ -448,7 +448,7 @@ export default function AdminOverview() {
             <Typography variant="h6" sx={{ mb: 3, fontWeight: 800 }}>
               Ingresos vs Gastos
             </Typography>
-            <Box sx={{ width: "100%", height: 350 }}>
+            <Box sx={{ width: "100%", height: 350, minWidth: 0 }}>
               <ResponsiveContainer>
                 <AreaChart data={data.financialSeries}>
                   <defs>
@@ -542,7 +542,7 @@ export default function AdminOverview() {
               <Typography variant="h6" sx={{ mb: 3, fontWeight: 800 }}>
                 Distribución
               </Typography>
-              <Box sx={{ width: "100%", height: 200 }}>
+              <Box sx={{ width: "100%", height: 200, minWidth: 0 }}>
                 <ResponsiveContainer>
                   <PieChart>
                     <Pie

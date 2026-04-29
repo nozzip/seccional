@@ -67,7 +67,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
         email: '',
         es_jubilado: false,
         fecha_nacimiento: '',
-        capacidades_digitales: '',
     });
 
     useEffect(() => {
@@ -77,7 +76,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 email: affiliateData.email || localStorage.getItem('mobile_app_email') || '',
                 es_jubilado: affiliateData.es_jubilado || localStorage.getItem('mobile_app_jubilado') === 'true',
                 fecha_nacimiento: affiliateData.fecha_nacimiento || localStorage.getItem('mobile_app_fecha_nacimiento') || '',
-                capacidades_digitales: affiliateData.capacidades_digitales || localStorage.getItem('mobile_app_capacidades_digitales') || '',
             });
             fetchAffiliateId();
         }
@@ -134,7 +132,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     email: formData.email,
                     es_jubilado: formData.es_jubilado,
                     fecha_nacimiento: formData.fecha_nacimiento || null,
-                    capacidades_digitales: formData.capacidades_digitales,
                 })
                 .eq('legajo', affiliateData.legajo)
                 .eq('branch', 'noroeste');
@@ -146,7 +143,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 email: formData.email,
                 es_jubilado: formData.es_jubilado,
                 fecha_nacimiento: formData.fecha_nacimiento,
-                capacidades_digitales: formData.capacidades_digitales,
             });
 
             setSuccess('Datos guardados correctamente');
@@ -279,14 +275,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                 {affiliateData.fecha_nacimiento ? new Date(affiliateData.fecha_nacimiento).toLocaleDateString('es-AR') : '-'}
                             </Typography>
                         </Box>
-                        <Box sx={{ mb: 2 }}>
-                            <Typography variant="caption" color="text.secondary">
-                                Capacidades Web y PWA
-                            </Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                {affiliateData.capacidades_digitales || '-'}
-                            </Typography>
-                        </Box>
                     </>
                 )}
 
@@ -325,18 +313,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     sx={{ mb: 2 }}
                 />
 
-                <TextField
-                    fullWidth
-                    label="Capacidades Web y PWA"
-                    multiline
-                    rows={2}
-                    value={formData.capacidades_digitales}
-                    onChange={(e) => setFormData({ ...formData, capacidades_digitales: e.target.value })}
-                    disabled={!editMode}
-                    size="small"
-                    placeholder="Menciona tus habilidades o conocimientos técnicos"
-                    sx={{ mb: 2 }}
-                />
 
                 <FormControlLabel
                     control={
@@ -361,7 +337,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                     email: affiliateData.email || '',
                                     es_jubilado: affiliateData.es_jubilado || false,
                                     fecha_nacimiento: affiliateData.fecha_nacimiento || '',
-                                    capacidades_digitales: affiliateData.capacidades_digitales || '',
                                 });
                             }}
                             sx={{ flex: 1 }}

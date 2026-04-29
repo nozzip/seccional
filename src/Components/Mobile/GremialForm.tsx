@@ -81,8 +81,17 @@ export default function GremialForm({ open, onClose, affiliateData, type }: Grem
             // 1. Upload file if exists
             if (file) {
                 const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}_${affiliateData.legajo}.${fileExt}`;
-                const filePath = `${type.replace(/\s+/g, '_').toLowerCase()}/${fileName}`;
+                const fileName = `${Date.now()}_${affiliateData.legajo.replace(/\//g, '_')}.${fileExt}`;
+                
+                // Sanitize folder name: remove accents, slashes and special chars
+                const sanitizedType = type
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-zA-Z0-9\s]/g, "")
+                    .replace(/\s+/g, '_')
+                    .toLowerCase();
+                    
+                const filePath = `${sanitizedType}/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
                     .from('request-attachments')
@@ -106,17 +115,22 @@ export default function GremialForm({ open, onClose, affiliateData, type }: Grem
 
             // 3. Create request
             const { error: insertError } = await supabase
-                .from('benefit_requests')
+                .from('workflow_requests')
                 .insert({
-                    affiliate_id: affData?.id,
-                    type: type,
-                    affiliate_name: `${affiliateData.nombre} ${affiliateData.apellido}`,
-                    affiliate_cuil: affiliateData.cuil,
-                    telefono: formData.telefono,
-                    email: formData.mail,
-                    attachment_url: fileUrl,
-                    observations: formData.observaciones,
-                    status: 'pendiente'
+                    type: 'benefit',
+                    status: 'pending',
+                    requester_info: {
+                        nombre: `${affiliateData.nombre} ${affiliateData.apellido}`,
+                        cuil: affiliateData.cuil,
+                        legajo: affiliateData.legajo,
+                        email: formData.mail,
+                        telefono: formData.telefono
+                    },
+                    data: {
+                        benefit_type: type,
+                        observations: formData.observaciones,
+                        attachment_url: fileUrl
+                    }
                 });
 
             if (insertError) throw insertError;

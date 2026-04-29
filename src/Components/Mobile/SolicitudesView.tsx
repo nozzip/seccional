@@ -15,6 +15,7 @@ import SchoolIcon from '@mui/icons-material/School';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
 import ElderlyIcon from '@mui/icons-material/Elderly';
+import HouseSidingIcon from '@mui/icons-material/HouseSiding';
 import TurismoForm from './TurismoForm';
 import GremialForm from './GremialForm';
 import { AffiliateData } from '../../types/mobile';
@@ -28,6 +29,7 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
     const [turismoSubsidized, setTurismoSubsidized] = useState(false);
     const [gremialOpen, setGremialOpen] = useState(false);
     const [gremialType, setGremialType] = useState('');
+    const [cabinOpen, setCabinOpen] = useState(false);
     
     const theme = useTheme();
 
@@ -51,7 +53,7 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
             </Typography>
 
             {/* SECCIÓN 1: TURISMO REGULAR */}
-            <Typography variant="overline" sx={{ fontWeight: 800, color: alpha('#fff', 0.7), ml: 1, letterSpacing: 1.5 }}>
+            <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary', ml: 1, letterSpacing: 1.5 }}>
                 Turismo Particular
             </Typography>
             <Paper 
@@ -69,10 +71,10 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                         <BeachAccessIcon color="primary" sx={{ fontSize: 40 }} />
                     </Grid>
                     <Grid item xs={10}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'white' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'text.primary' }}>
                             Turismo AEFIP
                         </Typography>
-                        <Typography variant="body2" sx={{ mb: 1.5, color: alpha('#fff', 0.7) }}>
+                        <Typography variant="body2" sx={{ mb: 1.5, color: 'text.secondary' }}>
                             Bariloche, Mar del Plata, Huerta Grande. Tarifas exclusivas.
                         </Typography>
                         <Button
@@ -91,8 +93,47 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                 </Grid>
             </Paper>
 
+            {/* SECCIÓN MOLLAR */}
+            <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary', ml: 1, letterSpacing: 1.5 }}>
+                Cabañas El Mollar
+            </Typography>
+            <Paper 
+                sx={{ 
+                    p: 2.5, 
+                    borderRadius: 4, 
+                    mb: 4,
+                    border: '1px solid',
+                    borderColor: alpha('#4caf50', 0.1),
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 1)} 0%, ${alpha('#4caf50', 0.05)} 100%)`,
+                }}
+            >
+                <Grid container spacing={2} alignItems="center">
+                    <Grid item xs={2}>
+                        <HouseSidingIcon sx={{ fontSize: 40, color: '#4caf50' }} />
+                    </Grid>
+                    <Grid item xs={10}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                            Reserva El Mollar
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1.5, color: 'text.secondary' }}>
+                            Disfrutá de nuestras cabañas en Tafí del Valle.
+                        </Typography>
+                        <Button
+                            variant="contained"
+                            size="small"
+                            fullWidth
+                            color="success"
+                            onClick={() => setCabinOpen(true)}
+                            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+                        >
+                            Solicitar reserva de cabaña
+                        </Button>
+                    </Grid>
+                </Grid>
+            </Paper>
+
             {/* SECCIÓN 2: TURISMO SUBSIDIADO */}
-            <Typography variant="overline" sx={{ fontWeight: 800, color: alpha('#fff', 0.7), ml: 1, letterSpacing: 1.5 }}>
+            <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary', ml: 1, letterSpacing: 1.5 }}>
                 Turismo Subsidiado (Gremiales)
             </Typography>
             <Paper sx={{ p: 2, borderRadius: 4, mb: 4, border: '1px solid', borderColor: 'divider' }}>
@@ -112,7 +153,7 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                             }}
                         >
                             <FavoriteIcon sx={{ color: '#ff4081', fontSize: 28 }} />
-                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'white', textAlign: 'center' }}>Matrimonio</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.primary', textAlign: 'center' }}>Matrimonio</Typography>
                         </Box>
                     </Grid>
                     <Grid item xs={4}>
@@ -130,7 +171,7 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                             }}
                         >
                             <ElderlyIcon sx={{ color: '#66bb6a', fontSize: 28 }} />
-                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'white', textAlign: 'center' }}>Jubilados</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.primary', textAlign: 'center' }}>Jubilados</Typography>
                         </Box>
                     </Grid>
                     <Grid item xs={4}>
@@ -148,17 +189,17 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                             }}
                         >
                             <MilitaryTechIcon sx={{ color: '#ffb74d', fontSize: 28 }} />
-                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'white', textAlign: 'center' }}>25 de Plata</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.primary', textAlign: 'center' }}>25 de Plata</Typography>
                         </Box>
                     </Grid>
                 </Grid>
-                <Typography variant="caption" sx={{ display: 'block', mt: 1, px: 1, fontStyle: 'italic', textAlign: 'center', color: alpha('#fff', 0.6) }}>
+                <Typography variant="caption" sx={{ display: 'block', mt: 1, px: 1, fontStyle: 'italic', textAlign: 'center', color: 'text.secondary' }}>
                     * Estadías de 7 días sin cargo para el afiliado y acompañante. Sujeto a temporada baja.
                 </Typography>
             </Paper>
 
             {/* SECCIÓN 3: KITS Y SUBSIDIOS */}
-            <Typography variant="overline" sx={{ fontWeight: 800, color: alpha('#fff', 0.7), ml: 1, letterSpacing: 1.5 }}>
+            <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary', ml: 1, letterSpacing: 1.5 }}>
                 Beneficios y Kits
             </Typography>
             <Paper sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
@@ -174,8 +215,8 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                 >
                     <ChildCareIcon color="primary" sx={{ fontSize: 32 }} />
                     <Box sx={{ textAlign: 'left' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'white' }}>Kit Nacimiento / Adopción</Typography>
-                        <Typography variant="body2" sx={{ color: alpha('#fff', 0.7) }}>Ropa y accesorios para el recién nacido</Typography>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'text.primary' }}>Kit Nacimiento / Adopción</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Ropa y accesorios para el recién nacido</Typography>
                     </Box>
                 </Box>
             </Paper>
@@ -193,6 +234,14 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                 onClose={() => setGremialOpen(false)}
                 affiliateData={affiliateData}
                 type={gremialType}
+            />
+
+            <TurismoForm
+                open={cabinOpen}
+                onClose={() => setCabinOpen(false)}
+                affiliateData={affiliateData}
+                isSubsidized={false}
+                subsidizedType="mollar"
             />
         </Box>
     );

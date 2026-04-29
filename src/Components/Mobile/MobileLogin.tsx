@@ -32,12 +32,30 @@ export default function MobileLogin({ onLoginSuccess }: MobileLoginProps) {
                 `0${baseLegajo}`
             ]));
 
-            const { data, error: dbError } = await supabase
+            const baseQuery = 'nombre, apellido, legajo, cuil, telefono, email, es_jubilado, validation_token';
+            const extendedQuery = `${baseQuery}, fecha_nacimiento`;
+
+            let { data, error: dbError } = await supabase
                 .from('affiliates')
-                .select('nombre, apellido, legajo, cuil, telefono, email, es_jubilado, validation_token, fecha_nacimiento, capacidades_digitales')
+                .select(extendedQuery)
                 .in('legajo', legajoVariations)
                 .eq('branch', 'noroeste')
                 .limit(1);
+
+            // Fallback if columns don't exist yet (PostgREST returns 400 or specific code)
+            const errorAny = dbError as any;
+            if (dbError && (errorAny.status === 400 || dbError.code === 'PGRST204' || dbError.code === '42703')) {
+                console.warn('Extended profile columns not found or error 400, falling back to base query');
+                const { data: fallbackData, error: fallbackError } = await supabase
+                    .from('affiliates')
+                    .select(baseQuery)
+                    .in('legajo', legajoVariations)
+                    .eq('branch', 'noroeste')
+                    .limit(1);
+                
+                data = fallbackData as any;
+                dbError = fallbackError;
+            }
 
             if (dbError) {
                 setError('Error de conexión. Por favor, intenta nuevamente.');
@@ -55,8 +73,7 @@ export default function MobileLogin({ onLoginSuccess }: MobileLoginProps) {
                     email: affiliate.email,
                     es_jubilado: affiliate.es_jubilado,
                     validation_token: affiliate.validation_token,
-                    fecha_nacimiento: affiliate.fecha_nacimiento,
-                    capacidades_digitales: affiliate.capacidades_digitales,
+                    fecha_nacimiento: affiliate.fecha_nacimiento || '',
                 });
             }
         } catch (err) {

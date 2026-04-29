@@ -19,7 +19,19 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Only handle certain requests to avoid issues with Supabase/external APIs
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request).catch(async () => {
+      const cachedResponse = await caches.match(event.request);
+      if (cachedResponse) return cachedResponse;
+      
+      // Fallback for failed fetches that are not in cache
+      return new Response('Network error occurred', {
+        status: 408,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    })
   );
 });

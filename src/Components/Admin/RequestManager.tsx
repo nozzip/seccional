@@ -54,6 +54,7 @@ const REQUEST_TYPES = [
     { value: 'cabin_reservation', label: 'Inquietud de Reserva', icon: <HouseSidingIcon /> },
     { value: 'affiliation', label: 'Afiliación', icon: <PeopleIcon /> },
     { value: 'tourism', label: 'Turismo', icon: <BeachAccessIcon /> },
+    { value: 'benefit', label: 'Beneficio / Kit', icon: <TaskAltIcon /> },
 ];
 
 export default function RequestManager() {
@@ -174,6 +175,29 @@ export default function RequestManager() {
                     <Button variant="contained" startIcon={<AddBoxIcon />} onClick={() => setCreateOpen(true)}>
                         Cargar Tarea / Pedido
                     </Button>
+                    <Button 
+                        variant="outlined" 
+                        color="secondary"
+                        onClick={async () => {
+                            const tests = [
+                                { type: 'affiliation', requester: 'Test Afiliación', data: { worker: { nombre: 'Juan', apellido: 'Prueba', cuil: '20-12345678-9', dependencia: 'AFIP Salta' }, family: [] } },
+                                { type: 'tourism', requester: 'Test Turismo', data: { destino: 'Bariloche', fecha_ingreso: '2026-06-01', fecha_salida: '2026-06-08', plazas_req: 2 } },
+                                { type: 'benefit', requester: 'Test Kit', data: { benefit_type: 'Kit Escolar', observations: 'Prueba de kit para 2 niños' } },
+                                { type: 'cabin_reservation', requester: 'Test Mollar', data: { destino: 'El Mollar', fecha_ingreso: '2026-05-15', fecha_salida: '2026-05-20' } }
+                            ];
+                            for (const test of tests) {
+                                await supabase.from('workflow_requests').insert({
+                                    type: test.type,
+                                    status: 'pending',
+                                    requester_info: { nombre: test.requester },
+                                    data: test.data
+                                });
+                            }
+                            fetchRequests();
+                        }}
+                    >
+                        Generar Test de Prueba
+                    </Button>
                 </Box>
             </Box>
 
@@ -198,9 +222,12 @@ export default function RequestManager() {
                         )}
                         {requests.map((request) => {
                             const { label, icon } = getTypeDisplay(request.type);
-                            let asunto = request.data?.title || (request.type === 'affiliation' ? 'Solicitud de Nueva Afiliación' : 'Pedido de Turismo');
+                            let asunto = request.data?.title || '';
+                            if (request.type === 'affiliation') asunto = 'Solicitud de Nueva Afiliación';
+                            if (request.type === 'tourism') asunto = `Turismo: ${request.data?.destino || 'Solicitud'}`;
+                            if (request.type === 'benefit') asunto = `Beneficio: ${request.data?.benefit_type || 'Pedido'}`;
                             if (request.type === 'cabin_reservation') {
-                                asunto = `Reserva: ${request.data?.cabin_type} (${request.data?.guests} pers.)`;
+                                asunto = `Reserva El Mollar: ${request.data?.destino || 'Cabaña'}`;
                             }
                             return (
                                 <TableRow key={request.id} hover sx={{ opacity: request.status === 'done' ? 0.7 : 1 }}>
@@ -257,11 +284,56 @@ export default function RequestManager() {
                         <Grid container spacing={3}>
                             <Grid item xs={12}>
                                 <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main' }}>
-                                    {selectedRequest.data?.title || 'Detalle del Pedido'}
+                                    {selectedRequest.data?.title || getTypeDisplay(selectedRequest.type).label}
                                 </Typography>
-                                <Typography variant="body1" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>
-                                    {selectedRequest.data?.description || 'Sin descripción detallada.'}
-                                </Typography>
+                                
+                                {selectedRequest.type === 'affiliation' && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Datos del Trabajador:</Typography>
+                                        <Typography variant="body2">CUIL: {selectedRequest.data?.worker?.cuil}</Typography>
+                                        <Typography variant="body2">Dependencia: {selectedRequest.data?.worker?.dependencia}</Typography>
+                                        <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 700 }}>Grupo Familiar ({selectedRequest.data?.family?.length || 0}):</Typography>
+                                        {selectedRequest.data?.family?.map((f: any, i: number) => (
+                                            <Typography key={i} variant="caption" sx={{ display: 'block' }}>- {f.nombre} {f.apellido} ({f.parentesco})</Typography>
+                                        ))}
+                                    </Box>
+                                )}
+
+                                {selectedRequest.type === 'tourism' && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <Typography variant="body2"><strong>Destino:</strong> {selectedRequest.data?.destino}</Typography>
+                                        <Typography variant="body2"><strong>Fechas:</strong> {selectedRequest.data?.fecha_ingreso} al {selectedRequest.data?.fecha_salida}</Typography>
+                                        <Typography variant="body2"><strong>Plazas:</strong> {selectedRequest.data?.plazas_req}</Typography>
+                                        {selectedRequest.data?.is_subsidized && <Chip label="SUBSIDIADO" color="secondary" size="small" sx={{ mt: 1, fontWeight: 800 }} />}
+                                        {selectedRequest.data?.attachment_url && (
+                                            <Button variant="outlined" size="small" href={selectedRequest.data.attachment_url} target="_blank" sx={{ mt: 1, display: 'block' }}>Ver Adjunto</Button>
+                                        )}
+                                    </Box>
+                                )}
+
+                                {selectedRequest.type === 'benefit' && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <Typography variant="body2"><strong>Tipo de Beneficio:</strong> {selectedRequest.data?.benefit_type}</Typography>
+                                        <Typography variant="body2" sx={{ mt: 1 }}><strong>Observaciones:</strong> {selectedRequest.data?.observations || 'Sin observaciones'}</Typography>
+                                        {selectedRequest.data?.attachment_url && (
+                                            <Button variant="outlined" size="small" href={selectedRequest.data.attachment_url} target="_blank" sx={{ mt: 1, display: 'block' }}>Ver Documentación</Button>
+                                        )}
+                                    </Box>
+                                )}
+
+                                {selectedRequest.type === 'cabin_reservation' && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <Typography variant="body2"><strong>Destino:</strong> {selectedRequest.data?.destino}</Typography>
+                                        <Typography variant="body2"><strong>Ingreso:</strong> {selectedRequest.data?.fecha_ingreso}</Typography>
+                                        <Typography variant="body2"><strong>Salida:</strong> {selectedRequest.data?.fecha_salida}</Typography>
+                                    </Box>
+                                )}
+
+                                {!['affiliation', 'tourism', 'benefit', 'cabin_reservation'].includes(selectedRequest.type) && (
+                                    <Typography variant="body1" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>
+                                        {selectedRequest.data?.description || 'Sin descripción detallada.'}
+                                    </Typography>
+                                )}
                             </Grid>
 
                             <Grid item xs={12} md={6}>

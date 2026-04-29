@@ -27,6 +27,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import HouseSidingIcon from '@mui/icons-material/HouseSiding';
 import { supabase } from '../../supabaseClient';
 import { AffiliateData } from '../../types/mobile';
 
@@ -50,6 +51,12 @@ const DESTINOS = [
     { value: 'Bariloche', label: 'Bariloche' },
     { value: 'Mar del Plata', label: 'Mar del Plata' },
     { value: 'Huerta Grande', label: 'Huerta Grande' },
+];
+
+const CABIN_TYPES = [
+    { value: 'Cabaña para 4', label: 'Cabaña para 4 personas' },
+    { value: 'Cabaña para 5', label: 'Cabaña para 5 personas' },
+    { value: 'Cabaña para 7', label: 'Cabaña para 7 personas' },
 ];
 
 const PARENTESCOS = [
@@ -86,6 +93,29 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
         plazas_req: 1,
         observaciones: '',
     });
+
+    // Reset destino when subsidizedType changes to avoid MUI out-of-range error
+    React.useEffect(() => {
+        setFormData(prev => ({
+            ...prev,
+            destino: subsidizedType === 'mollar' ? '' : prev.destino
+        }));
+    }, [subsidizedType]);
+
+    React.useEffect(() => {
+        if (open) {
+            setFormData(prev => ({
+                ...prev,
+                destino: '', // Always clear on open to ensure fresh selection
+                telefono: localStorage.getItem('mobile_app_telefono') || '',
+                mail: localStorage.getItem('mobile_app_email') || '',
+            }));
+            setGuests([]);
+            setFile(null);
+            setError('');
+            setSuccess(false);
+        }
+    }, [open]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
@@ -137,29 +167,22 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
 
             const affiliateId = affiliateIdResult.data?.[0]?.id;
 
-            const requestData = {
-                affiliate_id: affiliateId,
-                nombre_apellido: `${affiliateData.nombre} ${affiliateData.apellido}`,
-                cuil: affiliateData.cuil,
-                es_jubilado: formData.es_jubilado,
-                departamento: 'Noroeste',
-                telefono: formData.telefono,
-                mail: formData.mail,
-                destino: formData.destino,
-                fecha_ingreso: formData.fecha_ingreso,
-                fecha_salida: formData.fecha_salida,
-                plazas_req: formData.plazas_req + guests.length,
-                observaciones: formData.observaciones,
-                estado: 'pendiente',
-                is_subsidized: isSubsidized,
-                attachment_url: '',
-            };
+            let attachmentUrl = '';
 
             // 1. Upload file if subsidized
             if (isSubsidized && file) {
                 const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}_${affiliateData.legajo}.${fileExt}`;
-                const filePath = `turismo_subsidiado/${fileName}`;
+                const fileName = `${Date.now()}_${affiliateData.legajo.replace(/\//g, '_')}.${fileExt}`;
+                
+                // Sanitize folder name: remove accents, slashes and special chars
+                const sanitizedType = subsidizedType
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-zA-Z0-9\s]/g, "")
+                    .replace(/\s+/g, '_')
+                    .toLowerCase();
+                    
+                const filePath = `${sanitizedType}/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
                     .from('request-attachments')
@@ -171,33 +194,39 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
                     .from('request-attachments')
                     .getPublicUrl(filePath);
                 
-                requestData.attachment_url = publicUrl;
+                attachmentUrl = publicUrl;
             }
 
-            const { data: requestResult, error: requestError } = await supabase
-                .from('tourism_requests')
-                .insert(requestData)
-                .select()
-                .single();
+            const isMollar = subsidizedType === 'mollar';
+
+            const requestData = {
+                type: isMollar ? 'cabin_reservation' : 'tourism',
+                status: 'pending',
+                requester_info: {
+                    nombre: `${affiliateData.nombre} ${affiliateData.apellido}`,
+                    cuil: affiliateData.cuil,
+                    legajo: affiliateData.legajo,
+                    email: formData.mail,
+                    telefono: formData.telefono
+                },
+                data: {
+                    is_subsidized: isSubsidized,
+                    subsidized_type: subsidizedType,
+                    destino: formData.destino,
+                    fecha_ingreso: formData.fecha_ingreso,
+                    fecha_salida: formData.fecha_salida,
+                    plazas_req: formData.plazas_req,
+                    observaciones: formData.observaciones,
+                    guests: guests,
+                    attachment_url: attachmentUrl
+                }
+            };
+
+            const { error: requestError } = await supabase
+                .from('workflow_requests')
+                .insert(requestData);
 
             if (requestError) throw requestError;
-
-            if (guests.length > 0 && requestResult) {
-                const guestsData = guests.map(guest => ({
-                    tourism_request_id: requestResult.id,
-                    nombre: guest.nombre,
-                    apellido: guest.apellido,
-                    parentesco: guest.parentesco,
-                    edad: guest.edad,
-                    dni: guest.dni || null,
-                }));
-
-                const { error: guestsError } = await supabase
-                    .from('tourism_guests')
-                    .insert(guestsData);
-
-                if (guestsError) throw guestsError;
-            }
 
             setSuccess(true);
             setTimeout(() => {
@@ -227,8 +256,8 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth scroll="paper">
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <BeachAccessIcon color="primary" />
-                {isSubsidized ? `Turismo: ${subsidizedType}` : 'Solicitud de Turismo'}
+                {subsidizedType === 'mollar' ? <HouseSidingIcon color="success" /> : <BeachAccessIcon color="primary" />}
+                {subsidizedType === 'mollar' ? 'Reserva El Mollar' : (isSubsidized ? `Turismo: ${subsidizedType}` : 'Solicitud de Turismo')}
                 <IconButton onClick={onClose} size="small" sx={{ ml: 'auto' }}>
                     <CloseIcon />
                 </IconButton>
@@ -286,7 +315,7 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
                             </TextField>
 
                             <TextField
-                                label="Destino"
+                                label={subsidizedType === 'mollar' ? "Tipo de Cabaña" : "Destino"}
                                 name="destino"
                                 select
                                 value={formData.destino}
@@ -295,7 +324,7 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
                                 required
                                 size="small"
                             >
-                                {DESTINOS.map((dest) => (
+                                {(subsidizedType === 'mollar' ? CABIN_TYPES : DESTINOS).map((dest) => (
                                     <MenuItem key={dest.value} value={dest.value}>
                                         {dest.label}
                                     </MenuItem>
@@ -474,9 +503,9 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
                         onClick={handleSubmit}
                         variant="contained"
                         disabled={loading}
-                        startIcon={loading ? <CircularProgress size={20} /> : <BeachAccessIcon />}
+                        startIcon={loading ? <CircularProgress size={20} /> : (subsidizedType === 'mollar' ? <HouseSidingIcon /> : <BeachAccessIcon />)}
                     >
-                        {loading ? 'Enviando...' : 'Enviar Solicitud'}
+                        {loading ? 'Enviando...' : (subsidizedType === 'mollar' ? 'Solicitar Reserva' : 'Enviar Solicitud')}
                     </Button>
                 </DialogActions>
             )}

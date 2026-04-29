@@ -46,7 +46,6 @@ export default function MobileBeneficiosApp() {
                 email: localStorage.getItem('mobile_app_email') || '',
                 es_jubilado: localStorage.getItem('mobile_app_jubilado') === 'true',
                 fecha_nacimiento: localStorage.getItem('mobile_app_fecha_nacimiento') || '',
-                capacidades_digitales: localStorage.getItem('mobile_app_capacidades_digitales') || '',
             });
         }
     }, []);
@@ -84,7 +83,6 @@ export default function MobileBeneficiosApp() {
         localStorage.setItem('mobile_app_email', data.email || '');
         localStorage.setItem('mobile_app_jubilado', String(data.es_jubilado || false));
         localStorage.setItem('mobile_app_fecha_nacimiento', data.fecha_nacimiento || '');
-        localStorage.setItem('mobile_app_capacidades_digitales', data.capacidades_digitales || '');
         
         setUserName(`${data.nombre} ${data.apellido}`);
         setAffiliateData(data);
@@ -113,7 +111,6 @@ export default function MobileBeneficiosApp() {
             if (updates.email !== undefined) localStorage.setItem('mobile_app_email', updates.email || '');
             if (updates.es_jubilado !== undefined) localStorage.setItem('mobile_app_jubilado', String(updates.es_jubilado));
             if (updates.fecha_nacimiento !== undefined) localStorage.setItem('mobile_app_fecha_nacimiento', updates.fecha_nacimiento || '');
-            if (updates.capacidades_digitales !== undefined) localStorage.setItem('mobile_app_capacidades_digitales', updates.capacidades_digitales || '');
         }
     };
 
@@ -156,7 +153,7 @@ export default function MobileBeneficiosApp() {
             </Helmet>
 
             <AppBar position="sticky" elevation={0} sx={{ bgcolor: theme.palette.mode === 'dark' ? '#1a1a1a' : 'white', borderBottom: '1px solid', borderColor: 'divider' }}>
-                <Toolbar sx={{ justifyContent: 'space-between' }}>
+                <Toolbar sx={{ maxWidth: 600, mx: 'auto', width: '100%', justifyContent: 'space-between', px: { xs: 2, sm: 0 } }}>
                     <Box>
                         <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
                             Hola,
@@ -193,38 +190,42 @@ export default function MobileBeneficiosApp() {
             </AppBar>
 
             <Box sx={{ flexGrow: 1, p: 2, pt: 3, pb: 8, overflow: 'auto' }}>
-                {currentTab === 0 && (
-                    <Typography variant="h5" sx={{ fontWeight: 800, mb: 3, color: 'primary.main', textAlign: 'center' }}>
-                        TUS BENEFICIOS
-                    </Typography>
-                )}
-                {renderContent()}
+                <Box sx={{ maxWidth: 600, mx: 'auto', width: '100%' }}>
+                    {currentTab === 0 && (
+                        <Typography variant="h5" sx={{ fontWeight: 800, mb: 3, color: 'primary.main', textAlign: 'center' }}>
+                            TUS BENEFICIOS
+                        </Typography>
+                    )}
+                    {renderContent()}
+                </Box>
             </Box>
 
             <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }} elevation={8}>
-                <BottomNavigation
-                    value={currentTab}
-                    onChange={(_, newValue) => setCurrentTab(newValue)}
-                    showLabels
-                    sx={{
-                        height: 65,
-                        bgcolor: theme.palette.mode === 'dark' ? '#1a1a1a' : 'white',
-                        color: theme.palette.text.secondary,
-                        '& .MuiBottomNavigationAction-root': {
-                            minWidth: 0,
-                            padding: '6px 8px',
-                            '&.Mui-selected': {
-                                color: 'primary.main',
+                <Box sx={{ maxWidth: 600, mx: 'auto', width: '100%' }}>
+                    <BottomNavigation
+                        value={currentTab}
+                        onChange={(_, newValue) => setCurrentTab(newValue)}
+                        showLabels
+                        sx={{
+                            height: 65,
+                            bgcolor: theme.palette.mode === 'dark' ? '#1a1a1a' : 'white',
+                            color: theme.palette.text.secondary,
+                            '& .MuiBottomNavigationAction-root': {
+                                minWidth: 0,
+                                padding: '6px 8px',
+                                '&.Mui-selected': {
+                                    color: 'primary.main',
+                                }
                             }
-                        }
-                    }}
-                >
-                    <BottomNavigationAction label="Inicio" icon={<HomeIcon />} />
-                    <BottomNavigationAction label="Servicios" icon={<AssignmentIcon />} />
-                    <BottomNavigationAction label="Carnet" icon={<BadgeIcon />} />
-                    <BottomNavigationAction label="Solicitudes" icon={<BeachAccessIcon />} />
-                    <BottomNavigationAction label="Perfil" icon={<PersonIcon />} />
-                </BottomNavigation>
+                        }}
+                    >
+                        <BottomNavigationAction label="Inicio" icon={<HomeIcon />} />
+                        <BottomNavigationAction label="Servicios" icon={<AssignmentIcon />} />
+                        <BottomNavigationAction label="Carnet" icon={<BadgeIcon />} />
+                        <BottomNavigationAction label="Solicitudes" icon={<BeachAccessIcon />} />
+                        <BottomNavigationAction label="Perfil" icon={<PersonIcon />} />
+                    </BottomNavigation>
+                </Box>
             </Paper>
         </Box>
     );
