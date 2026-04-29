@@ -15,6 +15,8 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { supabase } from "../supabaseClient";
 import { Helmet } from "react-helmet-async";
 
+const seccionalLogo = `${import.meta.env.BASE_URL}seccionalLogo2.png`;
+
 export default function NoticiaDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -103,21 +105,30 @@ export default function NoticiaDetalle() {
             </Typography>
           </Box>
 
-          {news.img_url && (
+          <Box
+            sx={{
+              width: "100%",
+              height: { xs: 250, md: 450 },
+              borderRadius: 4,
+              overflow: "hidden",
+              mb: 6,
+              boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+              bgcolor: alpha(theme.palette.primary.main, 0.03),
+              position: "relative",
+            }}
+          >
             <Box
               component="img"
-              src={news.img_url}
+              src={news.img_url || seccionalLogo}
               alt={news.title}
               sx={{
                 width: "100%",
-                maxHeight: 500,
-                objectFit: "cover",
-                borderRadius: 4,
-                mb: 6,
-                boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
+                height: "100%",
+                objectFit: news.img_url ? "cover" : "contain",
+                p: news.img_url ? 0 : 8,
               }}
             />
-          )}
+          </Box>
 
           <Typography
             variant="h5"
