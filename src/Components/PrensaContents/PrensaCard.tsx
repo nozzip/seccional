@@ -162,12 +162,10 @@ function HeroNewsItem({
           sx={{
             height: { xs: 300, md: "100%" },
             minHeight: { md: 500 },
-            objectFit:
-              item.imgUrl && !item.imgUrl.includes("seccionalLogo2")
-                ? "cover"
-                : "contain",
+            objectFit: item.imgUrl ? "cover" : "contain",
             bgcolor: alpha(theme.palette.primary.main, 0.02),
-            p: item.imgUrl && !item.imgUrl.includes("seccionalLogo2") ? 0 : 6,
+            p: item.imgUrl ? 0 : 6,
+            transition: "opacity 0.5s ease-in-out",
           }}
           onError={(e) => {
             e.currentTarget.src = seccionalLogo;
@@ -387,12 +385,10 @@ function StandardNewsItem({
             left: 0,
             width: "100%",
             height: "100%",
-            objectFit:
-              item.imgUrl && !item.imgUrl.includes("seccionalLogo2")
-                ? "cover"
-                : "contain",
+            objectFit: item.imgUrl ? "cover" : "contain",
             bgcolor: alpha(theme.palette.primary.main, 0.02),
-            p: item.imgUrl && !item.imgUrl.includes("seccionalLogo2") ? 0 : 5,
+            p: item.imgUrl ? 0 : 5,
+            transition: "opacity 0.3s ease",
           }}
           onError={(e) => {
             e.currentTarget.src = seccionalLogo;

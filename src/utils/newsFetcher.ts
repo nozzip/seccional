@@ -107,7 +107,7 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
         month: "long",
         day: "numeric",
       }),
-      imgUrl: item.img_url || "/seccionalLogo2.png",
+      imgUrl: item.img_url || "",
       summary: item.summary || "",
       content: item.content || "",
       isLocal: true,

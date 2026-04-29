@@ -110,5 +110,6 @@
   - **Icono de Papelera:** Se integró un botón de eliminación (`DeleteIcon`) en la esquina superior derecha de las tarjetas de noticias locales, visible solo para administradores.
   - **Confirmación de Seguridad:** Implementación de flujo de confirmación nativo para prevenir eliminaciones accidentales.
   - **Sincronización en Tiempo Real:** Tras la eliminación en Supabase, la grilla se actualiza automáticamente mediante el disparo del `onRefresh`.
+  - **Estabilización de Imágenes:** Se optimizó la lógica de fallbacks en `newsFetcher.ts` y `PrensaCard.tsx` para evitar parpadeos visuales al cargar noticias sin imagen, asegurando transiciones suaves y el uso correcto del logo institucional como placeholder estático.
 
 
