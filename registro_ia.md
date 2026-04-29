@@ -106,5 +106,9 @@
   - **Nueva Ruta:** Implementación de la página `NoticiaDetalle.tsx` vinculada a `/prensa/:id`.
   - **Formato de Artículo:** Diseño optimizado para lectura larga con tipografía de alta legibilidad, soporte para saltos de línea (`pre-wrap`) y visualización de imágenes destacadas.
   - **Navegación Inteligente:** Los botones de "Leer Más" detectan automáticamente si la noticia es externa (RSS) o local (Supabase), redirigiendo al usuario al sitio oficial o a la página interna respectivamente.
+6. **Gestión de Contenido (Borrado):**
+  - **Icono de Papelera:** Se integró un botón de eliminación (`DeleteIcon`) en la esquina superior derecha de las tarjetas de noticias locales, visible solo para administradores.
+  - **Confirmación de Seguridad:** Implementación de flujo de confirmación nativo para prevenir eliminaciones accidentales.
+  - **Sincronización en Tiempo Real:** Tras la eliminación en Supabase, la grilla se actualiza automáticamente mediante el disparo del `onRefresh`.
 
 

@@ -81,7 +81,11 @@ function Prensa() {
           </Box>
         </Box>
         
-        <PrensaCard key={refreshKey} />
+        <PrensaCard 
+          key={refreshKey} 
+          isAdmin={isAdmin} 
+          onRefresh={handleNewsAdded} 
+        />
 
         {isAdmin && (
           <Fab

@@ -9,19 +9,41 @@ import {
   Skeleton,
   alpha,
   useTheme,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import DeleteIcon from "@mui/icons-material/Delete";
 import LinearProgress from "@mui/material/LinearProgress";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
 import { Link } from "react-router-dom";
+import { supabase } from "../../supabaseClient";
 const seccionalLogo = "/seccionalLogo2.png";
 
-export default function PrensaCard() {
+interface PrensaCardProps {
+  isAdmin?: boolean;
+  onRefresh?: () => void;
+}
+
+export default function PrensaCard({ isAdmin, onRefresh }: PrensaCardProps) {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+
+  const handleDelete = async (id: string, title: string) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar la noticia "${title}"?`)) {
+      try {
+        const { error } = await supabase.from("news").delete().eq("id", id);
+        if (error) throw error;
+        if (onRefresh) onRefresh();
+      } catch (err) {
+        console.error("Error al eliminar noticia:", err);
+        alert("No se pudo eliminar la noticia.");
+      }
+    }
+  };
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -84,11 +106,19 @@ export default function PrensaCard() {
     <Box
       sx={{ display: "flex", flexDirection: "column", gap: { xs: 6, md: 10 } }}
     >
-      <HeroNewsItem item={hero} />
+      <HeroNewsItem
+        item={hero}
+        isAdmin={isAdmin}
+        onDelete={() => hero.id && handleDelete(hero.id, hero.title)}
+      />
       <Grid container spacing={4}>
         {restNews.map((item, i) => (
           <Grid key={i} size={{ xs: 12, md: 6, lg: 4 }}>
-            <StandardNewsItem item={item} />
+            <StandardNewsItem
+              item={item}
+              isAdmin={isAdmin}
+              onDelete={() => item.id && handleDelete(item.id, item.title)}
+            />
           </Grid>
         ))}
       </Grid>
@@ -96,7 +126,15 @@ export default function PrensaCard() {
   );
 }
 
-function HeroNewsItem({ item }: { item: NewsItem }) {
+function HeroNewsItem({
+  item,
+  isAdmin,
+  onDelete,
+}: {
+  item: NewsItem;
+  isAdmin?: boolean;
+  onDelete: () => void;
+}) {
   const theme = useTheme();
 
   return (
@@ -157,6 +195,32 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
           Destacado
         </Box>
       </Box>
+
+      {isAdmin && item.isLocal && (
+        <Tooltip title="Eliminar Noticia">
+          <IconButton
+            onClick={(e) => {
+              e.preventDefault();
+              onDelete();
+            }}
+            sx={{
+              position: "absolute",
+              top: 24,
+              right: 24,
+              bgcolor: alpha(theme.palette.error.main, 0.9),
+              color: "white",
+              "&:hover": {
+                bgcolor: theme.palette.error.main,
+                transform: "scale(1.1)",
+              },
+              boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
+              zIndex: 10,
+            }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Tooltip>
+      )}
 
       <Box
         sx={{
@@ -256,7 +320,15 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
   );
 }
 
-function StandardNewsItem({ item }: { item: NewsItem }) {
+function StandardNewsItem({
+  item,
+  isAdmin,
+  onDelete,
+}: {
+  item: NewsItem;
+  isAdmin?: boolean;
+  onDelete: () => void;
+}) {
   const theme = useTheme();
   return (
     <Card
@@ -266,6 +338,7 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
         flexDirection: "column",
         borderRadius: 5,
         overflow: "hidden",
+        position: "relative",
         boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
         border: "1px solid",
         borderColor: alpha(theme.palette.divider, 0.6),
@@ -277,6 +350,32 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
         },
       }}
     >
+      {isAdmin && item.isLocal && (
+        <Tooltip title="Eliminar Noticia">
+          <IconButton
+            onClick={(e) => {
+              e.preventDefault();
+              onDelete();
+            }}
+            size="small"
+            sx={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              bgcolor: alpha(theme.palette.error.main, 0.9),
+              color: "white",
+              "&:hover": {
+                bgcolor: theme.palette.error.main,
+                transform: "scale(1.1)",
+              },
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              zIndex: 10,
+            }}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
       <Box sx={{ position: "relative", pt: "62%", overflow: "hidden" }}>
         <CardMedia
           component="img"
