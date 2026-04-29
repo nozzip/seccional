@@ -1,27 +1,26 @@
+import { supabase } from "../supabaseClient";
+
 export interface NewsItem {
   title: string;
   link: string;
   date: string;
   imgUrl: string;
   summary: string;
+  isLocal?: boolean;
 }
 
-export async function fetchLatestNews(): Promise<NewsItem[]> {
+async function fetchRssNews(): Promise<NewsItem[]> {
   try {
     const rssUrl = "https://www.aefip.org.ar/prensa?format=feed&type=rss";
-    // Using CodeTabs CORS proxy
     const response = await fetch(
       `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`,
     );
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch RSS feed");
-    }
+    if (!response.ok) throw new Error("Failed to fetch RSS feed");
 
     const xmlText = await response.text();
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-
     const items = Array.from(xmlDoc.querySelectorAll("item")).slice(0, 10);
 
     return items.map((item) => {
@@ -29,7 +28,6 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
       const link = item.querySelector("link")?.textContent || "#";
       const pubDate = item.querySelector("pubDate")?.textContent;
 
-      // Parse the date to a more readable format (e.g., DD/MM/YYYY)
       let formattedDate = "Fecha desconocida";
       if (pubDate) {
         const dateObj = new Date(pubDate);
@@ -43,36 +41,25 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
       }
 
       const description = item.querySelector("description")?.textContent || "";
-
-      // Extract the first image src from the HTML description
       const imgMatch = description.match(/<img[^>]+src="([^">]+)"/i);
       let imgUrl =
         imgMatch && imgMatch[1] !== "https://www.aefip.org.ar/"
           ? imgMatch[1]
           : "";
 
-      // Ensure absolute URL for AEFIP images if they use relative paths
       if (imgUrl && imgUrl.startsWith("/")) {
         imgUrl = `https://www.aefip.org.ar${imgUrl}`;
       }
 
-      // If no image is found, use a fallback image from our public folder or empty
-      if (!imgUrl) {
-        imgUrl = "/seccionalLogo2.png"; // Fallback
-      }
+      if (!imgUrl) imgUrl = "/seccionalLogo2.png";
 
-      // Clean the HTML description to create a plain text summary
-      // 1. Remove img tags
       let cleanSummary = description.replace(/<img[^>]*>/g, "");
-      // 2. Remove all other HTML tags
       cleanSummary = cleanSummary.replace(/<[^>]+>/g, " ");
-      // 3. Decode HTML entities (basic) & clean whitespace
       cleanSummary = cleanSummary
         .replace(/&nbsp;/g, " ")
         .replace(/\s+/g, " ")
         .trim();
 
-      // Truncate to ~150 chars
       if (cleanSummary.length > 150) {
         cleanSummary = cleanSummary.substring(0, 150) + "...";
       }
@@ -83,10 +70,48 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
         date: formattedDate,
         imgUrl,
         summary: cleanSummary,
+        isLocal: false,
       };
     });
   } catch (error) {
-    console.error("Error fetching news:", error);
+    console.error("RSS Fetch Error:", error);
+    return [];
+  }
+}
+
+export async function fetchLatestNews(): Promise<NewsItem[]> {
+  try {
+    // 1. Fetch RSS
+    const rssNews = await fetchRssNews();
+
+    // 2. Fetch Supabase News
+    const { data: dbNews, error } = await supabase
+      .from("news")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("DB News Fetch Error:", error);
+      return rssNews;
+    }
+
+    const localNews: NewsItem[] = (dbNews || []).map((item) => ({
+      title: item.title,
+      link: item.link || "#",
+      date: new Date(item.created_at).toLocaleDateString("es-AR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      imgUrl: item.img_url || "/seccionalLogo2.png",
+      summary: item.summary || "",
+      isLocal: true,
+    }));
+
+    // 3. Merge (Local news first)
+    return [...localNews, ...rssNews];
+  } catch (error) {
+    console.error("General Fetch Error:", error);
     return [];
   }
 }

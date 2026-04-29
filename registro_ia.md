@@ -81,4 +81,21 @@
    - Manejo de estados `progress` y `loading` para una transición fluida una vez que los datos están listos.
 3. **UX:** Se añadió un delay de 400ms tras alcanzar el 100% para permitir que el usuario perciba la finalización del proceso antes de revelar el contenido.
 
+## [ÉXITO] - Sistema de Carga de Noticias para Administradores
+**Fecha:** 2026-04-29
+**Modo:** Desarrollar
+**Descripción:** Se implementó una funcionalidad completa para que los administradores puedan publicar noticias locales que se integran automáticamente en el grid de Prensa junto con el feed oficial del MDN.
+
+### Cambios realizados:
+1. **Base de Datos:**
+   - Creación de la tabla `news` en Supabase con campos para título, resumen, imagen y link externo.
+   - Configuración de políticas RLS para lectura pública y escritura restringida a usuarios autenticados.
+2. **Lógica de Integración:**
+   - Se refactorizó `newsFetcher.ts` para realizar una carga híbrida: noticias locales de Supabase (con prioridad) y noticias del feed RSS de AEFIP Nacional.
+   - Identificación de noticias locales vs externas mediante el flag `isLocal`.
+3. **Visual y UX:**
+   - **Botón de Acción:** Se añadió un `Fab` (Floating Action Button) con el icono `+` en la página de Prensa, visible únicamente para usuarios con rol `admin`.
+   - **Diálogo de Carga:** Creación de `AddNewsDialog.tsx` que permite la carga de textos y la subida de imágenes directamente a Supabase Storage.
+   - **Refresco Dinámico:** Se implementó una lógica de `refreshKey` en `Prensa.tsx` para recargar el listado instantáneamente tras una publicación exitosa.
+
 
