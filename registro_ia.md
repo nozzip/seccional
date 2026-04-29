@@ -97,5 +97,9 @@
    - **Botón de Acción:** Se añadió un `Fab` (Floating Action Button) con el icono `+` en la página de Prensa, visible únicamente para usuarios con rol `admin`.
    - **Diálogo de Carga:** Creación de `AddNewsDialog.tsx` que permite la carga de textos y la subida de imágenes directamente a Supabase Storage.
    - **Refresco Dinámico:** Se implementó una lógica de `refreshKey` en `Prensa.tsx` para recargar el listado instantáneamente tras una publicación exitosa.
+4. **Seguridad y Permisos:**
+  - **Vinculación de DNI:** Se configuró explícitamente el DNI `34185803` como administrador autorizado tanto en el frontend como en las validaciones de carga.
+  - **Corrección de Sesión:** Se unificó el uso de `current_affiliate` en el `localStorage` para la detección de roles, asegurando la consistencia con el sistema de login global.
+  - **Doble Validación:** Se añadió una capa de validación en el cliente dentro de `AddNewsDialog.tsx` para prevenir intentos de inserción no autorizados.
 
 

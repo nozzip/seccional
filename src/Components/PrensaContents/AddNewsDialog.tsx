@@ -57,6 +57,16 @@ export default function AddNewsDialog({
       return;
     }
 
+    // Doble verificación de seguridad en el cliente
+    const userStr = localStorage.getItem("current_affiliate");
+    const user = userStr ? JSON.parse(userStr) : null;
+    const isAdmin = user?.role === "admin" || user?.dni === "34185803";
+
+    if (!isAdmin) {
+      alert("No tienes permisos para realizar esta acción.");
+      return;
+    }
+
     setLoading(true);
     try {
       let finalImgUrl = formData.imgUrl;

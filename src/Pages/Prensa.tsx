@@ -15,11 +15,12 @@ function Prensa() {
     window.scrollTo(0, 0);
     
     // Verificar si el usuario es admin
-    const userStr = localStorage.getItem("user");
+    const userStr = localStorage.getItem("current_affiliate");
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        setIsAdmin(user.role === "admin");
+        // El admin oficial es DNI 34185803, pero también permitimos cualquier usuario con rol 'admin'
+        setIsAdmin(user.role === "admin" || user.dni === "34185803");
       } catch (e) {
         console.error("Error parsing user from localStorage", e);
       }
