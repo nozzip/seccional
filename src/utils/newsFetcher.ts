@@ -1,12 +1,14 @@
 import { supabase } from "../supabaseClient";
 
 export interface NewsItem {
+  id?: string;
   title: string;
   link: string;
   date: string;
   imgUrl: string;
   summary: string;
   isLocal?: boolean;
+  content?: string;
 }
 
 async function fetchRssNews(): Promise<NewsItem[]> {
@@ -65,6 +67,7 @@ async function fetchRssNews(): Promise<NewsItem[]> {
       }
 
       return {
+        id: link,
         title,
         link,
         date: formattedDate,
@@ -96,8 +99,9 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
     }
 
     const localNews: NewsItem[] = (dbNews || []).map((item) => ({
+      id: item.id,
       title: item.title,
-      link: item.link || "#",
+      link: item.link || `/prensa/${item.id}`,
       date: new Date(item.created_at).toLocaleDateString("es-AR", {
         year: "numeric",
         month: "long",
@@ -105,6 +109,7 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
       }),
       imgUrl: item.img_url || "/seccionalLogo2.png",
       summary: item.summary || "",
+      content: item.content || "",
       isLocal: true,
     }));
 

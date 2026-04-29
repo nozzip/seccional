@@ -101,6 +101,10 @@
   - **Vinculación de DNI:** Se configuró explícitamente el DNI `34185803` como administrador autorizado tanto en el frontend como en las validaciones de carga.
   - **Corrección de Sesión:** Se unificó el uso de `current_affiliate` en el `localStorage` para la detección de roles, asegurando la consistencia con el sistema de login global.
   - **Doble Validación:** Se añadió una capa de validación en el cliente dentro de `AddNewsDialog.tsx` para prevenir intentos de inserción no autorizados.
-  - **Refinamiento Visual:** Se corrigió un error de renderizado en el borde punteado de la carga de imágenes y se optimizaron los espaciados, bordes y tipografías del formulario para una experiencia más pulida.
+  - **Refinamiento Visual:** Se corrigió un error de renderizado en el borde punteado de la carga de imágenes y se eliminó el glitch del texto `alt` "titilado" en las tarjetas de prensa mediante el uso de atributos vacíos y manejo de errores mejorado.
+5. **Lectura Detallada de Noticias:**
+  - **Nueva Ruta:** Implementación de la página `NoticiaDetalle.tsx` vinculada a `/prensa/:id`.
+  - **Formato de Artículo:** Diseño optimizado para lectura larga con tipografía de alta legibilidad, soporte para saltos de línea (`pre-wrap`) y visualización de imágenes destacadas.
+  - **Navegación Inteligente:** Los botones de "Leer Más" detectan automáticamente si la noticia es externa (RSS) o local (Supabase), redirigiendo al usuario al sitio oficial o a la página interna respectivamente.
 
 

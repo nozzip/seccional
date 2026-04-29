@@ -20,6 +20,8 @@ const MobileAppView = lazy(() => import("./Components/MobileApp/MobileAppView"))
 const AffiliateValidator = lazy(() => import("./Components/Public/AffiliateValidator"));
 const AffiliateForm = lazy(() => import("./Pages/AffiliateForm"));
 
+const NoticiaDetalle = lazy(() => import("./Pages/NoticiaDetalle"));
+
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -95,6 +97,10 @@ const router = createHashRouter([
       {
         path: "prensa",
         element: <Prensa />,
+      },
+      {
+        path: "prensa/:id",
+        element: <NoticiaDetalle />,
       },
       {
         path: "galeria",

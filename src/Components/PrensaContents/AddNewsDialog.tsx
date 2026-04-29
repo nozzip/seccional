@@ -33,6 +33,7 @@ export default function AddNewsDialog({
   const [formData, setFormData] = useState({
     title: "",
     summary: "",
+    content: "",
     link: "",
     imgUrl: "",
   });
@@ -95,6 +96,7 @@ export default function AddNewsDialog({
         {
           title: formData.title,
           summary: formData.summary,
+          content: formData.content,
           link: formData.link,
           img_url: finalImgUrl,
         },
@@ -113,7 +115,7 @@ export default function AddNewsDialog({
   };
 
   const handleClose = () => {
-    setFormData({ title: "", summary: "", link: "", imgUrl: "" });
+    setFormData({ title: "", summary: "", content: "", link: "", imgUrl: "" });
     setImageFile(null);
     setImagePreview(null);
     onClose();
@@ -161,14 +163,31 @@ export default function AddNewsDialog({
           />
           
           <TextField
-            label="Resumen / Descripción"
+            label="Resumen / Descripción corta"
             name="summary"
             fullWidth
             multiline
-            rows={4}
+            rows={2}
             value={formData.summary}
             onChange={handleTextChange}
             required
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.background.paper, 0.5),
+              },
+            }}
+          />
+
+          <TextField
+            label="Cuerpo de la Noticia (Contenido Completo)"
+            name="content"
+            fullWidth
+            multiline
+            rows={8}
+            value={formData.content}
+            onChange={handleTextChange}
+            placeholder="Escribe aquí el desarrollo de la noticia..."
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: 3,

@@ -15,6 +15,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LinearProgress from "@mui/material/LinearProgress";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
+import { Link } from "react-router-dom";
 const seccionalLogo = "/seccionalLogo2.png";
 
 export default function PrensaCard() {
@@ -119,13 +120,16 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
         <CardMedia
           component="img"
           image={item.imgUrl || seccionalLogo}
-          alt={item.title}
+          alt=""
           sx={{
             height: { xs: 300, md: "100%" },
             minHeight: { md: 500 },
-            objectFit: item.imgUrl ? "cover" : "contain",
+            objectFit:
+              item.imgUrl && !item.imgUrl.includes("seccionalLogo2")
+                ? "cover"
+                : "contain",
             bgcolor: alpha(theme.palette.primary.main, 0.02),
-            p: item.imgUrl ? 0 : 6,
+            p: item.imgUrl && !item.imgUrl.includes("seccionalLogo2") ? 0 : 6,
           }}
           onError={(e) => {
             e.currentTarget.src = seccionalLogo;
@@ -227,9 +231,13 @@ function HeroNewsItem({ item }: { item: NewsItem }) {
               size="large"
               color="primary"
               endIcon={<OpenInNewIcon />}
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(item.isLocal
+                ? { component: Link, to: `/prensa/${item.id}` }
+                : {
+                    href: item.link,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                  })}
               sx={{
                 borderRadius: 10,
                 px: 6,
@@ -273,16 +281,19 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
         <CardMedia
           component="img"
           image={item.imgUrl || seccionalLogo}
-          alt={item.title}
+          alt=""
           sx={{
             position: "absolute",
             top: 0,
             left: 0,
             width: "100%",
             height: "100%",
-            objectFit: item.imgUrl ? "cover" : "contain",
+            objectFit:
+              item.imgUrl && !item.imgUrl.includes("seccionalLogo2")
+                ? "cover"
+                : "contain",
             bgcolor: alpha(theme.palette.primary.main, 0.02),
-            p: item.imgUrl ? 0 : 5,
+            p: item.imgUrl && !item.imgUrl.includes("seccionalLogo2") ? 0 : 5,
           }}
           onError={(e) => {
             e.currentTarget.src = seccionalLogo;
@@ -349,9 +360,9 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
           variant="outlined"
           color="primary"
           endIcon={<OpenInNewIcon fontSize="small" />}
-          href={item.link}
-          target="_blank"
-          rel="noopener noreferrer"
+          {...(item.isLocal
+            ? { component: Link, to: `/prensa/${item.id}` }
+            : { href: item.link, target: "_blank", rel: "noopener noreferrer" })}
           fullWidth
           sx={{
             borderRadius: 10,
@@ -361,7 +372,7 @@ function StandardNewsItem({ item }: { item: NewsItem }) {
             "&:hover": { borderWidth: 2 },
           }}
         >
-          Seguir Leyendo
+          {item.isLocal ? "Leer Noticia" : "Seguir Leyendo"}
         </Button>
       </CardContent>
     </Card>
