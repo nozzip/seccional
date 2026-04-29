@@ -136,7 +136,7 @@ export default function AddNewsDialog({
       }}
     >
       <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Typography variant="h5" fontWeight={800} color="primary">
+        <Typography variant="h5" component="div" fontWeight={800} color="primary">
           Cargar Nueva Noticia
         </Typography>
         <IconButton onClick={handleClose}>

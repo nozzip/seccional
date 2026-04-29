@@ -168,9 +168,12 @@ function HeroNewsItem({
             transition: "opacity 0.5s ease-in-out",
           }}
           onError={(e) => {
-            e.currentTarget.src = seccionalLogo;
-            e.currentTarget.style.objectFit = "contain";
-            e.currentTarget.style.padding = "48px";
+            const target = e.currentTarget;
+            if (!target.src.includes(seccionalLogo)) {
+              target.src = seccionalLogo;
+              target.style.objectFit = "contain";
+              target.style.padding = "48px";
+            }
           }}
         />
         <Box
@@ -391,9 +394,12 @@ function StandardNewsItem({
             transition: "opacity 0.3s ease",
           }}
           onError={(e) => {
-            e.currentTarget.src = seccionalLogo;
-            e.currentTarget.style.objectFit = "contain";
-            e.currentTarget.style.padding = "40px";
+            const target = e.currentTarget;
+            if (!target.src.includes(seccionalLogo)) {
+              target.src = seccionalLogo;
+              target.style.objectFit = "contain";
+              target.style.padding = "40px";
+            }
           }}
         />
       </Box>
