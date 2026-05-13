@@ -207,33 +207,7 @@ function Navbar(props: any) {
               </Button>
             )}
 
-            <Tooltip title="App Afiliados">
-              <IconButton
-                component={Link}
-                to="/app/beneficios"
-                color="primary"
-                aria-label="App Afiliados"
-                sx={{
-                  bgcolor: alpha(theme.palette.primary.main, 0.1),
-                  "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.2) },
-                }}
-              >
-                <Badge
-                  badgeContent="NEW"
-                  color="secondary"
-                  sx={{
-                    "& .MuiBadge-badge": {
-                      fontSize: "0.65rem",
-                      fontWeight: 800,
-                      height: 18,
-                      minWidth: 18,
-                    },
-                  }}
-                >
-                  <SmartphoneIcon />
-                </Badge>
-              </IconButton>
-            </Tooltip>
+
 
             {isMobile && <DrawerComponent />}
           </Box>

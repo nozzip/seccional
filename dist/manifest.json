@@ -19,7 +19,7 @@
             "purpose": "any maskable"
         }
     ],
-    "start_url": "/seccional/",
+    "start_url": "/?mode=standalone",
     "display": "standalone",
     "theme_color": "#1a5f7a",
     "background_color": "#ffffff",
