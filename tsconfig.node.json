@@ -3,9 +3,11 @@
         "composite": true,
         "module": "ESNext",
         "moduleResolution": "Node",
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true,
+        "declaration": true,
+        "emitDeclarationOnly": true
     },
     "include": [
-        "vite.config.js"
+        "vite.config.ts"
     ]
 }
