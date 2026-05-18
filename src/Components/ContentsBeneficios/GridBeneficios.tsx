@@ -523,7 +523,7 @@ function BenefitItemComponent({
               backgroundSize: "contain",
               backgroundRepeat: "no-repeat",
               backgroundPosition: "center",
-              bgcolor: "background.paper",
+              bgcolor: (item.title.toLowerCase().includes("hotel colonial") || item.title.toLowerCase().includes("los carolinos")) ? "#0f172a" : "background.paper",
               p: 4,
               transition: "transform 0.6s ease",
             }}
