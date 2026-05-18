@@ -158,3 +158,21 @@
 1. **Visual:** Se eliminaron los switches y el bloque informativo de 'Capacidades Digitales' en PerfilView.tsx.
 2. **Lógica:** Se limpiaron las referencias a capacidades_digitales en el estado local, lógica de guardado, persistencia en localStorage y mapeo de login en MobileBeneficiosApp.tsx y MobileLogin.tsx.
 3. **Tipos:** Se eliminó el campo del contrato de interfaz AffiliateData en mobile.ts para mantener la integridad del código.
+
+## [ÉXITO] - Migración de Convenios e Interfaz de Beneficios
+**Fecha:** 2026-05-18
+**Modo:** Mejorar / Desarrollar
+**Descripción:** Se migró la totalidad de imágenes de convenios para Catamarca, Jujuy, Santiago del Estero y Tucumán a Supabase Storage y se optimizó la interfaz de tarjetas y de creación de rubros.
+
+### Cambios realizados:
+1. **Lógica & Datos (Migración):**
+   - Subida de 36 imágenes locales a Supabase Storage en el bucket `benefits` bajo la ruta organizada `convenios/<provincia>/<archivo>.png`.
+   - Normalización de acentos para Tucumán (`Tucumán` -> `Tucuman`) en las rutas de almacenamiento para cumplir con las restricciones de Supabase Storage.
+   - Asociación del 100% de las imágenes con sus respectivos registros de beneficios en la tabla `benefits` de Supabase mediante un script de Node emparejando por nombre normalizado.
+2. **Visual & Accesibilidad (Hotel Colonial):**
+   - Se cambió el color de fondo estático blanco (`bgcolor: "#fff"`) del contenedor de la imagen en la tarjeta por `bgcolor: "background.paper"` (dinámico por tema). Esto solucionó el problema donde el logo de "Hotel Colonial" (que tiene texto blanco sobre fondo transparente) era completamente invisible (blanco sobre blanco) en la tarjeta, pero visible en el modal que es naturalmente oscuro.
+3. **Visual & UI (Filas de la tarjeta):**
+   - Se aumentó `ITEMS_PER_PAGE` de `9` a `15` en `GridBeneficios.tsx` para mostrar 5 filas de 3 tarjetas por página en lugar de 3 filas, aumentando la cantidad de convenios mostrados a la vez.
+4. **Lógica & Interactividad (Modal Settings):**
+   - Se agregó un botón de acción "+" al lado del campo "Nuevo Rubro" en `BenefitEditModal.tsx`.
+   - Al hacer clic, se inserta inmediatamente el nuevo rubro de forma segura en la tabla `benefit_categories` de Supabase, se añade al listado local de rubros y se autoselecciona en el desplegable de rubros adyacente para ahorrar pasos al usuario.

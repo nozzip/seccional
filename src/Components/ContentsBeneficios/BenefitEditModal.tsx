@@ -18,6 +18,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import SaveIcon from '@mui/icons-material/Save';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import AddIcon from '@mui/icons-material/Add';
 import { supabase } from '../../supabaseClient';
 
 export interface Benefit {
@@ -155,6 +156,32 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
             ...formData,
             [name]: type === 'checkbox' ? checked : value,
         });
+    };
+
+    const handleAddRubro = async () => {
+        if (!newRubro.trim()) return;
+        const rubroToAdd = newRubro.trim();
+
+        if (rubros.includes(rubroToAdd)) {
+            setFormData(prev => ({ ...prev, rubro: rubroToAdd }));
+            setNewRubro('');
+            return;
+        }
+
+        try {
+            const { error: insertError } = await supabase
+                .from('benefit_categories')
+                .insert([{ name: rubroToAdd }]);
+
+            setRubros(prev => [...prev, rubroToAdd].sort());
+            setFormData(prev => ({ ...prev, rubro: rubroToAdd }));
+            setNewRubro('');
+            setSuccess('Nuevo rubro agregado y seleccionado');
+            setTimeout(() => setSuccess(''), 2000);
+        } catch (err) {
+            console.error('Error adding rubro:', err);
+            setError('Error al agregar rubro');
+        }
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isGallery = false) => {
@@ -334,7 +361,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                         ))}
                     </TextField>
 
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                         <TextField
                             label="Rubro"
                             name="rubro"
@@ -343,20 +370,34 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                             fullWidth
                             select
                             size="small"
+                            sx={{ flex: 1 }}
                         >
                             <MenuItem value=""><em>Ninguno</em></MenuItem>
                             {rubros.map((r) => (
                                 <MenuItem key={r} value={r}>{r}</MenuItem>
                             ))}
                         </TextField>
-                        <TextField
-                            label="Nuevo Rubro"
-                            placeholder="Agregar..."
-                            value={newRubro}
-                            onChange={(e) => setNewRubro(e.target.value)}
-                            fullWidth
-                            size="small"
-                        />
+                        <Box sx={{ display: 'flex', gap: 0.5, flex: 1, alignItems: 'center' }}>
+                            <TextField
+                                label="Nuevo Rubro"
+                                placeholder="Agregar..."
+                                value={newRubro}
+                                onChange={(e) => setNewRubro(e.target.value)}
+                                fullWidth
+                                size="small"
+                            />
+                            <IconButton 
+                                onClick={handleAddRubro} 
+                                color="primary" 
+                                disabled={!newRubro.trim()}
+                                sx={{ 
+                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                    "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.2) }
+                                }}
+                            >
+                                <AddIcon />
+                            </IconButton>
+                        </Box>
                     </Box>
 
                     <Box sx={{ border: '1px solid', borderColor: 'divider', p: 2, borderRadius: 1 }}>

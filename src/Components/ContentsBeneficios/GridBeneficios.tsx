@@ -34,7 +34,7 @@ import { dataBeneficios } from "../mockData";
 import { supabase } from "../../supabaseClient";
 import BenefitEditModal, { Benefit } from "./BenefitEditModal";
 
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 15;
 
 type BenefitItem = Benefit;
 
@@ -523,7 +523,7 @@ function BenefitItemComponent({
               backgroundSize: "contain",
               backgroundRepeat: "no-repeat",
               backgroundPosition: "center",
-              bgcolor: "#fff",
+              bgcolor: "background.paper",
               p: 4,
               transition: "transform 0.6s ease",
             }}
