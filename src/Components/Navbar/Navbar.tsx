@@ -214,6 +214,7 @@ function Navbar(props: any) {
                 color="primary"
                 aria-label="Ingreso Afiliados"
                 sx={{
+                  display: { xs: "inline-flex", sm: "none" },
                   bgcolor: alpha(theme.palette.primary.main, 0.1),
                   "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.2) },
                 }}
