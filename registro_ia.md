@@ -1,24 +1,23 @@
 # Registro de IA - Seccional Noroeste
 
-## [ÉXITO] - Forzado de Actualizaciones y Bypass de Caché PWA
+## [ÉXITO] - Adaptación a Dominio Personalizado (CNAME) y Forzado de Actualizaciones PWA
 **Fecha:** 2026-05-18
 **Modo:** Mejorar
-**Descripción:** Se implementó un sistema automático de detección de nuevas versiones y forzado de recarga en caliente para asegurar que todos los usuarios de dispositivos móviles vean la última versión (incluyendo el login directo con diseño móvil) sin necesidad de reinstalar ni cerrar la app manualmente.
+**Descripción:** Se adaptó la aplicación para soportar plenamente el dominio personalizado `aefipnoroeste.org.ar` en GitHub Pages, corrigiendo errores 404/Site not found al reestructurar la app sobre la raíz del dominio (`/`) en lugar del subdirectorio `/seccional/`, y automatizando la persistencia DNS con CNAME, en conjunto con el forzado de recarga PWA.
 
 ### Cambios realizados:
-1. **Lógica de Build (postbuild.js):**
-   - Creación de un script post-compilación (`postbuild.js`) que inyecta un `CACHE_NAME` único basado en timestamp (ej: `aefip-cache-1779112229614`) y comentarios de compilación en `dist/sw.js`. Esto garantiza un archivo de service worker único en bytes en cada compilación para que el navegador móvil siempre detecte la actualización.
-   - Modificación del script `"build"` en `package.json` para ejecutar automáticamente `node postbuild.js` tras `vite build`.
-2. **Lógica de Registro (src/index.tsx):**
-   - Configuración del registro del Service Worker con `updateViaCache: 'none'` para saltarse la caché HTTP de `sw.js`.
-   - Implementación de chequeo de actualización inicial en la carga del sitio.
-   - Configuración de un chequeo en segundo plano cada 5 minutos (`setInterval`).
-   - Implementación de chequeo activo cada vez que la app vuelve de segundo plano / gana foco (`visibilitychange`).
-   - Escucha del evento `controllerchange` en `navigator.serviceWorker` para ejecutar una recarga automática (`window.location.reload()`) en cuanto el nuevo Service Worker toma el control.
-3. **Física / Cache de Red (public/sw.js):**
-   - Implementación de una estrategia **Network-First** estricta para todos los recursos locales.
-   - Forzado de descarga de `index.html` sin usar caché HTTP (`{ cache: 'no-cache' }`), garantizando la descarga inmediata de las nuevas rutas y scripts de login.
-   - Limpieza automática y segura de cachés anteriores de la app al activar la nueva versión.
+1. **Conservación de Dominio DNS (CNAME):**
+   - Creación de `public/CNAME` con el valor `aefipnoroeste.org.ar`. Se copia automáticamente a `dist/` durante el build y se despliega con `gh-pages -d dist`, previniendo que futuras subidas borren la configuración y den error 404 "Site not found".
+2. **Ajuste de Base URL para Dominio Raíz (vite.config.js):**
+   - Se cambió `base` en `vite.config.js` de `/seccional/` a `/` para alinear la carga de assets y bundles de React a la raíz del dominio.
+3. **PWA y Service Worker en la Raíz (public/manifest.json, public/sw.js):**
+   - Ajuste de `start_url` a `/` en `public/manifest.json` para que la app instalada comience desde el dominio principal.
+   - Ajuste de comprobación de navegación en `public/sw.js` para interceptar tanto `/` como `/seccional/` y aplicar la estrategia de Network-First con auto-reload al instante de activarse un nuevo SW.
+4. **Recursos Estáticos (public/404.html):**
+   - Modificación de rutas absolutas de recursos en `public/404.html` a rutas relativas (`./`), alineándolas con la estructura de `index.html`.
+5. **Lógica de Build (postbuild.js) y Registro (src/index.tsx):**
+   - Script `postbuild.js` inyecta `CACHE_NAME` y comentarios únicos en cada build.
+   - Registro en `index.tsx` configurado con `updateViaCache: 'none'`, escuchas de `visibilitychange` (para actualizar al maximizar) y `controllerchange` (para forzar recarga de página en caliente).
 
 ## [Ãƒâ€°XITO] - ImplementaciÃƒÂ³n de BotÃƒÂ³n de Descarga PWA
 **Fecha:** 2026-04-22

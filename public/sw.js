@@ -31,6 +31,7 @@ self.addEventListener('fetch', event => {
 
   // Determine if this is a navigation request (loading index.html or base page)
   const isNavigation = event.request.mode === 'navigate' || 
+                       url.pathname === '/' || 
                        url.pathname === '/seccional/' || 
                        url.pathname.endsWith('index.html');
 
