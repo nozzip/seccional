@@ -3,6 +3,30 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 
+// Global handler to catch dynamic import failures (caused by new deployments replacing bundle hashes)
+window.addEventListener('error', (event) => {
+  const errorMessage = event.message || '';
+  if (
+    errorMessage.includes('Failed to fetch dynamically imported module') ||
+    errorMessage.includes('dynamically imported module') ||
+    (event.error && event.error.name === 'TypeError' && event.error.message && event.error.message.includes('dynamically imported module'))
+  ) {
+    console.warn('Dynamic import failed (chunk mismatch). Reloading application to fetch latest version...', event);
+    window.location.reload();
+  }
+}, true); // Use capture phase to catch resource loading errors
+
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  if (reason && reason instanceof Error) {
+    const msg = reason.message || '';
+    if (msg.includes('Failed to fetch dynamically imported module') || msg.includes('dynamically imported module')) {
+      console.warn('Unhandled promise rejection from dynamic import. Reloading application...', reason);
+      window.location.reload();
+    }
+  }
+});
+
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
