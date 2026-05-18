@@ -45,9 +45,9 @@ function Navbar(props: any) {
 
   const navLinks = [
     { name: "Inicio", path: "/" },
-    { name: "Gremio", path: "/gremio" },
-    { name: "Servicios", path: "/servicios" },
-    { name: "Beneficios", path: "/beneficios" },
+    { name: "Institución", path: "/gremio" },
+    { name: "Beneficios Gremiales", path: "/servicios" },
+    { name: "Convenios", path: "/beneficios" },
     { name: "Prensa", path: "/prensa" },
     ...(isAdmin ? [{ name: "Admin", path: "/admin" }] : []),
   ];
