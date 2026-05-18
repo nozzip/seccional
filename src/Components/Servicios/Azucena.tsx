@@ -87,11 +87,6 @@ function Azucena() {
       clickable: true,
       onClick: () => setCourtModalOpen(true),
     },
-    {
-      icon: <DirectionsRunIcon fontSize="small" />,
-      label: "Natación y Recreación",
-      clickable: false,
-    },
   ];
 
   return (

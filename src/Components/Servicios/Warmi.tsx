@@ -19,9 +19,10 @@ import KitchenIcon from "@mui/icons-material/Kitchen";
 import BedIcon from "@mui/icons-material/Bed";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import WifiIcon from "@mui/icons-material/Wifi";
-import TvIcon from "@mui/icons-material/Tv";
-import FreeBreakfastIcon from "@mui/icons-material/FreeBreakfast";
-import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
+import OutdoorGrillIcon from "@mui/icons-material/OutdoorGrill";
+import DeckIcon from "@mui/icons-material/Deck";
+import SportsTennisIcon from "@mui/icons-material/SportsTennis";
+import ParkIcon from "@mui/icons-material/Park";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PeopleIcon from "@mui/icons-material/People";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -62,15 +63,13 @@ function Warmi() {
 
   const amenities = [
     { icon: <KitchenIcon fontSize="small" />, label: "Cocina Equipada" },
-    { icon: <BedIcon fontSize="small" />, label: "Sommier Alta Gama" },
+    { icon: <BedIcon fontSize="small" />, label: "Ropa de Cama" },
     { icon: <AcUnitIcon fontSize="small" />, label: "Calefacción" },
-    { icon: <WifiIcon fontSize="small" />, label: "Wi-Fi" },
-    { icon: <TvIcon fontSize="small" />, label: "TV" },
-    { icon: <FreeBreakfastIcon fontSize="small" />, label: "Desayuno" },
-    {
-      icon: <CleaningServicesIcon fontSize="small" />,
-      label: "Ropa Blanca & Mucama",
-    },
+    { icon: <WifiIcon fontSize="small" />, label: "Wi-fi de Aire" },
+    { icon: <OutdoorGrillIcon fontSize="small" />, label: "Asador" },
+    { icon: <DeckIcon fontSize="small" />, label: "Quincho" },
+    { icon: <SportsTennisIcon fontSize="small" />, label: "Cancha de Paddle" },
+    { icon: <ParkIcon fontSize="small" />, label: "Espacios Verdes" },
   ];
 
   const getCabinLabel = (key: string, baseLabel: string) => {
