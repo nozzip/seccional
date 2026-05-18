@@ -154,6 +154,18 @@ const router = createHashRouter([
 ]);
 
 function App() {
+  useEffect(() => {
+    // Check if the app is running in standalone mode (PWA)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                        (window.navigator as any).standalone || 
+                        window.location.search.includes('mode=standalone');
+
+    if (isStandalone && window.location.hash === '#/') {
+      // Redirect to the Benefits App if it's the PWA entry
+      window.location.hash = '#/app/beneficios';
+    }
+  }, []);
+
   return (
     <HelmetProvider>
       <RouterProvider router={router} />

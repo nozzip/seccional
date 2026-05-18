@@ -288,7 +288,7 @@ export default function CabinBookingManager() {
         <DialogContent dividers sx={{ mt: 2 }}>
             {conflictError && <Alert severity="error" sx={{ mb: 2 }}>{conflictError}</Alert>}
             <Grid container spacing={3}>
-                <Grid item xs={12}>
+                <Grid size={12}>
                     <Box sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Box>
                             <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>PERIODO SELECCIONADO</Typography>
@@ -300,22 +300,22 @@ export default function CabinBookingManager() {
                     </Box>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField label="Nombre del Titular" fullWidth value={formData.user_name} onChange={(e) => setFormData({ ...formData, user_name: e.target.value })} />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField select label="Categoría" fullWidth value={formData.is_affiliate ? 'Afil' : 'Gral'} onChange={(e) => setFormData({ ...formData, is_affiliate: e.target.value === 'Afil' })}>
                         <MenuItem value="Afil">Afiliado</MenuItem>
                         <MenuItem value="Gral">Público General</MenuItem>
                     </TextField>
                 </Grid>
 
-                <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
+                <Grid size={12}><Divider sx={{ my: 1 }} /></Grid>
 
-                <Grid item xs={12} sm={4}>
+                <Grid size={{ xs: 12, sm: 4 }}>
                     <TextField label="Seña Recibida" fullWidth type="number" value={formData.deposit} onChange={(e) => setFormData({ ...formData, deposit: Number(e.target.value) })} InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} />
                 </Grid>
-                <Grid item xs={12} sm={8}>
+                <Grid size={{ xs: 12, sm: 8 }}>
                     <TextField select label="Estado" fullWidth value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
                         <MenuItem value="Pendiente">Pendiente</MenuItem>
                         <MenuItem value="Señada">Señada</MenuItem>
@@ -323,7 +323,7 @@ export default function CabinBookingManager() {
                     </TextField>
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid size={12}>
                     <TextField label="Observaciones" fullWidth multiline rows={2} value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
                 </Grid>
             </Grid>

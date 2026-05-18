@@ -4,10 +4,10 @@
         "module": "ESNext",
         "moduleResolution": "Node",
         "allowSyntheticDefaultImports": true,
-        "allowJs": true,
-        "outDir": "node_modules/.tmp"
+        "declaration": true,
+        "emitDeclarationOnly": true
     },
     "include": [
-        "vite.config.js"
+        "vite.config.ts"
     ]
 }
