@@ -3,7 +3,7 @@
 ## [ÉXITO] - Adaptación a Dominio Personalizado (CNAME) y Forzado de Actualizaciones PWA
 **Fecha:** 2026-05-18
 **Modo:** Mejorar
-**Descripción:** Se adaptó la aplicación para soportar plenamente el dominio personalizado `aefipnoroeste.org.ar` en GitHub Pages, corrigiendo errores 404/Site not found al reestructurar la app sobre la raíz del dominio (`/`) en lugar del subdirectorio `/seccional/`, y automatizando la persistencia DNS con CNAME, en conjunto con el forzado de recarga PWA.
+**Descripción:** Se adaptó la aplicación para soportar plenamente el dominio personalizado `aefipnoroeste.org.ar` en GitHub Pages, corrigiendo errores 404/Site not found y ERR_FAILED en la PWA instalada previamente al unificar la carga mediante rutas relativas universales (`base: "./"` y `start_url: "."`). Esto permite que la app funcione de manera simultánea tanto en la raíz del dominio personalizado como en el subdirectorio `/seccional/` de GitHub Pages sin romper la caché local de los dispositivos móviles.
 
 ### Cambios realizados:
 1. **Conservación de Dominio DNS (CNAME):**
