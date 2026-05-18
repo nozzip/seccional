@@ -9,7 +9,9 @@ self.addEventListener('activate', event => {
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(name => {
-          if (name !== CACHE_NAME) {
+          // Delete any cache that belongs to our app but is not the current version
+          if (name.startsWith('aefip-cache-') && name !== CACHE_NAME) {
+            console.log('[SW] Deleting old cache:', name);
             return caches.delete(name);
           }
         })
@@ -19,19 +21,63 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Only handle certain requests to avoid issues with Supabase/external APIs
+  // Only handle GET requests and skip external APIs (like Supabase)
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+
+  // Only intercept requests for files on our own origin
+  if (url.origin !== self.location.origin) return;
+
+  // Determine if this is a navigation request (loading index.html or base page)
+  const isNavigation = event.request.mode === 'navigate' || 
+                       url.pathname === '/seccional/' || 
+                       url.pathname.endsWith('index.html');
+
+  if (isNavigation) {
+    // Network-First with cache-busting (no-cache) for navigation requests to ensure latest version
+    event.respondWith(
+      fetch(new Request(event.request.url, { cache: 'no-cache' }))
+        .then(response => {
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cachedResponse = await caches.match(event.request);
+          if (cachedResponse) return cachedResponse;
+          return new Response('Error de conexión', {
+            status: 408,
+            headers: { 'Content-Type': 'text/plain' }
+          });
+        })
+    );
+    return;
+  }
+
+  // Network-First with Cache Fallback for other assets (JS, CSS, images, etc.)
   event.respondWith(
-    fetch(event.request).catch(async () => {
-      const cachedResponse = await caches.match(event.request);
-      if (cachedResponse) return cachedResponse;
-      
-      // Fallback for failed fetches that are not in cache
-      return new Response('Network error occurred', {
-        status: 408,
-        headers: { 'Content-Type': 'text/plain' }
-      });
-    })
+    fetch(event.request)
+      .then(response => {
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(async () => {
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) return cachedResponse;
+        return new Response('Recurso no disponible sin conexión', {
+          status: 408,
+          headers: { 'Content-Type': 'text/plain' }
+        });
+      })
   );
 });
