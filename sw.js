@@ -1,6 +1,6 @@
-// Build Timestamp: 18/5/2026, 10:58:54
-// Unique ID: 1779112734161
-const CACHE_NAME = 'aefip-cache-1779112734161';
+// Build Timestamp: 18/5/2026, 11:00:01
+// Unique ID: 1779112801403
+const CACHE_NAME = 'aefip-cache-1779112801403';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
@@ -33,6 +33,7 @@ self.addEventListener('fetch', event => {
 
   // Determine if this is a navigation request (loading index.html or base page)
   const isNavigation = event.request.mode === 'navigate' || 
+                       url.pathname === '/' || 
                        url.pathname === '/seccional/' || 
                        url.pathname.endsWith('index.html');
 
