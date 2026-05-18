@@ -9,7 +9,15 @@ export interface Beneficio extends DataItem {
   category: string;
   mail?: string;
   telephone?: string;
-  discount_percentage?: number;
+  discount_percentage?: number | null;
+  rubro?: string;
+  images?: string[];
+  telephone_type?: 'fixed' | 'whatsapp' | string;
+  contact_person?: string;
+  address?: string;
+  discount_description?: string;
+  is_active?: boolean;
+  display_order?: number;
 }
 
 export interface Noticia extends DataItem {
