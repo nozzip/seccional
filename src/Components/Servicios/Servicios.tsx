@@ -228,24 +228,13 @@ function Servicios() {
                         Ver productos del Kit
                       </Button>
                     )}
-                    <Box sx={{ mt: "auto", pt: 2.5, borderTop: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <Box sx={{ maxWidth: "60%" }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.75rem" }}>
-                          Contacto oficial:
-                        </Typography>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: "text.primary", display: "block", fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {benefit.contact}
-                        </Typography>
-                      </Box>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="medium"
-                        href={`mailto:${benefit.contact}?subject=Consulta%20Beneficio:%20${encodeURIComponent(benefit.title)}`}
-                        sx={{ borderRadius: 2.5, fontWeight: 800, textTransform: "none", px: 2.5 }}
-                      >
-                        Consultar
-                      </Button>
+                    <Box sx={{ mt: "auto", pt: 2.5, borderTop: "1px solid", borderColor: "divider", display: "flex", flexDirection: "column", gap: 0.5 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.75rem", fontWeight: 600 }}>
+                        Contacto oficial de consultas:
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 800, color: "primary.main", fontSize: "0.9rem" }}>
+                        {benefit.contact}
+                      </Typography>
                     </Box>
                   </CardContent>
                 </Card>
