@@ -17,7 +17,7 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
-import SmartphoneIcon from "@mui/icons-material/Smartphone";
+import LoginIcon from "@mui/icons-material/Login";
 import DrawerComponent from "./Drawer";
 import { getGlassStyles } from "../../theme";
 import { useColorMode } from "../../ColorModeContext";
@@ -207,31 +207,18 @@ function Navbar(props: any) {
               </Button>
             )}
 
-            <Tooltip title="App Afiliados">
+            <Tooltip title="Ingreso Afiliados">
               <IconButton
                 component={Link}
                 to="/app/beneficios"
                 color="primary"
-                aria-label="App Afiliados"
+                aria-label="Ingreso Afiliados"
                 sx={{
                   bgcolor: alpha(theme.palette.primary.main, 0.1),
                   "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.2) },
                 }}
               >
-                <Badge
-                  badgeContent="NEW"
-                  color="secondary"
-                  sx={{
-                    "& .MuiBadge-badge": {
-                      fontSize: "0.65rem",
-                      fontWeight: 800,
-                      height: 18,
-                      minWidth: 18,
-                    },
-                  }}
-                >
-                  <SmartphoneIcon />
-                </Badge>
+                <LoginIcon />
               </IconButton>
             </Tooltip>
 
