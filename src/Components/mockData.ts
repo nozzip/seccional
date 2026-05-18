@@ -930,19 +930,19 @@ export const dataServicios: DataItem[] = [
   {
     id: 1,
     title: "CABAÑAS WARMI",
-    thumbnail: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b",
+    thumbnail: "https://bsougkolkltztytxdbna.supabase.co/storage/v1/object/public/benefits/servicios/CFrente.jfif",
     short_description: "El Mollar, Tafí del Valle, Tucumán",
   },
   {
     id: 2,
     title: "CLUB AZUCENA",
-    thumbnail: "https://i.imgur.com/m1FMXls.png",
+    thumbnail: "https://bsougkolkltztytxdbna.supabase.co/storage/v1/object/public/benefits/servicios/AzucenaFrente.jfif",
     short_description: "Yerba Buena, Tucumán",
   },
   {
     id: 3,
     title: "SALON SAN LORENZO",
-    thumbnail: "https://images.unsplash.com/photo-1517649763962-0c623066013b",
+    thumbnail: "https://bsougkolkltztytxdbna.supabase.co/storage/v1/object/public/benefits/servicios/SLFrente.jfif",
     short_description: "San Lorenzo, Salta",
   },
 ];
