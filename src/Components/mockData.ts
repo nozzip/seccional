@@ -920,11 +920,15 @@ export const photos: Photo[] = [
 ];
 
 export const photosSanLorenzo: Photo[] = [
-  {
-    src: "https://images.unsplash.com/photo-1517649763962-0c623066013b",
-    width: 1200,
-    height: 800,
-  },
+  { src: `${import.meta.env.BASE_URL}Servicios/SLFrente.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/SL.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/SL2.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/SL3.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/SL4.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/SL5.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/SL6.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/SL7.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/SL8.jfif`, width: 1200, height: 800 },
 ];
 
 export const photosServiciosMollar: Photo[] = [
@@ -936,13 +940,17 @@ export const photosServiciosMollar: Photo[] = [
 ];
 
 export const photosAzucena: Photo[] = [
-  { src: "https://i.imgur.com/m1FMXls.png", width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/AzucenaFrente.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/AzucenaCalle.jfif`, width: 1200, height: 800 },
 ];
 
 export const photosWarmi: Photo[] = [
-  {
-    src: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b",
-    width: 1200,
-    height: 800,
-  },
+  { src: `${import.meta.env.BASE_URL}Servicios/CFrente.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/C1.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/C2.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/C3.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/C4.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/C5.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/C6.jfif`, width: 1200, height: 800 },
+  { src: `${import.meta.env.BASE_URL}Servicios/C7.jfif`, width: 1200, height: 800 },
 ];
