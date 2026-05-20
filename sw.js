@@ -1,6 +1,6 @@
-// Build Timestamp: 20/5/2026, 09:42:51
-// Unique ID: 1779280971545
-const CACHE_NAME = 'aefip-cache-1779280971545';
+// Build Timestamp: 20/5/2026, 09:57:02
+// Unique ID: 1779281822015
+const CACHE_NAME = 'aefip-cache-1779281822015';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
