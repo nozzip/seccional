@@ -227,3 +227,26 @@
 
 ### Arquitecturas Aprobadas (Actualización):
 - **Validación Defensiva de Formularios:** Uso de consultas asincrónicas en tiempo real contra la base de datos Supabase en los límites de pasos críticos para prevenir duplicidad de registros antes de procesar flujos de trabajo (`workflow_requests`).
+
+## [ÉXITO] - Código QR Descargable y Autoconsolidación de Perfil con Supabase
+**Fecha:** 2026-05-20
+**Modo:** Desarrollar / Mejorar
+**Descripción:** Se habilitó la descarga directa del código QR del carnet de afiliado en formato de imagen (.png) con un simple clic, incorporando además tooltips dinámicos y animaciones responsivas. Adicionalmente, se configuró una sincronización asincrónica bidireccional automática en segundo plano que consolida la información del perfil del afiliado con la base de datos Supabase al iniciar la app.
+
+### Cambios realizados:
+1. **Visual & UX (Descarga de QR - CarnetView.tsx):**
+   - Importación y configuración del componente `<Tooltip>` de Material UI para indicar al usuario: *"Hacé clic para descargar el código QR"*.
+   - Inserción de efectos dinámicos interactivos sobre el contenedor del código QR (cursor de tipo pointer, transición animada de escalamiento `scale(1.1)` y elevación de sombras `boxShadow` en hover).
+   - Implementación de la función `downloadQR()` que genera un enlace de anclaje `<a>` temporal, inyectando el `qrDataUrl` base64 y descargándolo con un nombre de archivo limpio basado en el legajo del afiliado.
+2. **Lógica & Sincronización (Consolidación de Datos - MobileBeneficiosApp.tsx):**
+   - Refactorización de la llamada `useEffect` en el montaje del componente principal de la app móvil.
+   - Si existe una sesión de afiliado guardada en la caché local (`localStorage`), además de cargar los valores locales de forma instantánea para mitigar latencia, se ejecuta un proceso asincrónico paralelo (`syncProfileFromDB`) contra la tabla `affiliates` de Supabase.
+   - Este proceso descarga en segundo plano la última versión disponible de los campos personales (teléfono, email, estado de jubilado y fecha de nacimiento) y actualiza automáticamente tanto el estado reactivo (`setAffiliateData`) como el almacenamiento de caché local.
+3. **Despliegue exitoso (Production Deploy):**
+   - Compilación completa libre de errores (`npm run build`).
+   - Publicación en vivo en GitHub Pages (`npm run deploy`) en la dirección `aefipnoroeste.org.ar`.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Descargas Programáticas locales:** Estrategia de descarga por inyección temporal de anclajes HTML5 sobre cadenas Base64 seguras generadas localmente.
+- **Sincronización Silenciosa de Sesiones:** Uso de patrones híbridos (Local Cache First + Background DB Fetch) para optimizar la velocidad visual y la exactitud de los datos del cliente.
+

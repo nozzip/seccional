@@ -49,6 +49,44 @@ export default function MobileBeneficiosApp() {
                 es_jubilado: localStorage.getItem('mobile_app_jubilado') === 'true',
                 fecha_nacimiento: localStorage.getItem('mobile_app_fecha_nacimiento') || '',
             });
+
+            // Sincronizar datos actualizados desde la base de datos en segundo plano
+            const syncProfileFromDB = async () => {
+                try {
+                    const { data, error } = await supabase
+                        .from('affiliates')
+                        .select('nombre, apellido, legajo, cuil, telefono, email, es_jubilado, validation_token, fecha_nacimiento')
+                        .eq('legajo', storedLegajo)
+                        .eq('branch', 'noroeste')
+                        .maybeSingle();
+
+                    if (!error && data) {
+                        localStorage.setItem('mobile_app_name', `${data.nombre} ${data.apellido}`);
+                        localStorage.setItem('mobile_app_cuil', data.cuil || '');
+                        localStorage.setItem('mobile_app_validation_token', data.validation_token || '');
+                        localStorage.setItem('mobile_app_telefono', data.telefono || '');
+                        localStorage.setItem('mobile_app_email', data.email || '');
+                        localStorage.setItem('mobile_app_jubilado', String(data.es_jubilado || false));
+                        localStorage.setItem('mobile_app_fecha_nacimiento', data.fecha_nacimiento || '');
+
+                        setUserName(`${data.nombre} ${data.apellido}`);
+                        setAffiliateData({
+                            legajo: data.legajo,
+                            nombre: data.nombre,
+                            apellido: data.apellido,
+                            cuil: data.cuil || '',
+                            validation_token: data.validation_token || undefined,
+                            telefono: data.telefono || '',
+                            email: data.email || '',
+                            es_jubilado: !!data.es_jubilado,
+                            fecha_nacimiento: data.fecha_nacimiento || '',
+                        });
+                    }
+                } catch (err) {
+                    console.error("Error syncing profile from DB:", err);
+                }
+            };
+            syncProfileFromDB();
         }
     }, []);
 
