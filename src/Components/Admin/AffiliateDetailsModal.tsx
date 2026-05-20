@@ -37,6 +37,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import ChildCareIcon from "@mui/icons-material/ChildCare";
 import SaveIcon from "@mui/icons-material/Save";
 import { supabase } from "../../supabaseClient";
+import { logAction } from "../../utils/auditLogger";
 
 interface FamilyMember {
   id?: number;
@@ -121,6 +122,12 @@ export default function AffiliateDetailsModal({
         .eq("id", affiliate.id);
 
       if (error) throw error;
+
+      await logAction(
+        "ACTUALIZAR_AFILIADO",
+        `Actualización de perfil: ${editData.apellido || ''}, ${editData.nombre || ''} (ID: ${affiliate.id})`
+      );
+
       setSuccess(true);
       onUpdate();
       setTimeout(() => setSuccess(false), 3000);
@@ -151,6 +158,11 @@ export default function AffiliateDetailsModal({
 
       if (error) throw error;
 
+      await logAction(
+        "AGREGAR_FAMILIAR",
+        `Familiar agregado: ${newMember.apellido || ''}, ${newMember.nombre || ''} al afiliado ${affiliate?.apellido || ''}, ${affiliate?.nombre || ''} (ID: ${affiliate?.id})`
+      );
+
       fetchFamilyMembers();
       onUpdate(); // Update family count in main table
       setNewMember({
@@ -175,6 +187,13 @@ export default function AffiliateDetailsModal({
         .eq("id", id);
 
       if (error) throw error;
+
+      const deletedMember = familyMembers.find((m: any) => m.id === id);
+      await logAction(
+        "ELIMINAR_FAMILIAR",
+        `Familiar eliminado: ${deletedMember?.apellido || 'N/A'}, ${deletedMember?.nombre || 'N/A'} del afiliado ${affiliate?.apellido || ''}, ${affiliate?.nombre || ''} (ID: ${affiliate?.id})`
+      );
+
       fetchFamilyMembers();
       onUpdate();
     } catch (error) {

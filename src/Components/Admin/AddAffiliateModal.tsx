@@ -18,6 +18,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { supabase } from "../../supabaseClient";
+import { logAction } from "../../utils/auditLogger";
 
 interface AddAffiliateModalProps {
   open: boolean;
@@ -64,6 +65,11 @@ export default function AddAffiliateModal({
       ]);
 
       if (insertError) throw insertError;
+
+      await logAction(
+        "CREAR_AFILIADO",
+        `Alta de afiliado titular: ${formData.apellido}, ${formData.nombre} (CUIL: ${formData.cuil}, Legajo: ${formData.legajo || "N/A"})`
+      );
 
       onSuccess();
       onClose();

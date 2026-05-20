@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     Box,
     Paper,
@@ -23,6 +23,8 @@ import {
     MenuItem,
     Grid,
     Divider,
+    Snackbar,
+    Alert,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -35,6 +37,7 @@ import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
 import HouseSidingIcon from '@mui/icons-material/HouseSiding';
 import { supabase } from '../../supabaseClient';
+import { logAction } from '../../utils/auditLogger';
 
 interface Request {
     id: number;
@@ -73,8 +76,35 @@ export default function RequestManager() {
         priority: 'media',
     });
 
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+
     useEffect(() => {
         fetchRequests();
+    }, []);
+
+    // Real-time subscription for new requests
+    useEffect(() => {
+        const channel = supabase
+            .channel('workflow_requests_realtime')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'workflow_requests' },
+                (payload: any) => {
+                    const newReq = payload.new as Request;
+                    const requesterName = newReq.requester_info?.nombre || 'Alguien';
+                    const typeLabel = REQUEST_TYPES.find(t => t.value === newReq.type)?.label || newReq.type;
+                    setSnackbarMessage(`Nueva solicitud de ${requesterName}: ${typeLabel}`);
+                    setSnackbarOpen(true);
+                    // Prepend new request to list
+                    setRequests(prev => [newReq, ...prev]);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     const fetchRequests = async () => {
@@ -98,6 +128,12 @@ export default function RequestManager() {
             .eq('id', id);
 
         if (!error) {
+            const reqData = requests.find(r => r.id === id);
+            const statusLabels: Record<string, string> = { approved: 'Aprobada', rejected: 'Rechazada', in_progress: 'En Proceso', pending: 'Pendiente', completed: 'Completada' };
+            await logAction(
+                'ACTUALIZAR_SOLICITUD',
+                `Solicitud #${id} cambiada a estado "${statusLabels[newStatus] || newStatus}" (Tipo: ${reqData?.type || 'N/A'})`
+            );
             setRequests(requests.map(r => r.id === id ? { ...r, ...updateData } : r));
             setDetailOpen(false);
             setExecutingNotes('');
@@ -113,6 +149,11 @@ export default function RequestManager() {
             .eq('id', id);
 
         if (!error) {
+            const reqData = requests.find(r => r.id === id);
+            await logAction(
+                'ELIMINAR_SOLICITUD',
+                `Solicitud #${id} eliminada permanentemente (Tipo: ${reqData?.type || 'N/A'}, Solicitante: ${reqData?.requester_info?.nombre || 'N/A'})`
+            );
             setRequests(requests.filter(r => r.id !== id));
         }
     };
@@ -134,6 +175,10 @@ export default function RequestManager() {
             });
 
         if (!error) {
+            await logAction(
+                'CREAR_ORDEN_INTERNA',
+                `Orden interna creada: "${newRequest.title}" (Tipo: ${newRequest.type}, Prioridad: ${newRequest.priority})`
+            );
             setCreateOpen(false);
             setNewRequest({ type: 'task', title: '', description: '', priority: 'media' });
             fetchRequests();
@@ -158,6 +203,7 @@ export default function RequestManager() {
     };
 
     return (
+        <>
         <Box>
             <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
@@ -446,5 +492,23 @@ export default function RequestManager() {
                 </DialogActions>
             </Dialog>
         </Box>
+
+        {/* Toast de notificación de nueva solicitud */}
+        <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={6000}
+            onClose={() => setSnackbarOpen(false)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+            <Alert
+                onClose={() => setSnackbarOpen(false)}
+                severity="info"
+                variant="filled"
+                sx={{ width: '100%', fontWeight: 600 }}
+            >
+                {snackbarMessage}
+            </Alert>
+        </Snackbar>
+        </>
     );
 }

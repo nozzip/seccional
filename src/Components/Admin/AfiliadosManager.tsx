@@ -45,6 +45,7 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import * as XLSX from "xlsx";
 import { supabase } from "../../supabaseClient";
+import { logAction } from "../../utils/auditLogger";
 import AffiliateDetailsModal from "./AffiliateDetailsModal";
 import AddAffiliateModal from "./AddAffiliateModal";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
@@ -416,6 +417,12 @@ export default function AfiliadosManager() {
         }
 
         alert(`Importación finalizada:\n- ${updates.length} Afiliados actualizados.\n- ${inserts.length} Nuevos afiliados agregados.\n- ${disaffiliateIds.length} Afiliados marcados como "Baja" (no estaban en la lista).`);
+
+        await logAction(
+          "IMPORTAR_EXCEL",
+          `Importación de Titulares AEFIP: ${updates.length} actualizados, ${inserts.length} nuevos, ${disaffiliateIds.length} dados de baja`
+        );
+
         setShowSuccess(true);
         fetchAffiliates();
       } catch (error: any) {
@@ -592,6 +599,12 @@ export default function AfiliadosManager() {
             .from("affiliate_family_members")
             .insert(formattedFamily);
           if (error) throw error;
+
+          await logAction(
+            "IMPORTAR_EXCEL",
+            `Importación de Familiares: ${formattedFamily.length} hijos cargados`
+          );
+
           setShowSuccess(true);
         }
 
@@ -637,6 +650,12 @@ export default function AfiliadosManager() {
         .neq("id", 0); // Hack to delete all if RLS allows and no filter provided
 
       if (error) throw error;
+
+      await logAction(
+        "VACIAR_FAMILIARES",
+        `Eliminación masiva de TODOS los familiares cargados`
+      );
+
       alert("Todos los familiares han sido eliminados.");
       fetchAffiliates();
     } catch (error: any) {
@@ -889,6 +908,13 @@ export default function AfiliadosManager() {
     try {
       const { error } = await supabase.from("affiliates").delete().eq("id", id);
       if (error) throw error;
+
+      const deleted = affiliates.find((a: any) => a.id === id);
+      await logAction(
+        "ELIMINAR_AFILIADO",
+        `Baja de afiliado: ${deleted?.apellido || 'N/A'}, ${deleted?.nombre || 'N/A'} (ID: ${id})`
+      );
+
       fetchAffiliates();
     } catch (error: any) {
       setErrorMessage("Error al eliminar: " + error.message);
@@ -915,6 +941,11 @@ export default function AfiliadosManager() {
         .eq("id", secondaryId);
       
       if (delErr) throw delErr;
+
+      await logAction(
+        "UNIFICAR_AFILIADOS",
+        `Unificación de doble afiliación: ID primario ${primaryId} (marcado UPS), ID secundario ${secondaryId} (eliminado)`
+      );
 
       alert("Registros unificados con éxito.");
       fetchAffiliates();

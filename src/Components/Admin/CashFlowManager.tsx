@@ -159,6 +159,8 @@ import StudentRegistrationDialog, {
   StudentData,
 } from "./StudentRegistrationDialog";
 import { supabase } from "../../supabaseClient";
+import { logAction } from "../../utils/auditLogger";
+import FinancialStatistics from "./FinancialStatistics";
 
 const toTitleCase = (str: string) => {
   return str.replace(
@@ -632,7 +634,12 @@ export default function CashFlowManager({
         })),
       );
 
-      setArchivedDays(archData || []);
+      setArchivedDays(
+        (archData || []).map((day: any) => ({
+          ...day,
+          totalBalance: day.total_balance !== undefined ? Number(day.total_balance) : day.totalBalance,
+        })),
+      );
 
       setProductsPrices(pricesData || []);
 
@@ -1691,6 +1698,12 @@ export default function CashFlowManager({
         branch: branch,
       });
       if (error) throw error;
+
+      await logAction(
+        "CIERRE_CAJA",
+        `Cierre de caja archivado: Fecha ${newDay.date}, Balance total: $${newDay.totalBalance?.toLocaleString("es-AR") || '0'}`
+      );
+
       fetchData();
       setShowSuccess(true);
     } catch (error) {
@@ -2649,6 +2662,13 @@ export default function CashFlowManager({
             iconPosition="start"
             sx={{ minHeight: 40 }}
             value={3}
+          />
+          <Tab
+            icon={<AssessmentIcon sx={{ fontSize: 20 }} />}
+            label="Estadísticas"
+            iconPosition="start"
+            sx={{ minHeight: 40 }}
+            value={4}
           />
         </Tabs>
 
@@ -4126,6 +4146,13 @@ export default function CashFlowManager({
         onSave={handleSaveEditedTransaction}
         accountsData={accountsData}
       />
+
+      {view === 4 && (
+        <FinancialStatistics
+          transactions={filteredTransactions}
+          accounts={accountsData}
+        />
+      )}
     </Box>
   );
 }
