@@ -72,19 +72,19 @@ export default function GridBeneficios() {
         .from('benefit_categories')
         .select('name')
         .order('name');
-      
+
       const benefitList = currentBenefits || beneficios;
       const dynamicRubros = [...new Set(benefitList.map(b => b.rubro).filter(Boolean) as string[])];
-      
+
       const allRubros = ["Todos"];
-      
+
       // Add from categories table
       if (catData) {
         catData.forEach(c => {
           if (!allRubros.includes(c.name)) allRubros.push(c.name);
         });
       }
-      
+
       // Add from actual benefits (safety net)
       dynamicRubros.forEach(r => {
         if (!allRubros.includes(r)) allRubros.push(r);
@@ -317,7 +317,7 @@ export default function GridBeneficios() {
         </>
       )}
 
-      <Tooltip title="Agregar beneficio">
+      {/* <Tooltip title="Agregar beneficio">
         <Fab
           color="primary"
           onClick={handleAdd}
@@ -337,7 +337,7 @@ export default function GridBeneficios() {
         onClose={() => setEditModalOpen(false)}
         benefit={selectedBenefit}
         onSave={handleSaveEdit}
-      />
+      /> */}
     </Box>
   );
 }
