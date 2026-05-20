@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Typography, IconButton, AppBar, Toolbar, useTheme, alpha, BottomNavigation, BottomNavigationAction, Paper, Tooltip } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import HomeIcon from '@mui/icons-material/Home';
@@ -26,6 +26,8 @@ export default function MobileBeneficiosApp() {
     const [currentTab, setCurrentTab] = useState(0);
     const theme = useTheme();
     const { toggleColorMode } = useColorMode();
+
+    const showServiciosTab = false; // TODO: Cambiar a true cuando esté lista la base de datos de deudas de servicios
 
     useEffect(() => {
         const storedLegajo = localStorage.getItem('mobile_app_legajo');
@@ -114,21 +116,17 @@ export default function MobileBeneficiosApp() {
         }
     };
 
+    const tabs = useMemo(() => [
+        { id: 'inicio', label: 'Inicio', icon: <HomeIcon />, component: <GridBeneficios /> },
+        ...(showServiciosTab ? [{ id: 'servicios', label: 'Servicios', icon: <AssignmentIcon />, component: <ServiciosView affiliateData={affiliateData} /> }] : []),
+        { id: 'carnet', label: 'Carnet', icon: <BadgeIcon />, component: <CarnetView affiliateData={affiliateData} /> },
+        { id: 'solicitudes', label: 'Solicitudes', icon: <BeachAccessIcon />, component: <SolicitudesView affiliateData={affiliateData} /> },
+        { id: 'perfil', label: 'Perfil', icon: <PersonIcon />, component: <PerfilView affiliateData={affiliateData} onUpdate={updateAffiliateData} onLogout={handleLogout} /> }
+    ], [affiliateData, showServiciosTab]);
+
     const renderContent = () => {
-        switch (currentTab) {
-            case 0:
-                return <GridBeneficios />;
-            case 1:
-                return <ServiciosView affiliateData={affiliateData} />;
-            case 2:
-                return <CarnetView affiliateData={affiliateData} />;
-            case 3:
-                return <SolicitudesView affiliateData={affiliateData} />;
-            case 4:
-                return <PerfilView affiliateData={affiliateData} onUpdate={updateAffiliateData} onLogout={handleLogout} />;
-            default:
-                return <GridBeneficios />;
-        }
+        if (currentTab >= tabs.length) return <GridBeneficios />;
+        return tabs[currentTab].component;
     };
 
     if (!isAuthenticated) {
@@ -219,11 +217,9 @@ export default function MobileBeneficiosApp() {
                             }
                         }}
                     >
-                        <BottomNavigationAction label="Inicio" icon={<HomeIcon />} />
-                        <BottomNavigationAction label="Servicios" icon={<AssignmentIcon />} />
-                        <BottomNavigationAction label="Carnet" icon={<BadgeIcon />} />
-                        <BottomNavigationAction label="Solicitudes" icon={<BeachAccessIcon />} />
-                        <BottomNavigationAction label="Perfil" icon={<PersonIcon />} />
+                        {tabs.map((tab) => (
+                            <BottomNavigationAction key={tab.id} label={tab.label} icon={tab.icon} />
+                        ))}
                     </BottomNavigation>
                 </Box>
             </Paper>

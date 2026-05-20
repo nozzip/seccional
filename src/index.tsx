@@ -3,6 +3,33 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 
+// Protection patch against Google Translate and other external DOM manipulators breaking React reconciliation
+(function () {
+  if (typeof window !== 'undefined' && typeof Node !== 'undefined') {
+    const safeRemoveChild = Node.prototype.removeChild;
+    Node.prototype.removeChild = function (child) {
+      if (child.parentNode !== this) {
+        if (console) {
+          console.warn('DOM Protection: Prevented React crash during removeChild. Target child is not a child of this parent node.', this, child);
+        }
+        return child;
+      }
+      return safeRemoveChild.call(this, child);
+    };
+
+    const safeInsertBefore = Node.prototype.insertBefore;
+    Node.prototype.insertBefore = function (newNode, referenceNode) {
+      if (referenceNode && referenceNode.parentNode !== this) {
+        if (console) {
+          console.warn('DOM Protection: Prevented React crash during insertBefore. Reference node is not a child of this parent node.', this, newNode, referenceNode);
+        }
+        return newNode;
+      }
+      return safeInsertBefore.call(this, newNode, referenceNode);
+    };
+  }
+})();
+
 // Global handler to catch dynamic import failures (caused by new deployments replacing bundle hashes)
 window.addEventListener('error', (event) => {
   const errorMessage = event.message || '';

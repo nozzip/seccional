@@ -176,3 +176,54 @@
 4. **Lógica & Interactividad (Modal Settings):**
    - Se agregó un botón de acción "+" al lado del campo "Nuevo Rubro" en `BenefitEditModal.tsx`.
    - Al hacer clic, se inserta inmediatamente el nuevo rubro de forma segura en la tabla `benefit_categories` de Supabase, se añade al listado local de rubros y se autoselecciona en el desplegable de rubros adyacente para ahorrar pasos al usuario.
+
+## [ÉXITO] - Mitigación del Crash de DOM y Pantalla de Error Premium
+**Fecha:** 2026-05-20
+**Modo:** Mejorar
+**Descripción:** Se corrigió el crash crítico `"El objeto no se encuentra aquí."` (causado por traductores de navegador que rompen la reconciliación de React en el DOM) e implementamos una pantalla de error premium personalizada para la navegación.
+
+### Cambios realizados:
+1. **Física / DOM (Monkeypatch preventivo):**
+   - Se inyectó un parche defensivo global en `src/index.tsx` sobre `Node.prototype.removeChild` y `Node.prototype.insertBefore` para silenciar desincronizaciones del DOM causadas por extensiones externas (Google Translate), garantizando estabilidad absoluta al 100% en producción.
+2. **Visual / UI (Manejo de Errores Premium):**
+   - Creación de `RouteErrorBoundary.tsx` con diseño y paleta de colores oficial de AEFIP Noroeste.
+   - Soporte para modo oscuro/claro, micro-animación de entrada, botón de "Reintentar" y "Volver al inicio", y un acordeón colapsable con el stack técnico de la excepción.
+3. **Lógica (Rutas):**
+   - Registro de `RouteErrorBoundary` como `errorElement` en las rutas principales del router en `src/App.tsx`.
+
+## [ÉXITO] - Ocultación Temporal de Pestaña "Servicios" (Deudas)
+**Fecha:** 2026-05-20
+**Modo:** Mejorar
+**Descripción:** Se ocultó temporalmente la pestaña "Servicios" (que muestra deudas pendientes de afiliados) en la app móvil de beneficios por no encontrarse lista la base de datos en el backend.
+
+### Cambios realizados:
+1. **Lógica & UI (Pestañas Dinámicas):**
+   - Creación de la bandera `showServiciosTab = false` en `MobileBeneficiosApp.tsx`.
+   - Refactorización de la barra de navegación (`BottomNavigation`) y del contenedor de contenido (`renderContent`) para usar un arreglo de configuración dinámico `tabs`.
+   - **Resultado:** La pestaña desaparece del render de forma fluida y sin desincronizar los índices de tabulación activa. Es reactivable al cambiar la bandera a `true`.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Estabilidad de Producción:** Monkeypatch global defensivo en `Node.prototype` contra extensiones/traductores para evitar desincronización DOM en SPAs React.
+- **UI Error Handling:** Uso de `RouteErrorBoundary` y `errorElement` en React Router para fallbacks premium unificados.
+- **Navegación Móvil:** Configuración dinámica de pestañas mediante el arreglo `tabs` dependiente de banderas booleanas para modularidad en producción.
+
+## [ÉXITO] - Resolución de TDZ en App Móvil y Validación de Afiliados Existentes
+**Fecha:** 2026-05-20
+**Modo:** Mejorar / Desarrollar
+**Descripción:** Se resolvió el error fatal en producción `ReferenceError: Cannot access 'm' before initialization` provocado por la inicialización temprana del arreglo `tabs` en la app móvil. Asimismo, se implementó una validación en tiempo real para impedir que afiliados ya existentes realicen nuevas solicitudes de afiliación duplicadas, guiándolos hacia la pantalla de login.
+
+### Cambios realizados:
+1. **Lógica & Estabilidad (Corrección de TDZ - MobileBeneficiosApp.tsx):**
+   - Se movió la definición del arreglo `tabs` dentro de un bloque `useMemo` posicionado después de las declaraciones de sus funciones dependientes (`updateAffiliateData` y `handleLogout`). Esto resolvió de raíz la violación de la Temporal Dead Zone (TDZ) al ser compilada y minificada por Rollup/Vite en producción.
+2. **Lógica & Validación (Duplicados de Legajo - AffiliateForm.tsx):**
+   - Modificación de la función `handleNext` para ser asincrónica.
+   - En el primer paso (Datos del Trabajador), antes de permitir avanzar, se consulta la base de datos Supabase (`affiliates`) buscando si ya existe un registro con el mismo `legajo` para la sucursal `branch: 'noroeste'`.
+   - Si se detecta que el afiliado ya existe, se aborta el cambio de paso y se despliega un mensaje de error en rojo (`severity="error"`) informándole que ya se encuentra afiliado y debe ingresar utilizando el ícono de login.
+3. **Visual & UX (AffiliateForm.tsx):**
+   - Se añadió el estado `disabled={loading}` y una animación de carga `CircularProgress` en el botón "Siguiente" durante el proceso de verificación con la base de datos para brindar un feedback visual fluido y altamente premium al usuario.
+4. **Despliegue exitoso (Production Deploy):**
+   - Compilación exitosa de todos los assets mediante `npm run build`.
+   - Despliegue de los cambios funcionales a producción en GitHub Pages mediante `npm run deploy`.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Validación Defensiva de Formularios:** Uso de consultas asincrónicas en tiempo real contra la base de datos Supabase en los límites de pasos críticos para prevenir duplicidad de registros antes de procesar flujos de trabajo (`workflow_requests`).
