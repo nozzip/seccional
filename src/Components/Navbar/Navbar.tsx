@@ -21,6 +21,8 @@ import LoginIcon from "@mui/icons-material/Login";
 import DrawerComponent from "./Drawer";
 import { getGlassStyles } from "../../theme";
 import { useColorMode } from "../../ColorModeContext";
+import { isUserAdmin } from "../../utils/auth";
+
 
 function HideOnScroll(props: any) {
   const { children } = props;
@@ -41,7 +43,7 @@ function Navbar(props: any) {
 
   const [currentAffiliate, setCurrentAffiliate] = React.useState<any>(null);
 
-  const isAdmin = currentAffiliate?.role === "admin";
+  const isAdmin = isUserAdmin(currentAffiliate);
 
   const navLinks = [
     { name: "Inicio", path: "/" },

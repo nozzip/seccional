@@ -22,6 +22,8 @@ import {
 } from "@mui/icons-material";
 import { z } from "zod";
 import { supabase } from "../../supabaseClient";
+import { isUserAdmin } from "../../utils/auth";
+
 
 const loginSchema = z.object({
   identifier: z.string().min(4, "Ingresa un legajo o DNI válido"),
@@ -76,6 +78,7 @@ const FormLogin = ({
             apellido: "Sistema",
             role: "admin",
             legajo: "ADMIN",
+            dni: "34185803",
             branch: "noroeste"
           };
           localStorage.setItem("current_affiliate", JSON.stringify(adminUser));
@@ -130,7 +133,7 @@ const FormLogin = ({
           }
         }
 
-        const affiliate = { ...user, role: user.role || (id === RAMIRO_LEGAJO ? "admin" : "user") };
+        const affiliate = { ...user, role: isUserAdmin({ ...user, legajo: id }) ? "admin" : "user" };
         localStorage.setItem("current_affiliate", JSON.stringify(affiliate));
         window.dispatchEvent(new Event("affiliate_login"));
         submitForm();

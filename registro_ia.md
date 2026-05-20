@@ -1,5 +1,29 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Restricción de Permisos Administrativos y Seguridad de Datos (Prensa y Convenios)
+**Fecha:** 2026-05-20
+**Modo:** Mejorar / Desarrollar
+**Descripción:** Se restringió de forma estricta y segura el acceso a los privilegios administrativos en toda la aplicación (tanto visualmente como en las consultas de base de datos) únicamente al **DNI 34185803** (Administrador del Sistema) y **Ramiro García Salado Kuhl** (Legajo: `042418/00`, CUIL: `23276817159`). Se corrigieron vulnerabilidades importantes en las secciones de Convenios (donde los botones de edición y agregado se mostraban a afiliados comunes) y Prensa (donde se podían agregar/eliminar noticias sin comprobar roles centralizados).
+
+### Cambios realizados:
+1. **Lógica de Autenticación Unificada (`src/utils/auth.ts`):**
+   - Implementación de la utilidad centralizada `isUserAdmin(user)` para determinar la identidad de los dos únicos administradores aprobados por DNI, Legajo, CUIL, Email y coincidencia de nombres oficiales.
+2. **Corrección de Asignación de Roles en Login (`FormLogin.tsx`):**
+   - Modificación del login de afiliados para asignar el rol `"admin"` en caliente a Ramiro mediante `isUserAdmin`, sorteando que su registro inicial en base de datos figure como `"user"`.
+3. **Navegación y Rutas Protegidas (`App.tsx`, `Navbar.tsx`, `Drawer.tsx`):**
+   - Actualización de `ProtectedRoute` para bloquear de raíz la ruta `/admin` basándose en `isUserAdmin`.
+   - Remoción del acceso y visibilidad visual del panel de administración ("Admin") en la navegación móvil y de escritorio para afiliados ordinarios.
+4. **Seguridad en Convenios / Beneficios (`GridBeneficios.tsx`, `BenefitEditModal.tsx`):**
+   - Ocultación del botón flotante `Fab` ("Agregar beneficio") y del botón de edición ("lápiz") en el diálogo de detalles para cualquier usuario no administrador.
+   - Enlace y validación local rígida de todas las operaciones de modificación (`handleSave`, `handleDelete`, `handleFileUpload`, `handleAddRubro`) con `isUserAdmin` para evitar bypass de seguridad.
+5. **Seguridad en Prensa y Noticias (`Prensa.tsx`, `AddNewsDialog.tsx`, `PrensaCard.tsx`):**
+   - Uso de `isUserAdmin` para mostrar/ocultar el botón `Fab` de publicación.
+   - Restricción lógica estricta en el cargador (`AddNewsDialog`) y borrador (`PrensaCard`) para anular mutaciones de Supabase si el usuario actual no es un administrador autorizado.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Privilegios y Autenticación:** Utilización del utilitario de validación unificada `isUserAdmin(user)` para todas las interfaces y operaciones críticas de mutación de base de datos.
+- **Validación del Compilador:** La aplicación compila con cero errores en TypeScript (`npx tsc --noEmit`) y empaqueta exitosamente para producción (`npm run build`).
+
 ## [ÉXITO] - Adaptación a Dominio Personalizado (CNAME) y Forzado de Actualizaciones PWA
 **Fecha:** 2026-05-18
 **Modo:** Mejorar

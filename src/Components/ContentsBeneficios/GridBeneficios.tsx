@@ -33,6 +33,7 @@ import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { dataBeneficios } from "../mockData";
 import { supabase } from "../../supabaseClient";
 import BenefitEditModal, { Benefit } from "./BenefitEditModal";
+import { isUserAdmin } from "../../utils/auth";
 
 const ITEMS_PER_PAGE = 15;
 
@@ -185,6 +186,7 @@ export default function GridBeneficios() {
   };
 
   const [currentAffiliate, setCurrentAffiliate] = useState<any>(null);
+  const isAdmin = useMemo(() => isUserAdmin(currentAffiliate), [currentAffiliate]);
 
   useEffect(() => {
     const checkUser = () => {
@@ -298,6 +300,7 @@ export default function GridBeneficios() {
                   item={item}
                   onEdit={() => handleEdit(item)}
                   currentAffiliate={currentAffiliate}
+                  isAdmin={isAdmin}
                 />
               </Grid>
             ))}
@@ -317,20 +320,22 @@ export default function GridBeneficios() {
         </>
       )}
 
-      <Tooltip title="Agregar beneficio">
-        <Fab
-          color="primary"
-          onClick={handleAdd}
-          sx={{
-            position: "fixed",
-            bottom: 80,
-            right: 24,
-            zIndex: 1000,
-          }}
-        >
-          <AddIcon />
-        </Fab>
-      </Tooltip>
+      {isAdmin && (
+        <Tooltip title="Agregar beneficio">
+          <Fab
+            color="primary"
+            onClick={handleAdd}
+            sx={{
+              position: "fixed",
+              bottom: 80,
+              right: 24,
+              zIndex: 1000,
+            }}
+          >
+            <AddIcon />
+          </Fab>
+        </Tooltip>
+      )}
 
       <BenefitEditModal
         open={editModalOpen}
@@ -345,11 +350,13 @@ export default function GridBeneficios() {
 function BenefitItemComponent({
   item,
   onEdit,
-  currentAffiliate
+  currentAffiliate,
+  isAdmin
 }: {
   item: BenefitItem;
   onEdit: () => void;
   currentAffiliate: any;
+  isAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
@@ -602,9 +609,11 @@ function BenefitItemComponent({
           }}
         >
           {item.title}
-          <IconButton onClick={(e) => { e.stopPropagation(); onEdit(); }} sx={{ color: "primary.main" }}>
-            <EditIcon />
-          </IconButton>
+          {isAdmin && (
+            <IconButton onClick={(e) => { e.stopPropagation(); onEdit(); }} sx={{ color: "primary.main" }}>
+              <EditIcon />
+            </IconButton>
+          )}
         </DialogTitle>
         <DialogContent sx={{ p: 4 }}>
           {/* Carousel Section */}

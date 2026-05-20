@@ -20,6 +20,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AddIcon from '@mui/icons-material/Add';
 import { supabase } from '../../supabaseClient';
+import { isUserAdmin } from '../../utils/auth';
 
 export interface Benefit {
     id: number;
@@ -162,6 +163,13 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
         if (!newRubro.trim()) return;
         const rubroToAdd = newRubro.trim();
 
+        const userStr = localStorage.getItem("current_affiliate");
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (!isUserAdmin(user)) {
+            setError("No tienes privilegios de administrador para realizar esta acción.");
+            return;
+        }
+
         if (rubros.includes(rubroToAdd)) {
             setFormData(prev => ({ ...prev, rubro: rubroToAdd }));
             setNewRubro('');
@@ -187,6 +195,13 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isGallery = false) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        const userStr = localStorage.getItem("current_affiliate");
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (!isUserAdmin(user)) {
+            setError("No tienes privilegios de administrador para realizar esta acción.");
+            return;
+        }
 
         setUploading(true);
         setError('');
@@ -229,6 +244,13 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
     const handleSave = async () => {
         if (!formData.title || !formData.category) {
             setError('El título y la provincia son obligatorios');
+            return;
+        }
+
+        const userStr = localStorage.getItem("current_affiliate");
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (!isUserAdmin(user)) {
+            setError("No tienes privilegios de administrador para realizar esta acción.");
             return;
         }
 
@@ -296,6 +318,14 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
 
     const handleDelete = async () => {
         if (!benefit?.id) return;
+
+        const userStr = localStorage.getItem("current_affiliate");
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (!isUserAdmin(user)) {
+            setError("No tienes privilegios de administrador para realizar esta acción.");
+            return;
+        }
+
         if (!window.confirm('¿Estás seguro de eliminar este beneficio?')) return;
 
         setLoading(true);

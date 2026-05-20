@@ -6,6 +6,8 @@ import Navbar from "./Components/Navbar/Navbar";
 import FooterElements from "./Components/Footer/FooterElements";
 import { AnimatePresence, motion } from "framer-motion";
 import { Suspense, lazy, useEffect } from "react";
+import { isUserAdmin } from "./utils/auth";
+
 
 const Inicio = lazy(() => import("./Pages/Inicio"));
 const Beneficios = lazy(() => import("./Pages/Beneficios"));
@@ -59,7 +61,11 @@ const ProtectedRoute = ({ children, role }: { children: React.ReactNode; role?: 
     return <Navigate to="/login" replace />;
   }
 
-  if (role && user.role !== role) {
+  if (role === "admin" && !isUserAdmin(user)) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (role && role !== "admin" && user.role !== role) {
     return <Navigate to="/" replace />;
   }
 
