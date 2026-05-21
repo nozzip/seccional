@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, TextField, Button, CircularProgress, Alert, Paper, Container } from '@mui/material';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { AffiliateData } from '../../types/mobile';
 
@@ -127,10 +128,29 @@ export default function MobileLogin({ onLoginSuccess }: MobileLoginProps) {
                             py: 1.5,
                             borderRadius: 2,
                             fontWeight: 700,
-                            fontSize: '1.1rem'
+                            fontSize: '1.1rem',
+                            mb: 2
                         }}
                     >
                         {loading ? <CircularProgress size={26} color="inherit" /> : 'Ingresar'}
+                    </Button>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        ¿Aún no sos afiliado?
+                    </Typography>
+                    <Button
+                        component={Link}
+                        to="/afiliar"
+                        fullWidth
+                        variant="outlined"
+                        size="large"
+                        sx={{
+                            py: 1.5,
+                            borderRadius: 2,
+                            fontWeight: 700,
+                            fontSize: '1rem'
+                        }}
+                    >
+                        Quiero Afiliarme
                     </Button>
                 </form>
             </Paper>

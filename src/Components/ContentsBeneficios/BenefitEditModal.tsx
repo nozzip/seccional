@@ -38,6 +38,7 @@ export interface Benefit {
     discount_percentage?: number | null;
     is_active: boolean;
     display_order: number;
+    attachment_url?: string | null;
 }
 
 interface BenefitEditModalProps {
@@ -82,6 +83,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
         discount_percentage: null,
         is_active: true,
         display_order: 0,
+        attachment_url: '',
     });
 
     useEffect(() => {
@@ -126,6 +128,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                 discount_percentage: benefit.discount_percentage || null,
                 is_active: benefit.is_active ?? true,
                 display_order: benefit.display_order || 0,
+                attachment_url: benefit.attachment_url || '',
             });
         } else {
             setFormData({
@@ -144,6 +147,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                 discount_percentage: null,
                 is_active: true,
                 display_order: 0,
+                attachment_url: '',
             });
         }
         setError('');
@@ -226,6 +230,41 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
         }
     };
 
+    const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        setError('');
+
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `pdf_${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('benefits')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('benefits')
+                .getPublicUrl(filePath);
+
+            setFormData({
+                ...formData,
+                attachment_url: data.publicUrl
+            });
+            setSuccess('PDF subido correctamente');
+        } catch (err: any) {
+            console.error('Error uploading pdf:', err);
+            setError('Error al subir PDF: ' + err.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!formData.title || !formData.category) {
             setError('El título y la provincia son obligatorios');
@@ -263,6 +302,7 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                 discount_percentage: formData.discount_percentage || null,
                 is_active: formData.is_active ?? true,
                 display_order: formData.display_order || 0,
+                attachment_url: formData.attachment_url || null,
                 updated_at: new Date().toISOString(),
             };
 
@@ -530,6 +570,36 @@ export default function BenefitEditModal({ open, onClose, benefit, onSave }: Ben
                         fullWidth
                         size="small"
                     />
+                    <Box sx={{ border: '1px solid', borderColor: 'divider', p: 2, borderRadius: 1 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>PDF del Convenio (Solo Admins)</Typography>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <TextField
+                                label="URL del PDF"
+                                name="attachment_url"
+                                value={formData.attachment_url || ''}
+                                onChange={handleChange}
+                                fullWidth
+                                size="small"
+                                placeholder="Suba el PDF o pegue el enlace..."
+                            />
+                            <Button
+                                variant="outlined"
+                                component="label"
+                                startIcon={uploading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+                                disabled={uploading}
+                                size="small"
+                            >
+                                {uploading ? '...' : 'Subir'}
+                                <input type="file" hidden accept="application/pdf" onChange={handlePdfUpload} />
+                            </Button>
+                        </Box>
+                        {formData.attachment_url && (
+                            <Typography variant="caption" color="success.main" sx={{ mt: 1, display: 'block', fontWeight: 600 }}>
+                                Documento adjunto configurado.
+                            </Typography>
+                        )}
+                    </Box>
+
                 </Box>
             </DialogContent>
             <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>

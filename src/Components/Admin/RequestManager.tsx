@@ -23,8 +23,9 @@ import {
     MenuItem,
     Grid,
     Divider,
-    Snackbar,
     Alert,
+    Checkbox,
+    Snackbar,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -64,6 +65,7 @@ export default function RequestManager() {
     const [requests, setRequests] = useState<Request[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [detailOpen, setDetailOpen] = useState(false);
     const [createOpen, setCreateOpen] = useState(false);
     const [executingNotes, setExecutingNotes] = useState('');
@@ -112,6 +114,7 @@ export default function RequestManager() {
         const { data, error } = await supabase
             .from('workflow_requests')
             .select('*')
+            .neq('status', 'archived')
             .order('created_at', { ascending: false });
 
         if (!error) setRequests(data || []);
@@ -122,39 +125,104 @@ export default function RequestManager() {
         const updateData: any = { status: newStatus };
         if (notes) updateData.performer_notes = notes;
 
-        const { error } = await supabase
+        const { error, count } = await supabase
             .from('workflow_requests')
-            .update(updateData)
+            .update(updateData, { count: 'exact' })
             .eq('id', id);
 
-        if (!error) {
-            const reqData = requests.find(r => r.id === id);
-            const statusLabels: Record<string, string> = { approved: 'Aprobada', rejected: 'Rechazada', in_progress: 'En Proceso', pending: 'Pendiente', completed: 'Completada' };
-            await logAction(
-                'ACTUALIZAR_SOLICITUD',
-                `Solicitud #${id} cambiada a estado "${statusLabels[newStatus] || newStatus}" (Tipo: ${reqData?.type || 'N/A'})`
-            );
-            setRequests(requests.map(r => r.id === id ? { ...r, ...updateData } : r));
-            setDetailOpen(false);
-            setExecutingNotes('');
+        if (error) {
+            alert('Error de base de datos: ' + error.message);
+            return;
         }
+
+        if (count === 0) {
+            alert('La base de datos bloqueó la actualización (0 filas afectadas). Verifica las políticas RLS en Supabase para la tabla workflow_requests.');
+            return;
+        }
+
+        const reqData = requests.find(r => r.id === id);
+        const statusLabels: Record<string, string> = { approved: 'Aprobada', rejected: 'Rechazada', in_progress: 'En Proceso', pending: 'Pendiente', completed: 'Completada' };
+        await logAction(
+            'ACTUALIZAR_SOLICITUD',
+            `Solicitud #${id} cambiada a estado "${statusLabels[newStatus] || newStatus}" (Tipo: ${reqData?.type || 'N/A'})`
+        );
+        setRequests(requests.map(r => r.id === id ? { ...r, ...updateData } : r));
+        setDetailOpen(false);
+        setExecutingNotes('');
     };
 
     const handleDelete = async (id: number) => {
         if (!window.confirm('¿Está seguro de eliminar este pedido permanentemente?')) return;
         
-        const { error } = await supabase
-            .from('workflow_requests')
-            .delete()
-            .eq('id', id);
+        try {
+            const { error, count } = await supabase
+                .from('workflow_requests')
+                .update({ status: 'archived' }, { count: 'exact' })
+                .eq('id', id);
 
-        if (!error) {
+            if (error) throw error;
+            
+            if (count === 0) {
+                alert('La base de datos bloqueó la eliminación (0 filas afectadas). Verifica las políticas RLS en Supabase para la tabla workflow_requests.');
+                return;
+            }
+
             const reqData = requests.find(r => r.id === id);
             await logAction(
                 'ELIMINAR_SOLICITUD',
                 `Solicitud #${id} eliminada permanentemente (Tipo: ${reqData?.type || 'N/A'}, Solicitante: ${reqData?.requester_info?.nombre || 'N/A'})`
             );
-            setRequests(requests.filter(r => r.id !== id));
+            
+            setRequests(prev => prev.filter(r => r.id !== id));
+            setSelectedIds(prev => prev.filter(v => v !== id));
+            setSnackbarMessage('Solicitud eliminada correctamente');
+            setSnackbarOpen(true);
+        } catch (err: any) {
+            console.error('Error al eliminar solicitud:', err);
+            alert('Error al intentar eliminar: ' + err.message);
+        }
+    };
+
+    const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.checked) {
+            setSelectedIds(requests.map(r => r.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const handleSelectRow = (id: number) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
+    };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(`¿Está seguro de eliminar ${selectedIds.length} pedidos permanentemente?`)) return;
+        
+        try {
+            const { error, count } = await supabase
+                .from('workflow_requests')
+                .update({ status: 'archived' }, { count: 'exact' })
+                .in('id', selectedIds);
+
+            if (error) throw error;
+            
+            if (count === 0) {
+                alert('La base de datos bloqueó la eliminación (0 filas afectadas). Verifica las políticas RLS en Supabase para la tabla workflow_requests.');
+                return;
+            }
+
+            await logAction(
+                'ELIMINAR_SOLICITUD_MULTIPLE',
+                `Se eliminaron ${selectedIds.length} solicitudes permanentemente`
+            );
+            
+            setRequests(prev => prev.filter(r => !selectedIds.includes(r.id)));
+            setSelectedIds([]);
+            setSnackbarMessage(`Se eliminaron ${selectedIds.length} solicitudes correctamente`);
+            setSnackbarOpen(true);
+        } catch (err: any) {
+            console.error('Error al eliminar solicitudes:', err);
+            alert('Error al intentar eliminar: ' + err.message);
         }
     };
 
@@ -222,27 +290,13 @@ export default function RequestManager() {
                         Cargar Tarea / Pedido
                     </Button>
                     <Button 
-                        variant="outlined" 
-                        color="secondary"
-                        onClick={async () => {
-                            const tests = [
-                                { type: 'affiliation', requester: 'Test Afiliación', data: { worker: { nombre: 'Juan', apellido: 'Prueba', cuil: '20-12345678-9', dependencia: 'AFIP Salta' }, family: [] } },
-                                { type: 'tourism', requester: 'Test Turismo', data: { destino: 'Bariloche', fecha_ingreso: '2026-06-01', fecha_salida: '2026-06-08', plazas_req: 2 } },
-                                { type: 'benefit', requester: 'Test Kit', data: { benefit_type: 'Kit Escolar', observations: 'Prueba de kit para 2 niños' } },
-                                { type: 'cabin_reservation', requester: 'Test Mollar', data: { destino: 'El Mollar', fecha_ingreso: '2026-05-15', fecha_salida: '2026-05-20' } }
-                            ];
-                            for (const test of tests) {
-                                await supabase.from('workflow_requests').insert({
-                                    type: test.type,
-                                    status: 'pending',
-                                    requester_info: { nombre: test.requester },
-                                    data: test.data
-                                });
-                            }
-                            fetchRequests();
-                        }}
+                        variant="contained" 
+                        color="error"
+                        startIcon={<DeleteIcon />}
+                        disabled={selectedIds.length === 0}
+                        onClick={handleBulkDelete}
                     >
-                        Generar Test de Prueba
+                        Eliminar Seleccionados ({selectedIds.length})
                     </Button>
                 </Box>
             </Box>
@@ -251,6 +305,13 @@ export default function RequestManager() {
                 <Table>
                     <TableHead>
                         <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+                            <TableCell padding="checkbox">
+                                <Checkbox
+                                    indeterminate={selectedIds.length > 0 && selectedIds.length < requests.length}
+                                    checked={requests.length > 0 && selectedIds.length === requests.length}
+                                    onChange={handleSelectAll}
+                                />
+                            </TableCell>
                             <TableCell sx={{ fontWeight: 800 }}>Tipo de Pedido</TableCell>
                             <TableCell sx={{ fontWeight: 800 }}>Descripción / Asunto</TableCell>
                             <TableCell sx={{ fontWeight: 800 }}>Fecha</TableCell>
@@ -261,7 +322,7 @@ export default function RequestManager() {
                     <TableBody>
                         {requests.length === 0 && !loading && (
                             <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
+                                <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
                                     <Typography color="text.secondary">No hay pedidos ni tareas pendientes.</Typography>
                                 </TableCell>
                             </TableRow>
@@ -277,6 +338,12 @@ export default function RequestManager() {
                             }
                             return (
                                 <TableRow key={request.id} hover sx={{ opacity: request.status === 'done' ? 0.7 : 1 }}>
+                                    <TableCell padding="checkbox">
+                                        <Checkbox
+                                            checked={selectedIds.includes(request.id)}
+                                            onChange={() => handleSelectRow(request.id)}
+                                        />
+                                    </TableCell>
                                     <TableCell>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                             {icon}

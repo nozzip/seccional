@@ -83,24 +83,28 @@ export default function AffiliateForm() {
                 setError('Por favor, ingresá tu apellido.');
                 return;
             }
-            if (!workerData.legajo.trim()) {
-                setError('Por favor, ingresá tu número de legajo.');
+            if (!workerData.cuil.trim() && !workerData.legajo.trim()) {
+                setError('Por favor, ingresá tu número de CUIL o tu número de Legajo (al menos uno es requerido).');
                 return;
             }
 
             setLoading(true);
             try {
+                let orConditions = [];
+                if (workerData.legajo.trim()) orConditions.push(`legajo.eq.${workerData.legajo.trim()}`);
+                if (workerData.cuil.trim()) orConditions.push(`cuil.eq.${workerData.cuil.trim()}`);
+
                 const { data, error: dbError } = await supabase
                     .from('affiliates')
                     .select('id')
-                    .eq('legajo', workerData.legajo.trim())
+                    .or(orConditions.join(','))
                     .eq('branch', 'noroeste')
                     .maybeSingle();
 
                 if (dbError) throw dbError;
 
                 if (data) {
-                    setError('El número de legajo ingresado ya se encuentra registrado en nuestra base de datos. Ya estás afiliado, por favor ingresá directamente desde el ícono de login.');
+                    setError('El número de CUIL y/o Legajo ingresado ya se encuentra registrado en nuestra base de datos. Ya estás afiliado, por favor ingresá directamente desde el ícono de login.');
                     setLoading(false);
                     return;
                 }

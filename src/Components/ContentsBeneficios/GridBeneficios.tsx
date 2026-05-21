@@ -215,6 +215,12 @@ export default function GridBeneficios() {
     return () => window.removeEventListener("affiliate_login", checkUser);
   }, []);
 
+  const isAdmin = currentAffiliate && (
+    currentAffiliate.role === 'admin' ||
+    ['34185803', '042418/00', '23276817159'].includes(currentAffiliate.legajo) ||
+    ['34185803', '23276817159'].includes(currentAffiliate.cuil)
+  );
+
   return (
     <Box>
       <Box
@@ -298,6 +304,7 @@ export default function GridBeneficios() {
                   item={item}
                   onEdit={() => handleEdit(item)}
                   currentAffiliate={currentAffiliate}
+                  isAdmin={isAdmin}
                 />
               </Grid>
             ))}
@@ -317,27 +324,31 @@ export default function GridBeneficios() {
         </>
       )}
 
-      {/* <Tooltip title="Agregar beneficio">
-        <Fab
-          color="primary"
-          onClick={handleAdd}
-          sx={{
-            position: "fixed",
-            bottom: 80,
-            right: 24,
-            zIndex: 1000,
-          }}
-        >
-          <AddIcon />
-        </Fab>
-      </Tooltip>
+      {isAdmin && (
+        <>
+          <Tooltip title="Agregar convenio">
+            <Fab
+              color="primary"
+              onClick={handleAdd}
+              sx={{
+                position: "fixed",
+                bottom: 80,
+                right: 24,
+                zIndex: 1000,
+              }}
+            >
+              <AddIcon />
+            </Fab>
+          </Tooltip>
 
-      <BenefitEditModal
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        benefit={selectedBenefit}
-        onSave={handleSaveEdit}
-      /> */}
+          <BenefitEditModal
+            open={editModalOpen}
+            onClose={() => setEditModalOpen(false)}
+            benefit={selectedBenefit}
+            onSave={handleSaveEdit}
+          />
+        </>
+      )}
     </Box>
   );
 }
@@ -345,11 +356,13 @@ export default function GridBeneficios() {
 function BenefitItemComponent({
   item,
   onEdit,
-  currentAffiliate
+  currentAffiliate,
+  isAdmin
 }: {
   item: BenefitItem;
   onEdit: () => void;
   currentAffiliate: any;
+  isAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
@@ -602,9 +615,11 @@ function BenefitItemComponent({
           }}
         >
           {item.title}
-          <IconButton onClick={(e) => { e.stopPropagation(); onEdit(); }} sx={{ color: "primary.main" }}>
-            <EditIcon />
-          </IconButton>
+          {isAdmin && (
+            <IconButton onClick={(e) => { e.stopPropagation(); onEdit(); }} sx={{ color: "primary.main" }}>
+              <EditIcon />
+            </IconButton>
+          )}
         </DialogTitle>
         <DialogContent sx={{ p: 4 }}>
           {/* Carousel Section */}
@@ -763,6 +778,19 @@ function BenefitItemComponent({
               )}
             </Box>
           </Paper>
+
+          {isAdmin && (item as any).attachment_url && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              fullWidth
+              sx={{ mt: 3, fontWeight: 800, borderRadius: 2 }}
+              href={(item as any).attachment_url}
+              target="_blank"
+            >
+              Ver PDF del Convenio (Solo Admins)
+            </Button>
+          )}
 
           {currentAffiliate && (
             <Box sx={{ mt: 4 }}>
