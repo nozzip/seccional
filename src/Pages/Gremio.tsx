@@ -56,12 +56,7 @@ const authorities = [
     location: "Salta",
     level: 3,
   },
-  {
-    name: "GALLARDO, RAMÓN ERNESTO",
-    role: "SECRETARIO ADMINISTRATIVO",
-    location: "Tucumán",
-    level: 3,
-  },
+
   {
     name: "FRAGA, JORGE HORACIO",
     role: "SECRETARIO DE PRENSA Y ACTAS",
@@ -72,6 +67,12 @@ const authorities = [
     name: "CARLOS, GONZALO DAMIÁN",
     role: "SECRETARIO DE ASUNTOS SOCIALES",
     location: "Jujuy",
+    level: 3,
+  },
+  {
+    name: "GALLARDO, RAMÓN ERNESTO",
+    role: "SECRETARIO ADMINISTRATIVO",
+    location: "Tucumán",
     level: 3,
   },
   {
@@ -111,7 +112,7 @@ const authorities = [
     category: "Vocales",
   },
   {
-    name: "ISA TORANZOS, JAQUELINE SILVANA",
+    name: "ISA TORANZOS, JACQUELINE SILVANA",
     role: "VOCAL",
     location: "Salta",
     level: 4,
@@ -236,7 +237,7 @@ const authorities = [
     category: "Comisión Nacional de Jubilados",
   },
   {
-    name: "SILIGUINI, RAFAELA MARGARITA",
+    name: "REARTE, SILVIA",
     role: "COMISIÓN NACIONAL DE JUBILADOS",
     location: "Santiago",
     level: 4,
@@ -297,8 +298,8 @@ function AuthorityCard({ person }: { person: any }) {
         background: isMain
           ? "linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)"
           : isSecondary
-          ? "linear-gradient(135deg, #86bfe5 0%, #b0d9f2 100%)"
-          : "background.paper",
+            ? "linear-gradient(135deg, #86bfe5 0%, #b0d9f2 100%)"
+            : "background.paper",
         color: isMain ? "white" : isSecondary ? "secondary.main" : "text.primary",
         transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease",
         "&:hover": {
@@ -358,8 +359,8 @@ function AuthorityCard({ person }: { person: any }) {
             color: isMain
               ? "rgba(255,255,255,0.85)"
               : isSecondary
-              ? "secondary.dark"
-              : "text.secondary",
+                ? "secondary.dark"
+                : "text.secondary",
           }}
         >
           {person.role}
@@ -390,8 +391,8 @@ function AuthorityCard({ person }: { person: any }) {
                 color: isMain
                   ? "rgba(255,255,255,0.8)"
                   : isSecondary
-                  ? "secondary.dark"
-                  : "text.secondary",
+                    ? "secondary.dark"
+                    : "text.secondary",
                 fontSize: "0.85rem",
               }}
             >
