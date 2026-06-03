@@ -250,3 +250,20 @@
 - **Descargas Programáticas locales:** Estrategia de descarga por inyección temporal de anclajes HTML5 sobre cadenas Base64 seguras generadas localmente.
 - **Sincronización Silenciosa de Sesiones:** Uso de patrones híbridos (Local Cache First + Background DB Fetch) para optimizar la velocidad visual y la exactitud de los datos del cliente.
 
+## [ÉXITO] - Actualización Oficial de Autoridades y Estructuración por Categorías
+**Fecha:** 2026-06-03
+**Modo:** Desarrollar
+**Descripción:** Se actualizó la lista completa de las 35 autoridades oficiales de la Seccional Noroeste conforme a la "Lista Blanca y Celeste", organizando a los directivos en categorías institucionales con iconos premium de Material-UI y localizaciones geográficas.
+
+### Cambios realizados:
+1. **Lógica & Datos:**
+   - Se reemplazaron los registros anteriores con la nómina oficial completa de 35 autoridades en `src/Pages/Gremio.tsx` y `seccional/src/Pages/Gremio.tsx`.
+   - Se definieron los roles exactos, nombres completos en mayúsculas y las respectivas delegaciones geográficas (Salta, Tucumán, Jujuy, Santiago, Catamarca, Oran, Concepción).
+2. **Visual & UI (Estructuración Premium):**
+   - Agrupación del cuerpo directivo en 6 secciones principales: *Secretariado*, *Cuerpo de Vocales*, *Consejo Directivo Superior*, *Delegados a la Asamblea General*, *Comisión Nacional de Jubilados* y *Congresales F.E.F.R.A.*.
+   - Creación del componente `SectionHeader` con iconos institucionales específicos para cada jerarquía.
+   - Diseño mejorado para `AuthorityCard` con degradados dinámicos basados en la jerarquía (Secretario General en azul marino oscuro, Secretario Adjunto en celeste premium, y el resto en tarjetas con fondo limpio).
+   - Inclusión del marcador de geolocalización (icono `LocationOn`) en las tarjetas que tienen ciudad asignada.
+3. **Estabilidad:**
+   - Compilación exitosa en ambos entornos (proyecto raíz y subdirectorio de despliegue `seccional`).
+
