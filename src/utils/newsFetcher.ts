@@ -15,24 +15,24 @@ async function fetchRssNews(): Promise<NewsItem[]> {
   try {
     const rssUrl = "https://www.aefip.org.ar/prensa?format=feed&type=rss";
     const response = await fetch(
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`,
+      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`,
     );
 
     if (!response.ok) throw new Error("Failed to fetch RSS feed");
 
-    const xmlText = await response.text();
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-    const items = Array.from(xmlDoc.querySelectorAll("item")).slice(0, 10);
+    const data = await response.json();
+    if (!data || !data.items) return [];
 
-    return items.map((item) => {
-      const title = item.querySelector("title")?.textContent || "Sin Título";
-      const link = item.querySelector("link")?.textContent || "#";
-      const pubDate = item.querySelector("pubDate")?.textContent;
+    const items = data.items.slice(0, 10);
+
+    return items.map((item: any) => {
+      const title = item.title || "Sin Título";
+      const link = item.link || "#";
+      const pubDate = item.pubDate;
 
       let formattedDate = "Fecha desconocida";
       if (pubDate) {
-        const dateObj = new Date(pubDate);
+        const dateObj = new Date(pubDate.replace(" ", "T"));
         if (!isNaN(dateObj.getTime())) {
           formattedDate = dateObj.toLocaleDateString("es-AR", {
             year: "numeric",
@@ -42,12 +42,13 @@ async function fetchRssNews(): Promise<NewsItem[]> {
         }
       }
 
-      const description = item.querySelector("description")?.textContent || "";
-      const imgMatch = description.match(/<img[^>]+src="([^">]+)"/i);
-      let imgUrl =
-        imgMatch && imgMatch[1] !== "https://www.aefip.org.ar/"
-          ? imgMatch[1]
-          : "";
+      const description = item.description || item.content || "";
+      
+      let imgUrl = item.thumbnail || "";
+      if (!imgUrl) {
+         const imgMatch = description.match(/<img[^>]+src="([^">]+)"/i);
+         imgUrl = imgMatch && imgMatch[1] !== "https://www.aefip.org.ar/" ? imgMatch[1] : "";
+      }
 
       if (imgUrl && imgUrl.startsWith("/")) {
         imgUrl = `https://www.aefip.org.ar${imgUrl}`;

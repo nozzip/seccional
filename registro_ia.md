@@ -267,3 +267,13 @@
 3. **Estabilidad:**
    - Compilación exitosa en ambos entornos (proyecto raíz y subdirectorio de despliegue `seccional`).
 
+## [ÉXITO] - Restauración del Feed RSS de Noticias Nacionales en Prensa
+**Fecha:** 2026-06-08
+**Modo:** Mejorar
+**Descripción:** Se restauró la carga de las últimas noticias provenientes de la Mesa Directiva Nacional en la sección Prensa, la cual había dejado de funcionar debido a la caída y bloqueo del proxy CORS anterior (`api.codetabs.com`).
+
+### Cambios realizados:
+1. **Lógica & Datos:**
+   - Se modificó la función `fetchRssNews` en `src/utils/newsFetcher.ts` para migrar del proxy caído a `api.rss2json.com`, el cual proporciona estabilidad, manejo de CORS y conversión de XML a JSON en una sola llamada.
+   - Se refactorizó la lógica de parseo, reemplazando el uso de `DOMParser` sobre XML en crudo por un mapeo directo de los objetos JSON devueltos por la API.
+   - Se mantuvo intacta la lógica local de procesamiento de fechas, imágenes de fallback y límite de caracteres en el resumen.
