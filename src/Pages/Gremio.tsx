@@ -239,7 +239,7 @@ const authorities = [
   {
     name: "REARTE, SILVIA",
     role: "COMISIÓN NACIONAL DE JUBILADOS",
-    location: "Santiago",
+    location: "Tucumán",
     level: 4,
     category: "Comisión Nacional de Jubilados",
   },

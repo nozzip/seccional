@@ -7,25 +7,25 @@ import App from './App';
 (function () {
   if (typeof window !== 'undefined' && typeof Node !== 'undefined') {
     const safeRemoveChild = Node.prototype.removeChild;
-    Node.prototype.removeChild = function (child) {
+    Node.prototype.removeChild = function<T extends Node> (child: T): T {
       if (child.parentNode !== this) {
         if (console) {
           console.warn('DOM Protection: Prevented React crash during removeChild. Target child is not a child of this parent node.', this, child);
         }
         return child;
       }
-      return safeRemoveChild.call(this, child);
+      return safeRemoveChild.call(this, child) as T;
     };
 
     const safeInsertBefore = Node.prototype.insertBefore;
-    Node.prototype.insertBefore = function (newNode, referenceNode) {
+    Node.prototype.insertBefore = function<T extends Node> (newNode: T, referenceNode: Node | null): T {
       if (referenceNode && referenceNode.parentNode !== this) {
         if (console) {
           console.warn('DOM Protection: Prevented React crash during insertBefore. Reference node is not a child of this parent node.', this, newNode, referenceNode);
         }
         return newNode;
       }
-      return safeInsertBefore.call(this, newNode, referenceNode);
+      return safeInsertBefore.call(this, newNode, referenceNode) as T;
     };
   }
 })();
