@@ -344,7 +344,7 @@
 **Descripción:** Se agregó coherencia visual estilizada entre la división principal ("Seccional Noroeste" / "Descargar App") y el panel de Afiliados.
 
 ### Cambios realizados:
-1. **Líneas Horizontales en `Inicio.tsx`:**
+1. **Líneas Horizontales y Espaciado en `Inicio.tsx`:**
    * Se ajustó el divisor a un esquema de franjas horizontales rectas para mantener estricta coherencia con los demás elementos (ortogonales) de la página.
    * Se empleó una composición CSS multicapa en lugar de SVG, conformada por 3 bandas apiladas verticalmente.
-   * La estructura de las franjas varía en su altura (`4px`, `6px`, `12px`) e intensidad del color (`alpha` translucido hacia un tono sólido `info.main`), dando una sensación sutil de degradado escalonado ("borde celeste") altamente profesional.
+   * Se igualó la distancia superior de la tarjeta "Afiliados" (`pt: 8` en el contenedor) para que coincida exactamente con la distancia/padding inferior que tiene hacia la sección de "Noticias", balanceando el diseño visual.
