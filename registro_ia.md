@@ -348,3 +348,15 @@
    * Se ajustó el divisor a un esquema de franjas horizontales rectas para mantener estricta coherencia con los demás elementos (ortogonales) de la página.
    * Se empleó una composición CSS multicapa en lugar de SVG, conformada por 3 bandas apiladas verticalmente.
    * Se igualó la distancia superior de la tarjeta "Afiliados" (`pt: 8` en el contenedor) para que coincida exactamente con la distancia/padding inferior que tiene hacia la sección de "Noticias", balanceando el diseño visual.
+
+## [ÉXITO] - Ordenamiento Cronológico de Noticias (RSS + Locales)
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se corrigió la prioridad estática de las noticias locales sobre las noticias de la Mesa Directiva Nacional (RSS), garantizando un feed estrictamente cronológico.
+
+### Cambios realizados:
+1. **Actualización de `newsFetcher.ts`:**
+   * Se añadió la propiedad abstracta `timestamp` a la interfaz `NewsItem` para estandarizar las fechas.
+   * Al mapear las noticias del RSS, ahora se extrae el valor temporal crudo (`getTime()`) desde `pubDate` antes de localizar el string.
+   * Al traer las noticias desde Supabase, también se captura y almacena el `getTime()` desde el campo `created_at`.
+   * En lugar de simplemente anteponer las noticias locales a las del RSS, el array resultante se fusiona y se somete a un `sort` descendente basado en el `timestamp`. Esto asegura que las noticias más nuevas, independientemente de su origen, se posicionen siempre primeras.
