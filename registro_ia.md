@@ -323,4 +323,17 @@
    - Se actualizó `AddAffiliateModal.tsx` y `AffiliateDetailsModal.tsx` para forzar la limpieza al insertar o actualizar afiliados.
    - Se actualizó el botón/procedimiento manual `handleNormalizeLocations` en `AfiliadosManager.tsx` para re-escribir y sanear permanentemente los registros inconsistentes en Supabase en lotes.
 
+## [ÉXITO] - Vista Ampliada (Zoom) de Imágenes en Carrusel y Convenios
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se agregó la posibilidad de expandir las imágenes del Carrusel principal de Inicio y de la galería de Convenios al hacerles click para facilitar su lectura y legibilidad.
 
+### Cambios realizados:
+1. **Zoom en Carrusel Principal (`Carusel.tsx`):**
+   * Se agregó el estado `zoomImage` y un modal `<Dialog>` de alta definición para proyectar la imagen seleccionada en un tamaño óptimo.
+   * Se configuró el componente `Item` para que sea clickeable (`cursor: pointer`) y propague la URL de la imagen al modal de ampliación.
+   * Se añadió `e.stopPropagation()` al botón de eliminar (exclusivo del administrador) para evitar abrir el zoom por error al borrar elementos.
+
+2. **Zoom en Convenios/Beneficios (`GridBeneficios.tsx`):**
+   * Se configuró el recuadro principal de la imagen actual de la galería dentro del diálogo de detalles del convenio para que sea clickeable.
+   * Se incorporó el modal `<Dialog>` de ampliación correspondiente en `BenefitItemComponent` para expandir la imagen seleccionada a pantalla completa con un botón de cierre superior.
