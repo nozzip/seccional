@@ -371,6 +371,7 @@ function BenefitItemComponent({
   const [reportLoading, setReportLoading] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
   const theme = useTheme();
 
   const handleOpen = useCallback(() => {
@@ -625,6 +626,7 @@ function BenefitItemComponent({
           {/* Carousel Section */}
           <Box sx={{ position: "relative", mb: 4 }}>
             <Box
+              onClick={() => setZoomImage(gallery[currentImgIndex])}
               sx={{
                 width: "100%",
                 height: 350,
@@ -637,7 +639,12 @@ function BenefitItemComponent({
                 border: "1px solid",
                 borderColor: "divider",
                 p: 4,
-                transition: "background-image 0.5s ease",
+                cursor: "pointer",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  transform: "scale(1.02)",
+                  boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
+                },
               }}
             />
             {gallery.length > 1 && (
@@ -907,6 +914,49 @@ function BenefitItemComponent({
             </Button>
           </DialogActions>
         )}
+      </Dialog>
+      <Dialog 
+        open={!!zoomImage} 
+        onClose={() => setZoomImage(null)} 
+        maxWidth="lg" 
+        fullWidth
+        PaperProps={{
+          sx: { 
+            bgcolor: 'transparent', 
+            boxShadow: 'none',
+            overflow: 'hidden',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }
+        }}
+      >
+        <Box sx={{ position: 'relative', display: 'inline-block' }}>
+          <IconButton 
+            onClick={() => setZoomImage(null)}
+            sx={{ 
+              position: 'absolute', 
+              top: 16, 
+              right: 16, 
+              color: 'white', 
+              bgcolor: 'rgba(0,0,0,0.5)',
+              zIndex: 10,
+              '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <img 
+            src={zoomImage || ""} 
+            alt="Zoomed Benefit" 
+            style={{ 
+              maxWidth: '100%', 
+              maxHeight: '90vh', 
+              objectFit: 'contain',
+              borderRadius: 8
+            }} 
+          />
+        </Box>
       </Dialog>
     </>
   );

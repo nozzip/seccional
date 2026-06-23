@@ -3,6 +3,7 @@ import Carousel from 'react-material-ui-carousel';
 import { Paper, Box, useTheme, IconButton, Tooltip, CircularProgress, Fab, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, alpha, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import CloseIcon from '@mui/icons-material/Close';
 import { dataCarusel } from '../mockData';
 import { supabase } from '../../supabaseClient';
 
@@ -20,6 +21,7 @@ function Carusel() {
   const [newImageUrl, setNewImageUrl] = useState("");
   const [adding, setAdding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
 
   useEffect(() => {
     const checkUser = () => {
@@ -182,11 +184,55 @@ function Carusel() {
             }}
           >
             {displayImages.map((item, i) => (
-              <Item key={item.id || i} item={item} isAdmin={isAdmin} onDelete={() => handleDeleteImage(item.id)} />
+              <Item key={item.id || i} item={item} isAdmin={isAdmin} onDelete={() => handleDeleteImage(item.id)} onZoom={setZoomImage} />
             ))}
           </Carousel>
         )}
       </Box>
+
+      <Dialog 
+        open={!!zoomImage} 
+        onClose={() => setZoomImage(null)} 
+        maxWidth="lg" 
+        fullWidth
+        PaperProps={{
+          sx: { 
+            bgcolor: 'transparent', 
+            boxShadow: 'none',
+            overflow: 'hidden',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }
+        }}
+      >
+        <Box sx={{ position: 'relative', display: 'inline-block' }}>
+          <IconButton 
+            onClick={() => setZoomImage(null)}
+            sx={{ 
+              position: 'absolute', 
+              top: 16, 
+              right: 16, 
+              color: 'white', 
+              bgcolor: 'rgba(0,0,0,0.5)',
+              zIndex: 10,
+              '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <img 
+            src={zoomImage || ""} 
+            alt="Zoomed" 
+            style={{ 
+              maxWidth: '100%', 
+              maxHeight: '90vh', 
+              objectFit: 'contain',
+              borderRadius: 8
+            }} 
+          />
+        </Box>
+      </Dialog>
 
       {isAdmin && (
         <>
@@ -249,7 +295,7 @@ function Carusel() {
   );
 }
 
-function Item({ item, isAdmin, onDelete }: { item: CarouselImage, isAdmin: boolean | null, onDelete: () => void }) {
+function Item({ item, isAdmin, onDelete, onZoom }: { item: CarouselImage, isAdmin: boolean | null, onDelete: () => void, onZoom: (url: string) => void }) {
   const theme = useTheme();
   return (
     <Paper
@@ -264,10 +310,12 @@ function Item({ item, isAdmin, onDelete }: { item: CarouselImage, isAdmin: boole
         backgroundColor: theme.palette.background.paper,
         position: 'relative',
         overflow: 'hidden',
+        cursor: 'pointer',
         '&:hover .admin-delete-btn': {
           opacity: 1
         }
       }}
+      onClick={() => onZoom(item.image_url)}
     >
       <Box
         component="img"
@@ -284,7 +332,7 @@ function Item({ item, isAdmin, onDelete }: { item: CarouselImage, isAdmin: boole
         <Tooltip title="Eliminar imagen">
           <IconButton
             className="admin-delete-btn"
-            onClick={onDelete}
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
             color="error"
             sx={{
               position: 'absolute',
