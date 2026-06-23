@@ -405,6 +405,7 @@ function Inicio() {
         sx={{
           position: "relative",
           zIndex: 2,
+          pt: 8,
           pb: 15,
           px: { xs: 2, md: 5 },
         }}
@@ -420,24 +421,14 @@ function Inicio() {
             >
               <Box
                 sx={{
-                   ...getGlassStyles(theme),
+                  ...getGlassStyles(theme),
                   p: { xs: 3, md: 8 },
                   borderRadius: 2, // Consistent with theme (4px * 2 = 8px or just use 1 for 4px)
                   boxShadow: `0 20px 60px ${alpha(theme.palette.primary.main, 0.1)}`,
                   border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
                 }}
               >
-                <Typography
-                  variant="h3"
-                  sx={{
-                    mb: 6,
-                    color: "primary.main",
-                    fontWeight: 900,
-                    letterSpacing: -1,
-                  }}
-                >
-                  AFILIADOS
-                </Typography>
+
                 <Grid2 container spacing={4} alignItems="stretch">
                   <Grid2 size={{ xs: 12, lg: 9 }} sx={{ display: 'flex', flexDirection: 'column' }}>
                     <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -488,7 +479,7 @@ function Inicio() {
                     component={Link}
                     to="/prensa"
                     variant="outlined"
-                     sx={{
+                    sx={{
                       borderRadius: 1,
                       px: 4,
                       fontWeight: 700,
@@ -534,7 +525,7 @@ function Inicio() {
                   component={Link}
                   to="/servicios"
                   variant="outlined"
-                   sx={{
+                  sx={{
                     borderRadius: 1,
                     px: 4,
                     fontWeight: 700,
