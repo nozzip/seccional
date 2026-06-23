@@ -529,8 +529,8 @@ export default function FinancialStatistics({
       {/* ─── AREA CHART: Income vs Expenses Over Time ─── */}
       <Box sx={{ mb: 4 }}>
         <ChartSection title="📊 Ingresos vs Egresos en el Tiempo" delay={400}>
-          <Box sx={{ width: "100%", height: 350, minWidth: 0 }}>
-            <ResponsiveContainer>
+          <Box sx={{ width: "100%", height: 350 }}>
+            <ResponsiveContainer width="100%" height="100%" debounce={50}>
               <AreaChart data={timeSeriesData}>
                 {gradientDefs}
                 <CartesianGrid
@@ -598,8 +598,8 @@ export default function FinancialStatistics({
         <Grid size={{ xs: 12, md: 6 }}>
           <ChartSection title="🟢 Ingresos por Categoría" delay={500} height="100%">
             {incomeCategoryData.length > 0 ? (
-              <Box sx={{ width: "100%", height: 300, minWidth: 0 }}>
-                <ResponsiveContainer>
+              <Box sx={{ width: "100%", height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
                   <PieChart>
                     <Pie
                       data={incomeCategoryData}
@@ -657,8 +657,8 @@ export default function FinancialStatistics({
         <Grid size={{ xs: 12, md: 6 }}>
           <ChartSection title="🔴 Egresos por Categoría" delay={600} height="100%">
             {expenseCategoryData.length > 0 ? (
-              <Box sx={{ width: "100%", height: 300, minWidth: 0 }}>
-                <ResponsiveContainer>
+              <Box sx={{ width: "100%", height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
                   <PieChart>
                     <Pie
                       data={expenseCategoryData}
@@ -716,8 +716,8 @@ export default function FinancialStatistics({
 
       {/* ─── BAR CHART: Payment Method Distribution ─── */}
       <ChartSection title="💳 Distribución por Método de Pago" delay={700}>
-        <Box sx={{ width: "100%", height: 350, minWidth: 0 }}>
-          <ResponsiveContainer>
+        <Box sx={{ width: "100%", height: 350 }}>
+          <ResponsiveContainer width="100%" height="100%" debounce={50}>
             <BarChart
               data={paymentMethodData}
               layout="vertical"

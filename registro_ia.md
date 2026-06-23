@@ -295,3 +295,15 @@
    - Se removió la variable de estado `selectedCities` y todos sus efectos y cálculos asociados.
    - Compilación y build exitosos a través de Vite.
 
+## [ÉXITO] - Resolución de Advertencias de Recharts en ResponsiveContainer
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se corrigieron las advertencias recurrentes de consola de Recharts (`The width(-1) and height(-1) of chart should be greater than 0...`) al inicializar gráficos sin dimensiones calculadas en el DOM.
+
+### Cambios realizados:
+1. **Dimensionado de Gráficos:**
+   - Se agregaron atributos explícitos `width="100%"`, `height="100%"` y un retardo de renderizado `debounce={50}` a todos los componentes `ResponsiveContainer` en `AdminOverview.tsx` y `FinancialStatistics.tsx`.
+   - Se removió la propiedad redundante `minWidth` del contenedor flex/grid envolvente.
+2. **Estabilidad:**
+   - Compilación y build exitosos sin advertencias ni errores en el bundle de producción.
+
