@@ -9,6 +9,7 @@ export interface NewsItem {
   summary: string;
   isLocal?: boolean;
   content?: string;
+  timestamp?: number;
 }
 
 async function fetchRssNews(): Promise<NewsItem[]> {
@@ -31,9 +32,11 @@ async function fetchRssNews(): Promise<NewsItem[]> {
       const pubDate = item.pubDate;
 
       let formattedDate = "Fecha desconocida";
+      let timestamp = 0;
       if (pubDate) {
         const dateObj = new Date(pubDate.replace(" ", "T"));
         if (!isNaN(dateObj.getTime())) {
+          timestamp = dateObj.getTime();
           formattedDate = dateObj.toLocaleDateString("es-AR", {
             year: "numeric",
             month: "long",
@@ -75,6 +78,7 @@ async function fetchRssNews(): Promise<NewsItem[]> {
         imgUrl,
         summary: cleanSummary,
         isLocal: false,
+        timestamp,
       };
     });
   } catch (error) {
@@ -99,23 +103,28 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
       return rssNews;
     }
 
-    const localNews: NewsItem[] = (dbNews || []).map((item) => ({
-      id: item.id,
-      title: item.title,
-      link: item.link || `/prensa/${item.id}`,
-      date: new Date(item.created_at).toLocaleDateString("es-AR", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-      imgUrl: item.img_url || "",
-      summary: item.summary || "",
-      content: item.content || "",
-      isLocal: true,
-    }));
+    const localNews: NewsItem[] = (dbNews || []).map((item) => {
+      const dateObj = new Date(item.created_at);
+      return {
+        id: item.id,
+        title: item.title,
+        link: item.link || `/prensa/${item.id}`,
+        date: dateObj.toLocaleDateString("es-AR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        imgUrl: item.img_url || "",
+        summary: item.summary || "",
+        content: item.content || "",
+        isLocal: true,
+        timestamp: dateObj.getTime(),
+      };
+    });
 
-    // 3. Merge (Local news first)
-    return [...localNews, ...rssNews];
+    // 3. Merge and Sort (Newest first)
+    const allNews = [...localNews, ...rssNews];
+    return allNews.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   } catch (error) {
     console.error("General Fetch Error:", error);
     return [];
