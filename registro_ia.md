@@ -337,3 +337,14 @@
 2. **Zoom en Convenios/Beneficios (`GridBeneficios.tsx`):**
    * Se replicó el comportamiento de escalado `isZoomedIn` y el cierre por click en el backdrop dentro de la vista ampliada de la galería de los convenios.
    * La estructura HTML se ajustó aislando el `Box` interno para prevenir que un click en la imagen accidentalmente cierre el modal, requiriendo estrictamente `stopPropagation`.
+
+## [ÉXITO] - Estilización de Transición de Sección Inicial (Shape Divider)
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se agregó coherencia visual estilizada entre la división principal ("Seccional Noroeste" / "Descargar App") y el panel de Afiliados.
+
+### Cambios realizados:
+1. **Curva Celeste en `Inicio.tsx`:**
+   * Se insertó un divisor de forma interactivo y estilizado (Shape Divider SVG de ondas múltiples) en la parte inferior de la sección principal "Hero".
+   * Este separador consta de múltiples curvas entrelazadas que respetan el patrón de colores del tema, incorporando un "borde celeste" dinámico (`theme.palette.info.light` e `info.dark`).
+   * Se configuró para que se adapte perfectamente al fondo blanco/del sistema que lo sigue, brindando una fluidez ininterrumpida antes del inicio de la cuadrícula de afiliados.
