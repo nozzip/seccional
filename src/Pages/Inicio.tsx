@@ -376,32 +376,24 @@ function Inicio() {
           </Button>
         </MotionBox>
 
-        {/* Borde Institucional (Shape Divider Geométrico) */}
+        {/* Borde Institucional (Líneas horizontales) */}
         <Box
           sx={{
             position: "absolute",
-            bottom: -1,
+            bottom: 0,
             left: 0,
             width: "100%",
-            overflow: "hidden",
-            lineHeight: 0,
-            pointerEvents: "none",
+            display: "flex",
+            flexDirection: "column",
             zIndex: 1,
           }}
         >
-          <svg 
-            viewBox="0 0 1440 120" 
-            xmlns="http://www.w3.org/2000/svg" 
-            style={{ display: 'block', width: '100%', height: 'auto', minHeight: '60px', maxHeight: '120px' }} 
-            preserveAspectRatio="none"
-          >
-            {/* Capa 1: Borde celeste translúcido */}
-            <polygon points="0,60 1440,0 1440,120 0,120" fill={theme.palette.info.dark} opacity="0.3" />
-            {/* Capa 2: Borde celeste vibrante */}
-            <polygon points="0,80 1440,20 1440,120 0,120" fill={theme.palette.info.main} opacity="0.7" />
-            {/* Capa 3: Fondo limpio que conecta con la siguiente sección */}
-            <polygon points="0,100 1440,40 1440,120 0,120" fill={theme.palette.background.default} />
-          </svg>
+          {/* Capa 1: Franja sutil superior */}
+          <Box sx={{ height: '4px', bgcolor: alpha(theme.palette.info.light, 0.3) }} />
+          {/* Capa 2: Franja media */}
+          <Box sx={{ height: '6px', bgcolor: alpha(theme.palette.info.main, 0.6) }} />
+          {/* Capa 3: Franja principal gruesa */}
+          <Box sx={{ height: '12px', bgcolor: theme.palette.info.main }} />
         </Box>
       </Box>
 
