@@ -34,7 +34,15 @@ async function fetchRssNews(): Promise<NewsItem[]> {
       let formattedDate = "Fecha desconocida";
       let timestamp = 0;
       if (pubDate) {
-        const dateObj = new Date(pubDate.replace(" ", "T"));
+        // Many RSS feeds provide dates like "Tue, 23 Jun 2026 12:00:00 GMT"
+        // Sometimes api.rss2json.com formats it as "YYYY-MM-DD HH:MM:SS"
+        // We will try standard parsing first, and fallback if necessary.
+        let dateObj = new Date(pubDate);
+        if (isNaN(dateObj.getTime())) {
+           // Fallback for "YYYY-MM-DD HH:MM:SS"
+           dateObj = new Date(pubDate.replace(" ", "T"));
+        }
+        
         if (!isNaN(dateObj.getTime())) {
           timestamp = dateObj.getTime();
           formattedDate = dateObj.toLocaleDateString("es-AR", {
