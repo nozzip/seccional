@@ -60,6 +60,7 @@ export default function AddAffiliateModal({
       const { error: insertError } = await supabase.from("affiliates").insert([
         {
           ...formData,
+          ciudad: formData.provincia,
           branch: "noroeste",
         },
       ]);
@@ -156,14 +157,6 @@ export default function AddAffiliateModal({
               label="Provincia"
               name="provincia"
               value={formData.provincia}
-              onChange={handleChange}
-              size="small"
-            />
-            <TextField
-              fullWidth
-              label="Ciudad"
-              name="ciudad"
-              value={formData.ciudad}
               onChange={handleChange}
               size="small"
             />

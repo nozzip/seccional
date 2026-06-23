@@ -76,7 +76,7 @@ const authorities = [
     level: 3,
   },
   {
-    name: "BADINO, CRISTINA VALERIA",
+    name: "ISA TORANZOS, JACQUELINE SILVANA",
     role: "SECRETARIA DE GÉNERO E IGUALDAD DE OPORTUNIDADES",
     location: "Salta",
     level: 3,
@@ -111,13 +111,7 @@ const authorities = [
     level: 4,
     category: "Vocales",
   },
-  {
-    name: "ISA TORANZOS, JACQUELINE SILVANA",
-    role: "VOCAL",
-    location: "Salta",
-    level: 4,
-    category: "Vocales",
-  },
+
   {
     name: "BAZAN, CARLOS JAVIER",
     role: "VOCAL",

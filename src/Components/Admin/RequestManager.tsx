@@ -404,6 +404,9 @@ export default function RequestManager() {
                                     <Box sx={{ mt: 2 }}>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Datos del Trabajador:</Typography>
                                         <Typography variant="body2">CUIL: {selectedRequest.data?.worker?.cuil}</Typography>
+                                        <Typography variant="body2">Legajo: {selectedRequest.data?.worker?.legajo}</Typography>
+                                        <Typography variant="body2">Email: {selectedRequest.data?.worker?.email}</Typography>
+                                        <Typography variant="body2">Teléfono: {selectedRequest.data?.worker?.telefono}</Typography>
                                         <Typography variant="body2">Dependencia: {selectedRequest.data?.worker?.dependencia}</Typography>
                                         <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 700 }}>Grupo Familiar ({selectedRequest.data?.family?.length || 0}):</Typography>
                                         {selectedRequest.data?.family?.map((f: any, i: number) => (
@@ -453,6 +456,9 @@ export default function RequestManager() {
                                 <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 900 }}>Solicitante</Typography>
                                 <Typography variant="body2"><strong>{selectedRequest.requester_info?.nombre}</strong></Typography>
                                 {selectedRequest.requester_info?.legajo && <Typography variant="body2">Legajo: {selectedRequest.requester_info.legajo}</Typography>}
+                                {selectedRequest.requester_info?.cuil && <Typography variant="body2">CUIL: {selectedRequest.requester_info.cuil}</Typography>}
+                                {selectedRequest.requester_info?.email && <Typography variant="body2">Email: {selectedRequest.requester_info.email}</Typography>}
+                                {selectedRequest.requester_info?.telefono && <Typography variant="body2">Teléfono: {selectedRequest.requester_info.telefono}</Typography>}
                             </Grid>
 
                             <Grid item xs={12}>

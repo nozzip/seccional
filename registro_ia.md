@@ -277,3 +277,21 @@
    - Se modificó la función `fetchRssNews` en `src/utils/newsFetcher.ts` para migrar del proxy caído a `api.rss2json.com`, el cual proporciona estabilidad, manejo de CORS y conversión de XML a JSON en una sola llamada.
    - Se refactorizó la lógica de parseo, reemplazando el uso de `DOMParser` sobre XML en crudo por un mapeo directo de los objetos JSON devueltos por la API.
    - Se mantuvo intacta la lógica local de procesamiento de fechas, imágenes de fallback y límite de caracteres en el resumen.
+
+## [ÉXITO] - Optimización de Gestión de Afiliados y Consolidación Geográfica
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se refinaron los filtros y visualización de la sección "Gestión de Afiliados". Se removió el campo redundante de "Ciudad" para consolidar los datos únicamente bajo "Provincia", y se corrigió la lógica de los filtros de estado para que actúen con operador OR en lugar de exigir simultaneidad ilógica.
+
+### Cambios realizados:
+1. **Consolidación Geográfica:**
+   - Se removió la visualización e inputs del campo "Ciudad" en los modales `AddAffiliateModal.tsx` y `AffiliateDetailsModal.tsx`.
+   - Se modificaron los guardados en base de datos para mapear el campo `ciudad` al valor de `provincia` de forma automática, garantizando compatibilidad retrospectiva en el esquema de Supabase.
+   - Se removió la columna "Ciudad" de las tablas de Titulares y Familiares en `AfiliadosManager.tsx`, así como de la exportación de Excel.
+2. **Corrección de Lógica de Filtros de Estado:**
+   - Se actualizó el hook `useMemo` de `baseAffiliates` en `AfiliadosManager.tsx` para aplicar una lógica de filtro OR en lugar de AND (los afiliados activos AEFIP no son de UPS y viceversa, por lo que requerir ambos resultaba en una grilla vacía).
+   - Se modificaron las tarjetas de conteo InfoCard para mostrar "Afiliados Activos" (activos exclusivos), "UPS / Doble Afiliación" (is_ups) y "Jubilados Aportantes" respectivamente.
+3. **Mantenibilidad:**
+   - Se removió la variable de estado `selectedCities` y todos sus efectos y cálculos asociados.
+   - Compilación y build exitosos a través de Vite.
+

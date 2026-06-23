@@ -71,6 +71,21 @@ export default function AffiliateDetailsModal({
 
   // Edit State for Affiliate
   const [editData, setEditData] = useState<any>({});
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("current_affiliate");
+    if (stored) {
+      setCurrentUser(JSON.parse(stored));
+    }
+  }, []);
+
+  const isAdmin = currentUser && (
+    currentUser.role === 'admin' ||
+    currentUser.role === 'superadmin' ||
+    ['34185803', '042418/00', '23276817159'].includes(currentUser.legajo) ||
+    ['34185803', '23276817159'].includes(currentUser.cuil)
+  );
 
   const [newMember, setNewMember] = useState<Partial<FamilyMember>>({
     nombre: "",
@@ -246,6 +261,7 @@ export default function AffiliateDetailsModal({
                 />
               )}
               {affiliate.legajo && <Chip label="AEFIP" size="small" color="info" sx={{ fontWeight: 800, height: 20 }} />}
+              {affiliate.role === 'admin' && <Chip label="ADMIN" size="small" color="error" sx={{ fontWeight: 900, height: 20 }} />}
             </Stack>
           </Box>
         </Stack>
@@ -290,11 +306,7 @@ export default function AffiliateDetailsModal({
             <Stack direction="row" spacing={2}>
               <TextField
                 fullWidth label="Provincia" value={editData.provincia || ""}
-                onChange={(e) => setEditData({...editData, provincia: e.target.value})}
-              />
-              <TextField
-                fullWidth label="Ciudad" value={editData.ciudad || ""}
-                onChange={(e) => setEditData({...editData, ciudad: e.target.value})}
+                onChange={(e) => setEditData({...editData, provincia: e.target.value, ciudad: e.target.value})}
               />
             </Stack>
 
@@ -358,6 +370,24 @@ export default function AffiliateDetailsModal({
                 }
                 label="Afiliado UPS"
               />
+              {isAdmin && (
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={editData.role === 'admin'}
+                      onChange={(e) => {
+                        const makeAdmin = e.target.checked;
+                        if (window.confirm(`¿Está seguro de que desea ${makeAdmin ? 'otorgar' : 'quitar'} los permisos de administrador a este afiliado?`)) {
+                          setEditData({...editData, role: makeAdmin ? 'admin' : 'user'});
+                        }
+                      }}
+                      color="error"
+                    />
+                  }
+                  label="Admin"
+                  sx={{ color: 'error.main', '& .MuiTypography-root': { fontWeight: 800 } }}
+                />
+              )}
               <Button
                 variant="contained"
                 startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}

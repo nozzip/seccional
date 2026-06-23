@@ -15,6 +15,7 @@ import Grid2 from "@mui/material/Grid2";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { Link } from "react-router-dom";
+import Carusel from "../Components/ContentsFront/Carusel";
 import BirthdayCarousel from "../Components/ContentsFront/BirthdayCarousel";
 import CardNoticias from "../Components/ContentsFront/CardNoticias";
 import CardServicios from "../Components/ContentsFront/CardServicios";
@@ -417,12 +418,19 @@ function Inicio() {
                 >
                   AFILIADOS
                 </Typography>
-                <Grid2 container spacing={6}>
-                  <Grid2 size={{ xs: 12, lg: 8 }}>
-                    <BirthdayCarousel />
+                <Grid2 container spacing={4} alignItems="stretch">
+                  <Grid2 size={{ xs: 12, lg: 9 }} sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <Carusel />
+                    </Box>
                   </Grid2>
-                  <Grid2 size={{ xs: 12, lg: 4 }}>
-                    <Birthdays />
+                  <Grid2 size={{ xs: 12, lg: 3 }} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ flex: 1, minHeight: 0 }}>
+                      <BirthdayCarousel />
+                    </Box>
+                    <Box>
+                      <Birthdays />
+                    </Box>
                   </Grid2>
                 </Grid2>
               </Box>

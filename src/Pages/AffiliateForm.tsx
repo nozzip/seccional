@@ -149,7 +149,8 @@ export default function AffiliateForm() {
                         nombre: `${workerData.nombre} ${workerData.apellido}`,
                         cuil: workerData.cuil,
                         legajo: workerData.legajo,
-                        email: workerData.email
+                        email: workerData.email,
+                        telefono: workerData.telefono
                     },
                     data: {
                         worker: workerData,
