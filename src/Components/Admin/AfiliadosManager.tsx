@@ -175,6 +175,26 @@ const calculateAge = (dateString: string | null): number | null => {
   return age;
 };
 
+export const cleanLocationName = (name: string | null | undefined): string => {
+  if (!name) return "";
+  const upper = name.trim().toUpperCase();
+  
+  if (upper.includes("TUCUMAN") || upper.includes("TUCUMÁN")) {
+    return "TUCUMAN";
+  }
+  if (upper.includes("JUJUY")) {
+    return "JUJUY";
+  }
+  if (upper.includes("CATAMARCA")) {
+    return "CATAMARCA";
+  }
+  if (upper.includes("ORAN") || upper.includes("ORÁN")) {
+    return "ORAN";
+  }
+  
+  return upper;
+};
+
 const fixLocation = (prov: string, city: string) => {
   const p = prov.trim().toUpperCase();
   const c = city.trim().toUpperCase();
@@ -185,14 +205,20 @@ const fixLocation = (prov: string, city: string) => {
     "NEUQUEN", "RIO NEGRO", "CHUBUT", "SANTA CRUZ", "TIERRA DEL FUEGO"
   ];
 
+  let rawProv = prov;
+  let rawCity = city;
+
   // If Province looks like a city (more specific) and City looks like a province (broader)
   if (p.includes("S.M.") || p.includes("SAN MIGUEL") || p.includes("S.S. DE") || p.includes("SAN SALVADOR") || p.includes("CAPITAL")) {
-    return { provincia: city, ciudad: prov };
+    rawProv = city;
+    rawCity = prov;
+  } else if (provincesList.includes(c) && !provincesList.includes(p)) {
+    rawProv = city;
+    rawCity = prov;
   }
-  if (provincesList.includes(c) && !provincesList.includes(p)) {
-    return { provincia: city, ciudad: prov };
-  }
-  return { provincia: prov, ciudad: city };
+
+  const cleaned = cleanLocationName(rawProv);
+  return { provincia: cleaned, ciudad: cleaned };
 };
 
 export default function AfiliadosManager() {
@@ -266,13 +292,17 @@ export default function AfiliadosManager() {
       (famResponse.data || []).forEach((f: any) => {
         countMap[f.affiliate_id] = (countMap[f.affiliate_id] || 0) + 1;
       });
-
-      const affsWithSearch = (affResponse.data || []).map((a: any) => ({
-        ...a,
-        family_count: countMap[a.id] || 0,
-        _searchStr:
-          `${a.nombre} ${a.apellido} ${a.cuil} ${a.legajo} ${a.dni}`.toLowerCase(),
-      }));
+      const affsWithSearch = (affResponse.data || []).map((a: any) => {
+        const cleanedProv = cleanLocationName(a.provincia);
+        return {
+          ...a,
+          provincia: cleanedProv,
+          ciudad: cleanedProv,
+          family_count: countMap[a.id] || 0,
+          _searchStr:
+            `${a.nombre} ${a.apellido} ${a.cuil} ${a.legajo} ${a.dni}`.toLowerCase(),
+        };
+      });
 
       // Build Family Member Details
       const familyDetails: FamilyMemberDetail[] = (famResponse.data || [])
@@ -282,13 +312,17 @@ export default function AfiliadosManager() {
             (parentItem: any) => parentItem.id === f.affiliate_id,
           );
 
+          const cleanedProv = parent ? parent.provincia : cleanLocationName(f.provincia);
+
           return {
             ...f,
+            provincia: cleanedProv,
+            ciudad: cleanedProv,
             parent_cuil: parent?.cuil || "",
             parent_nombre: parent?.nombre || "",
             parent_apellido: parent?.apellido || "",
-            parent_provincia: parent?.provincia || "",
-            parent_ciudad: parent?.ciudad || "",
+            parent_provincia: cleanedProv,
+            parent_ciudad: cleanedProv,
             _inferredGender: inferGender(f.nombre, f.dni),
             _searchStr:
               `${f.nombre} ${f.apellido} ${f.dni} ${parent?.nombre} ${parent?.apellido} ${parent?.cuil}`.toLowerCase(),
@@ -1073,17 +1107,20 @@ export default function AfiliadosManager() {
           shouldSwap = true;
         }
 
-        if (shouldSwap) {
+        const rawProv = shouldSwap ? aff.ciudad : aff.provincia;
+        const cleanProv = cleanLocationName(rawProv);
+
+        if (aff.provincia !== cleanProv || aff.ciudad !== cleanProv) {
           toUpdate.push({
             id: aff.id,
-            provincia: aff.ciudad, // Correct: Province is usually the broader one
-            ciudad: aff.provincia  // Correct: City is the specific one
+            provincia: cleanProv,
+            ciudad: cleanProv
           });
         }
       }
 
       if (toUpdate.length === 0) {
-        alert("No se encontraron registros para normalizar.");
+        alert("Todos los registros ya están normalizados.");
         return;
       }
 

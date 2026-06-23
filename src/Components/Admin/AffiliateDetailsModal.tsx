@@ -38,6 +38,7 @@ import ChildCareIcon from "@mui/icons-material/ChildCare";
 import SaveIcon from "@mui/icons-material/Save";
 import { supabase } from "../../supabaseClient";
 import { logAction } from "../../utils/auditLogger";
+import { cleanLocationName } from "./AfiliadosManager";
 
 interface FamilyMember {
   id?: number;
@@ -128,12 +129,17 @@ export default function AffiliateDetailsModal({
     if (!affiliate) return;
     setSaving(true);
     try {
-      // Remove local helper fields before save
+      const cleanProv = cleanLocationName(editData.provincia);
       const { family_count, _searchStr, ...dataToSave } = editData;
+      const dataToSaveWithClean = {
+        ...dataToSave,
+        provincia: cleanProv,
+        ciudad: cleanProv
+      };
       
       const { error } = await supabase
         .from("affiliates")
-        .update(dataToSave)
+        .update(dataToSaveWithClean)
         .eq("id", affiliate.id);
 
       if (error) throw error;

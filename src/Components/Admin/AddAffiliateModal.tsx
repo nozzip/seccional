@@ -19,6 +19,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { supabase } from "../../supabaseClient";
 import { logAction } from "../../utils/auditLogger";
+import { cleanLocationName } from "./AfiliadosManager";
 
 interface AddAffiliateModalProps {
   open: boolean;
@@ -57,10 +58,12 @@ export default function AddAffiliateModal({
     setError(null);
 
     try {
+      const cleanProv = cleanLocationName(formData.provincia);
       const { error: insertError } = await supabase.from("affiliates").insert([
         {
           ...formData,
-          ciudad: formData.provincia,
+          provincia: cleanProv,
+          ciudad: cleanProv,
           branch: "noroeste",
         },
       ]);

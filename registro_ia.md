@@ -307,3 +307,20 @@
 2. **Estabilidad:**
    - Compilación y build exitosos sin advertencias ni errores en el bundle de producción.
 
+## [ÉXITO] - Normalización Geográfica Unificada de Provincias
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se implementó una lógica de mapeo geográfico estricto para unificar denominaciones de provincias y subdelegaciones del Noroeste (ej: "S.M. Tucumán" -> "Tucumán").
+
+### Cambios realizados:
+1. **Unificación Geográfica:**
+   - Se definió la función `cleanLocationName` para unificar valores a mayúsculas limpias:
+     - `"S.M. TUCUMAN"`, `"SAN MIGUEL DE TUCUMAN"`, etc. -> `"TUCUMAN"`
+     - `"SS JUJUY"`, `"SAN SALVADOR DE JUJUY"`, etc. -> `"JUJUY"`
+     - `"SF CATAMARCA"`, `"SAN FERNANDO DE CATAMARCA"`, etc. -> `"CATAMARCA"`
+     - `"SAN RAMON DE LA NUEVA ORAN"`, etc. -> `"ORAN"`
+   - Se integró este limpiador en `fetchAffiliates` para limpiar en tiempo real los registros cargados de la base de datos.
+   - Se actualizó `AddAffiliateModal.tsx` y `AffiliateDetailsModal.tsx` para forzar la limpieza al insertar o actualizar afiliados.
+   - Se actualizó el botón/procedimiento manual `handleNormalizeLocations` en `AfiliadosManager.tsx` para re-escribir y sanear permanentemente los registros inconsistentes en Supabase en lotes.
+
+
