@@ -338,13 +338,13 @@
    * Se replicó el comportamiento de escalado `isZoomedIn` y el cierre por click en el backdrop dentro de la vista ampliada de la galería de los convenios.
    * La estructura HTML se ajustó aislando el `Box` interno para prevenir que un click en la imagen accidentalmente cierre el modal, requiriendo estrictamente `stopPropagation`.
 
-## [ÉXITO] - Estilización de Transición de Sección Inicial (Shape Divider)
+## [ÉXITO] - Estilización de Transición de Sección Inicial (Líneas Horizontales)
 **Fecha:** 2026-06-23
 **Modo:** Mejorar
 **Descripción:** Se agregó coherencia visual estilizada entre la división principal ("Seccional Noroeste" / "Descargar App") y el panel de Afiliados.
 
 ### Cambios realizados:
-1. **Corte Oblicuo Institucional en `Inicio.tsx`:**
-   * Se reemplazó el separador de ondas anterior por un divisor geométrico (Shape Divider de polígonos paralelos) en la parte inferior de la sección principal "Hero".
-   * Este separador consta de múltiples cortes diagonales ("slants") paralelos que convergen en la esquina inferior izquierda.
-   * Utiliza el patrón de colores del tema, incorporando líneas dinámicas translúcidas (`theme.palette.info.dark` y `info.main`) para generar la ilusión de velocidad, modernidad y seriedad corporativa, antes de fusionarse con el fondo del sistema.
+1. **Líneas Horizontales en `Inicio.tsx`:**
+   * Se ajustó el divisor a un esquema de franjas horizontales rectas para mantener estricta coherencia con los demás elementos (ortogonales) de la página.
+   * Se empleó una composición CSS multicapa en lugar de SVG, conformada por 3 bandas apiladas verticalmente.
+   * La estructura de las franjas varía en su altura (`4px`, `6px`, `12px`) e intensidad del color (`alpha` translucido hacia un tono sólido `info.main`), dando una sensación sutil de degradado escalonado ("borde celeste") altamente profesional.
