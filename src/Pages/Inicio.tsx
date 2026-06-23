@@ -376,7 +376,7 @@ function Inicio() {
           </Button>
         </MotionBox>
 
-        {/* Borde celeste ondulado (Shape Divider) */}
+        {/* Borde Institucional (Shape Divider Geométrico) */}
         <Box
           sx={{
             position: "absolute",
@@ -390,14 +390,17 @@ function Inicio() {
           }}
         >
           <svg 
-            viewBox="0 0 1440 320" 
+            viewBox="0 0 1440 120" 
             xmlns="http://www.w3.org/2000/svg" 
-            style={{ display: 'block', width: '100%', height: 'auto', minHeight: '80px', maxHeight: '180px' }} 
+            style={{ display: 'block', width: '100%', height: 'auto', minHeight: '60px', maxHeight: '120px' }} 
             preserveAspectRatio="none"
           >
-            <path fill={theme.palette.info.dark} fillOpacity="0.4" d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-            <path fill={theme.palette.info.light} fillOpacity="0.8" d="M0,256L48,245.3C96,235,192,213,288,186.7C384,160,480,128,576,144C672,160,768,224,864,229.3C960,235,1056,181,1152,149.3C1248,117,1344,107,1392,101.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-            <path fill={theme.palette.background.default} fillOpacity="1" d="M0,64L48,80C96,96,192,128,288,128C384,128,480,96,576,112C672,128,768,192,864,208C960,224,1056,192,1152,176C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+            {/* Capa 1: Borde celeste translúcido */}
+            <polygon points="0,60 1440,0 1440,120 0,120" fill={theme.palette.info.dark} opacity="0.3" />
+            {/* Capa 2: Borde celeste vibrante */}
+            <polygon points="0,80 1440,20 1440,120 0,120" fill={theme.palette.info.main} opacity="0.7" />
+            {/* Capa 3: Fondo limpio que conecta con la siguiente sección */}
+            <polygon points="0,100 1440,40 1440,120 0,120" fill={theme.palette.background.default} />
           </svg>
         </Box>
       </Box>
