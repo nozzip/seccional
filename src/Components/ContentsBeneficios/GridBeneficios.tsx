@@ -372,6 +372,12 @@ function BenefitItemComponent({
   const [reportSuccess, setReportSuccess] = useState(false);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [isZoomedIn, setIsZoomedIn] = useState(false);
+
+  const handleCloseZoom = () => {
+    setZoomImage(null);
+    setIsZoomedIn(false);
+  };
   const theme = useTheme();
 
   const handleOpen = useCallback(() => {
@@ -917,27 +923,38 @@ function BenefitItemComponent({
       </Dialog>
       <Dialog 
         open={!!zoomImage} 
-        onClose={() => setZoomImage(null)} 
+        onClose={handleCloseZoom} 
         maxWidth="lg" 
         fullWidth
         PaperProps={{
+          onClick: handleCloseZoom,
           sx: { 
             bgcolor: 'transparent', 
             boxShadow: 'none',
-            overflow: 'hidden',
+            overflow: isZoomedIn ? 'auto' : 'hidden',
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'center'
+            alignItems: 'center',
+            cursor: 'zoom-out'
           }
         }}
       >
-        <Box sx={{ position: 'relative', display: 'inline-block' }}>
+        <Box 
+          onClick={(e) => e.stopPropagation()} 
+          sx={{ 
+            position: 'relative', 
+            display: 'inline-block',
+            textAlign: 'center',
+            overflow: isZoomedIn ? 'auto' : 'hidden',
+            p: 2
+          }}
+        >
           <IconButton 
-            onClick={() => setZoomImage(null)}
+            onClick={handleCloseZoom}
             sx={{ 
               position: 'absolute', 
-              top: 16, 
-              right: 16, 
+              top: 24, 
+              right: 24, 
               color: 'white', 
               bgcolor: 'rgba(0,0,0,0.5)',
               zIndex: 10,
@@ -946,16 +963,22 @@ function BenefitItemComponent({
           >
             <CloseIcon />
           </IconButton>
-          <img 
-            src={zoomImage || ""} 
-            alt="Zoomed Benefit" 
-            style={{ 
-              maxWidth: '100%', 
-              maxHeight: '90vh', 
-              objectFit: 'contain',
-              borderRadius: 8
-            }} 
-          />
+          {zoomImage && (
+            <img 
+              src={zoomImage} 
+              alt="Zoomed Benefit" 
+              onClick={(e) => { e.stopPropagation(); setIsZoomedIn(!isZoomedIn); }}
+              style={{ 
+                maxWidth: isZoomedIn ? 'none' : '100%', 
+                maxHeight: isZoomedIn ? 'none' : '90vh', 
+                width: isZoomedIn ? '180%' : 'auto',
+                objectFit: 'contain',
+                borderRadius: 8,
+                cursor: isZoomedIn ? 'zoom-out' : 'zoom-in',
+                transition: 'all 0.3s ease-in-out'
+              }} 
+            />
+          )}
         </Box>
       </Dialog>
     </>

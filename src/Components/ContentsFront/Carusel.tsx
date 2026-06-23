@@ -22,6 +22,12 @@ function Carusel() {
   const [adding, setAdding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [isZoomedIn, setIsZoomedIn] = useState(false);
+
+  const handleCloseZoom = () => {
+    setZoomImage(null);
+    setIsZoomedIn(false);
+  };
 
   useEffect(() => {
     const checkUser = () => {
@@ -137,6 +143,12 @@ function Carusel() {
   };
 
   const handleDeleteImage = async (id: string) => {
+    // Check if the ID is a UUID. If not, it's a mock image.
+    if (!id.includes('-')) {
+      alert("Esta es una imagen predeterminada de demostración y no puede ser eliminada. Por favor, agrega tus propias imágenes.");
+      return;
+    }
+
     if (!window.confirm("¿Estás seguro de eliminar esta imagen del carrusel?")) return;
     try {
       const { error } = await supabase
@@ -192,27 +204,38 @@ function Carusel() {
 
       <Dialog 
         open={!!zoomImage} 
-        onClose={() => setZoomImage(null)} 
+        onClose={handleCloseZoom} 
         maxWidth="lg" 
         fullWidth
         PaperProps={{
+          onClick: handleCloseZoom,
           sx: { 
             bgcolor: 'transparent', 
             boxShadow: 'none',
-            overflow: 'hidden',
+            overflow: isZoomedIn ? 'auto' : 'hidden',
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'center'
+            alignItems: 'center',
+            cursor: 'zoom-out'
           }
         }}
       >
-        <Box sx={{ position: 'relative', display: 'inline-block' }}>
+        <Box 
+          onClick={(e) => e.stopPropagation()} 
+          sx={{ 
+            position: 'relative', 
+            display: 'inline-block',
+            textAlign: 'center',
+            overflow: isZoomedIn ? 'auto' : 'hidden',
+            p: 2
+          }}
+        >
           <IconButton 
-            onClick={() => setZoomImage(null)}
+            onClick={handleCloseZoom}
             sx={{ 
               position: 'absolute', 
-              top: 16, 
-              right: 16, 
+              top: 24, 
+              right: 24, 
               color: 'white', 
               bgcolor: 'rgba(0,0,0,0.5)',
               zIndex: 10,
@@ -221,16 +244,22 @@ function Carusel() {
           >
             <CloseIcon />
           </IconButton>
-          <img 
-            src={zoomImage || ""} 
-            alt="Zoomed" 
-            style={{ 
-              maxWidth: '100%', 
-              maxHeight: '90vh', 
-              objectFit: 'contain',
-              borderRadius: 8
-            }} 
-          />
+          {zoomImage && (
+            <img 
+              src={zoomImage} 
+              alt="Zoomed" 
+              onClick={(e) => { e.stopPropagation(); setIsZoomedIn(!isZoomedIn); }}
+              style={{ 
+                maxWidth: isZoomedIn ? 'none' : '100%', 
+                maxHeight: isZoomedIn ? 'none' : '90vh',
+                width: isZoomedIn ? '180%' : 'auto',
+                objectFit: 'contain',
+                borderRadius: 8,
+                cursor: isZoomedIn ? 'zoom-out' : 'zoom-in',
+                transition: 'all 0.3s ease-in-out'
+              }} 
+            />
+          )}
         </Box>
       </Dialog>
 
