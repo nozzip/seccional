@@ -400,3 +400,16 @@
 3. **Verificación de Compilación y Build:**
    - Se ejecutó con éxito `npm run build` confirmando que la aplicación compila y empaqueta el cliente sin ninguna advertencia o error en TypeScript.
 
+## [ÉXITO] - Corrección de Estiramiento Vertical de Carrusel en Dispositivos Móviles
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se corrigió un problema de visualización en la versión móvil donde el carrusel de cumpleaños (`BirthdayCarousel`) quedaba aplanado o estirado verticalmente hasta ~705px debido a la propiedad `flex: 1` combinada con el alineamiento `stretch` del Grid2 padre.
+
+### Cambios realizados:
+1. **Ajuste en Diseño Responsivo (`Inicio.tsx`):**
+   - Se modificó la propiedad `flex: 1` del contenedor de `<BirthdayCarousel />` a un valor condicional responsivo: `flex: { xs: "none", lg: 1 }`.
+   - Esto evita que el carrusel intente expandirse/estirarse en resoluciones móviles, respetando su altura natural fija y proporcional de 350px.
+2. **Compilación y Empaquetado:**
+   - Se validó el cambio generando un build de producción exitoso.
+
+
