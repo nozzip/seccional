@@ -480,3 +480,15 @@
      - **Imagen frontal principal:** La imagen original con `objectFit: 'contain'` y posicionamiento relativo (`zIndex: 1`), manteniéndose 100% visible, nítida y centrada en pantalla.
 2. **Verificación:**
    - Compilación exitosa del bundle de producción sin errores con `npm run build`.
+
+## [ÉXITO] - Ajuste de Altura de Carrusel Principal a 530px en Escritorio
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se modificó la altura del carrusel de banners principal en la versión de escritorio (`Carusel.tsx`) para establecerla de forma fija en `530px`, logrando que la tarjeta del carrusel y su imagen de banner (`objectFit: 'cover'`) se alineen y extiendan perfectamente hasta el borde inferior de la tarjeta de "Cumpleaños del Mes" de la columna lateral derecha.
+
+### Cambios realizados:
+1. **Establecer Altura Fija:**
+   - Se actualizó el valor de `carouselHeight` para computar `530px` cuando la pantalla es de escritorio (`isDesktop`).
+   - Se actualizó el componente `<Box>` de la imagen del banner para usar `height: '100%'` (en lugar de `height: 'auto'`), garantizando que la imagen de banner con `objectFit: 'cover'` se estire verticalmente de forma correcta sin dejar márgenes ni espacios vacíos en la parte inferior.
+2. **Verificación:**
+   - Compilación y build de producción exitoso con `npm run build`.
