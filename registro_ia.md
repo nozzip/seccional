@@ -468,14 +468,15 @@
 4. **Verificación:**
    - Compilación y empaquetado exitoso sin advertencias de tipos.
 
-## [ÉXITO] - Ajuste de Visualización Completa (objectFit: contain) en Carrusel de Banners Principal
+## [ÉXITO] - Ajuste de Visualización Completa con Fondo Desenfocado (Reflejo Backdrop) en Carrusel de Banners Principal
 **Fecha:** 2026-06-24
 **Modo:** Mejorar
-**Descripción:** Se corrigió un problema de visualización en la versión de escritorio del carrusel de banners (`Carusel.tsx`) donde las imágenes/pósters con relaciones de aspecto cuadradas o verticales se recortaban en la parte superior e inferior debido a la propiedad `objectFit: 'cover'`.
+**Descripción:** Se corrigió el problema visual en la versión de escritorio del carrusel de banners (`Carusel.tsx`) donde las imágenes verticales/cuadradas (ej: afiche del Prode Mundial) quedaban recortadas bajo `objectFit: 'cover'`, o se veían muy angostas con márgenes grises planos bajo `objectFit: 'contain'`. Se implementó un fondo de reflejo desenfocado premium.
 
 ### Cambios realizados:
-1. **Visualización Íntegra de Imágenes:**
-   - Se modificó la regla CSS del elemento `<img>` dentro del subcomponente `<Item>` en `Carusel.tsx` de `objectFit: 'cover'` a `objectFit: 'contain'`.
-   - Esto asegura que las proporciones originales del banner o flyer (como el folleto del Prode Mundial) se respeten en su totalidad y se visualicen completas sin importar el tamaño de la pantalla, manteniendo la legibilidad del texto en todo momento.
+1. **Fondo de Reflejo Desenfocado (Blur Backdrop):**
+   - Se modificó el componente `Item` en `Carusel.tsx` para renderizar dos imágenes superpuestas:
+     - **Fondo absoluto:** Una copia de la imagen del banner con `objectFit: 'cover'`, opacidad reducida (`brightness(0.5)`), filtro de desenfoque (`blur(15px)`) y un ligero escalado (`scale(1.1)`) para rellenar los laterales de forma estética y armónica.
+     - **Imagen frontal principal:** La imagen original con `objectFit: 'contain'` y posicionamiento relativo (`zIndex: 1`), manteniéndose 100% visible, nítida y centrada en pantalla.
 2. **Verificación:**
-   - Compilación exitosa del bundle de producción sin errores.
+   - Compilación exitosa del bundle de producción sin errores con `npm run build`.
