@@ -129,11 +129,6 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
         doc.setFont('helvetica', 'normal');
         doc.text(affiliateData.cuil || '-', 20, 40);
 
-        doc.setFont('helvetica', 'bold');
-        doc.text('Legajo:', 5, 46);
-        doc.setFont('helvetica', 'normal');
-        doc.text(affiliateData.legajo, 20, 46);
-
         // Date and Time of Download - ENSURE SOLID GRAY
         const now = new Date();
         const dateStr = now.toLocaleDateString('es-AR');
@@ -215,10 +210,10 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
             // Footer of page 2
             doc.setFontSize(5);
             doc.setTextColor(80, 80, 80);
-            doc.text(`Titular: ${affiliateData.nombre} ${affiliateData.apellido} - Legajo: ${affiliateData.legajo}`, 5, 51);
+            doc.text(`Titular: ${affiliateData.nombre} ${affiliateData.apellido}`, 5, 51);
         }
 
-        doc.save(`Carnet_AEFIP_${affiliateData.legajo}.pdf`);
+        doc.save(`Carnet_AEFIP_${affiliateData.apellido || 'afiliado'}.pdf`);
     };
 
     if (!affiliateData) {
@@ -320,14 +315,7 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
                         </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, position: 'relative', zIndex: 1 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                            Legajo
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            {affiliateData.legajo}
-                        </Typography>
-                    </Box>
+
 
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, position: 'relative', zIndex: 1 }}>
                         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
