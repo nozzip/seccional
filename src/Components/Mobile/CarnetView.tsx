@@ -75,7 +75,7 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
         if (!qrDataUrl) return;
         const link = document.createElement('a');
         link.href = qrDataUrl;
-        link.download = `QR_Carnet_AEFIP_${affiliateData?.legajo || 'afiliado'}.png`;
+        link.download = `QR_Carnet_AEFIP_${affiliateData?.apellido || 'afiliado'}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
