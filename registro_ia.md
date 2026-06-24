@@ -412,4 +412,16 @@
 2. **Compilación y Empaquetado:**
    - Se validó el cambio generando un build de producción exitoso.
 
+## [ÉXITO] - Habilitación del Toggle de Afiliado AEFIP en la Ficha
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se agregó el interruptor/toggle faltante para "Afiliado AEFIP" (`is_aefip`) en el modal de detalles del afiliado [AffiliateDetailsModal.tsx](file:///e:/Noroeste/seccional/src/Components/Admin/AffiliateDetailsModal.tsx), permitiendo que los administradores puedan dar de alta/baja o alternar este estado libremente para cualquier afiliado (incluyendo los de UPS/Jubilados).
+
+### Cambios realizados:
+1. **Adición de Control en UI (`AffiliateDetailsModal.tsx`):**
+   - Agregado el control `<FormControlLabel>` con un `<Switch>` para la variable `is_aefip`, sincronizándolo con el estado reactivo `editData`.
+2. **Compilación:**
+   - Generación exitosa de un build de producción limpio sin advertencias ni errores.
+
+
 
