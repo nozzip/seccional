@@ -363,6 +363,15 @@ export default function AffiliateDetailsModal({
               <FormControlLabel
                 control={
                   <Switch
+                    checked={editData.is_aefip || false}
+                    onChange={(e) => setEditData({...editData, is_aefip: e.target.checked})}
+                  />
+                }
+                label="Afiliado AEFIP"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
                     checked={editData.es_jubilado || false}
                     onChange={(e) => setEditData({...editData, es_jubilado: e.target.checked})}
                   />
