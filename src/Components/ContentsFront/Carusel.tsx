@@ -16,7 +16,7 @@ function Carusel() {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
-  const carouselHeight = isDesktop ? '100%' : (isXs ? 250 : 350);
+  const carouselHeight = isDesktop ? 530 : (isXs ? 250 : 350);
 
   const [images, setImages] = useState<CarouselImage[]>([]);
   const [loading, setLoading] = useState(true);
