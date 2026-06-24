@@ -449,3 +449,33 @@
    - Se actualizó el nombre de guardado del archivo descargado, pasando de usar el legajo a usar el apellido del afiliado (`Carnet_AEFIP_${affiliateData.apellido}.pdf`).
 3. **Verificación:**
    - Compilación y build exitoso con `npm run build`.
+
+## [ÉXITO] - Unificación de Cónyuge en Sección Grupo Familiar (Perfil Móvil)
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se reubicaron los campos de "Cónyuge" (Nombre y DNI) desde la sección de datos personales hacia la sección unificada de "Grupo Familiar" en el perfil móvil (`PerfilView.tsx`), permitiendo agregarlo mediante un modal con selector de parentesco y manteniendo la sincronización directa con las columnas en la tabla `affiliates` de Supabase.
+
+### Cambios realizados:
+1. **Remoción de Campos en Datos Personales (`PerfilView.tsx`):**
+   - Se eliminaron los campos de entrada de cónyuge del formulario de datos personales (modo edición) y el bloque de visualización de cónyuge (modo lectura).
+2. **Integración en la Lista de Grupo Familiar (`PerfilView.tsx`):**
+   - Si el afiliado tiene cónyuge registrado (`affiliateData.conyuge_nombre`), este se renderiza al principio de la lista de familiares con la etiqueta "Cónyuge".
+   - Se añadió un botón de eliminación en este ítem que limpia los campos `conyuge_nombre` y `conyuge_dni` en la base de datos `affiliates` mediante un update.
+3. **Modal de Adición con Selector de Parentesco (`PerfilView.tsx`):**
+   - Al presionar el botón `+` para agregar familiares, se presenta un selector de parentesco: **Hijo/a** o **Cónyuge** (esta opción se oculta automáticamente si ya existe un cónyuge registrado).
+   - Si se selecciona **Cónyuge**, el modal oculta campos irrelevantes (edad, grado escolar) y al guardar, en lugar de insertar en `affiliate_family_members`, realiza un update directo sobre la tabla `affiliates` del titular.
+   - Si se selecciona **Hijo/a**, realiza la inserción estándar en `affiliate_family_members`.
+4. **Verificación:**
+   - Compilación y empaquetado exitoso sin advertencias de tipos.
+
+## [ÉXITO] - Ajuste de Visualización Completa (objectFit: contain) en Carrusel de Banners Principal
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se corrigió un problema de visualización en la versión de escritorio del carrusel de banners (`Carusel.tsx`) donde las imágenes/pósters con relaciones de aspecto cuadradas o verticales se recortaban en la parte superior e inferior debido a la propiedad `objectFit: 'cover'`.
+
+### Cambios realizados:
+1. **Visualización Íntegra de Imágenes:**
+   - Se modificó la regla CSS del elemento `<img>` dentro del subcomponente `<Item>` en `Carusel.tsx` de `objectFit: 'cover'` a `objectFit: 'contain'`.
+   - Esto asegura que las proporciones originales del banner o flyer (como el folleto del Prode Mundial) se respeten en su totalidad y se visualicen completas sin importar el tamaño de la pantalla, manteniendo la legibilidad del texto en todo momento.
+2. **Verificación:**
+   - Compilación exitosa del bundle de producción sin errores.
