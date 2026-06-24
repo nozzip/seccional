@@ -15,8 +15,8 @@ interface CarouselImage {
 function Carusel() {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
-  const isSm = useMediaQuery(theme.breakpoints.down('md'));
-  const carouselHeight = isXs ? 250 : isSm ? 350 : 400;
+  const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+  const carouselHeight = isDesktop ? '100%' : (isXs ? 250 : 350);
 
   const [images, setImages] = useState<CarouselImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -196,6 +196,7 @@ function Carusel() {
               display: 'flex', 
               flexDirection: 'column',
               minHeight: carouselHeight,
+              height: carouselHeight,
               '& .MuiPaper-root': { height: '100%' },
               '& > div': { flex: 1, display: 'flex', flexDirection: 'column' },
               '& > div > div': { flex: 1 }
@@ -330,7 +331,7 @@ function Carusel() {
   );
 }
 
-function Item({ item, isAdmin, onDelete, onZoom, height }: { item: CarouselImage, isAdmin: boolean | null, onDelete: () => void, onZoom: (url: string) => void, height: number }) {
+function Item({ item, isAdmin, onDelete, onZoom, height }: { item: CarouselImage, isAdmin: boolean | null, onDelete: () => void, onZoom: (url: string) => void, height: number | string }) {
   const theme = useTheme();
   return (
     <Paper
@@ -352,26 +353,8 @@ function Item({ item, isAdmin, onDelete, onZoom, height }: { item: CarouselImage
       }}
       onClick={() => onZoom(item.image_url)}
     >
-      {/* Blurred background backdrop */}
-      <Box
-        component="img"
-        src={item.image_url}
-        alt="banner-bg"
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          filter: 'blur(15px) brightness(0.5)',
-          transform: 'scale(1.1)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
+ 
 
-      {/* Main crisp contained image */}
       <Box
         component="img"
         src={item.image_url}
@@ -379,7 +362,7 @@ function Item({ item, isAdmin, onDelete, onZoom, height }: { item: CarouselImage
         sx={{
           width: '100%',
           height: '100%',
-          objectFit: 'contain',
+          objectFit: 'cover',
           position: 'relative',
           zIndex: 1,
         }}
