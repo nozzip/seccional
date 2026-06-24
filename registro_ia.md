@@ -435,4 +435,17 @@
    - Se inyectó la propiedad `height={carouselHeight}` al componente `<Carousel>` para que la biblioteca escriba de forma inline la altura correspondiente en el wrapper del slide track, previniendo el colapso a cero o a valores mínimos incorrectos en móviles.
    - Se pasó dicho valor a cada `<Item>` como parámetro y se forzó en su componente `<Paper>` (`height` y `minHeight` establecidos al valor responsivo calculado).
 3. **Verificación:**
-   - Se ejecutó `npm run build` con éxito asegurando cero errores de compilación TypeScript.
+   - Se ejecutó `npm run build` con éxito asegurando cero errores de compilación TypeScript.## [ÉXITO] - Remoción del Campo de Legajo en el Carnet Digital y PDF
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se removió el campo "Legajo" del carnet digital (tanto en la visualización web de la PWA como en el PDF descargable) por razones de seguridad, ya que el legajo es el dato clave utilizado por el afiliado para autenticarse e ingresar a la aplicación.
+
+### Cambios realizados:
+1. **Limpieza en la Interfaz de Usuario (`CarnetView.tsx`):**
+   - Se removió por completo el bloque `<Box>` que renderizaba la fila "Legajo" en la tarjeta visual del carnet digital.
+2. **Actualización en el Generador del PDF (`CarnetView.tsx`):**
+   - Se eliminaron las líneas de dibujo de texto del Legajo (`Legajo:`) en la página 1 del PDF.
+   - Se actualizó el footer de la página 2 (grupo familiar) para omitir el string del legajo, mostrando únicamente el nombre del titular.
+   - Se actualizó el nombre de guardado del archivo descargado, pasando de usar el legajo a usar el apellido del afiliado (`Carnet_AEFIP_${affiliateData.apellido}.pdf`).
+3. **Verificación:**
+   - Compilación y build exitoso con `npm run build`.
