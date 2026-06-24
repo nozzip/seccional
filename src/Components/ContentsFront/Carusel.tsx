@@ -359,7 +359,7 @@ function Item({ item, isAdmin, onDelete, onZoom, height }: { item: CarouselImage
         sx={{
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: 'contain',
         }}
       />
       
