@@ -348,6 +348,17 @@ export default function AffiliateDetailsModal({
               />
             </Stack>
 
+            <Stack direction="row" spacing={2}>
+              <TextField
+                fullWidth label="Nombre de Cónyuge" value={editData.conyuge_nombre || ""}
+                onChange={(e) => setEditData({...editData, conyuge_nombre: e.target.value})}
+              />
+              <TextField
+                fullWidth label="DNI de Cónyuge" value={editData.conyuge_dni || ""}
+                onChange={(e) => setEditData({...editData, conyuge_dni: e.target.value})}
+              />
+            </Stack>
+
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
               <FormControlLabel
                 control={

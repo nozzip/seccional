@@ -67,6 +67,8 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
         email: '',
         es_jubilado: false,
         fecha_nacimiento: '',
+        conyuge_nombre: '',
+        conyuge_dni: '',
     });
 
     useEffect(() => {
@@ -76,6 +78,8 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 email: affiliateData.email || localStorage.getItem('mobile_app_email') || '',
                 es_jubilado: affiliateData.es_jubilado || localStorage.getItem('mobile_app_jubilado') === 'true',
                 fecha_nacimiento: affiliateData.fecha_nacimiento || localStorage.getItem('mobile_app_fecha_nacimiento') || '',
+                conyuge_nombre: affiliateData.conyuge_nombre || localStorage.getItem('mobile_app_conyuge_nombre') || '',
+                conyuge_dni: affiliateData.conyuge_dni || localStorage.getItem('mobile_app_conyuge_dni') || '',
             });
             fetchAffiliateId();
         }
@@ -132,6 +136,8 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     email: formData.email,
                     es_jubilado: formData.es_jubilado,
                     fecha_nacimiento: formData.fecha_nacimiento || null,
+                    conyuge_nombre: formData.conyuge_nombre || null,
+                    conyuge_dni: formData.conyuge_dni || null,
                 })
                 .eq('legajo', affiliateData.legajo)
                 .eq('branch', 'noroeste');
@@ -143,6 +149,8 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 email: formData.email,
                 es_jubilado: formData.es_jubilado,
                 fecha_nacimiento: formData.fecha_nacimiento,
+                conyuge_nombre: formData.conyuge_nombre,
+                conyuge_dni: formData.conyuge_dni,
             });
 
             setSuccess('Datos guardados correctamente');
@@ -275,6 +283,16 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                 {affiliateData.fecha_nacimiento ? new Date(affiliateData.fecha_nacimiento).toLocaleDateString('es-AR') : '-'}
                             </Typography>
                         </Box>
+                        {(affiliateData.conyuge_nombre || affiliateData.conyuge_dni) && (
+                            <Box sx={{ mb: 2 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                    Cónyuge
+                                </Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                    {affiliateData.conyuge_nombre || '-'} {affiliateData.conyuge_dni ? `(DNI: ${affiliateData.conyuge_dni})` : ''}
+                                </Typography>
+                            </Box>
+                        )}
                     </>
                 )}
 
@@ -314,13 +332,33 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 />
 
 
+                <TextField
+                    fullWidth
+                    label="Nombre de Cónyuge"
+                    value={formData.conyuge_nombre}
+                    onChange={(e) => setFormData({ ...formData, conyuge_nombre: e.target.value })}
+                    disabled={!editMode}
+                    size="small"
+                    sx={{ mb: 2 }}
+                />
+
+                <TextField
+                    fullWidth
+                    label="DNI de Cónyuge"
+                    value={formData.conyuge_dni}
+                    onChange={(e) => setFormData({ ...formData, conyuge_dni: e.target.value })}
+                    disabled={!editMode}
+                    size="small"
+                    sx={{ mb: 2 }}
+                />
+
                 <FormControlLabel
                     control={
                         <Switch
-                            checked={formData.es_jubilado}
-                            onChange={(e) => setFormData({ ...formData, es_jubilado: e.target.checked })}
-                            disabled={!editMode}
-                            color="primary"
+                             checked={formData.es_jubilado}
+                             onChange={(e) => setFormData({ ...formData, es_jubilado: e.target.checked })}
+                             disabled={!editMode}
+                             color="primary"
                         />
                     }
                     label="¿Es jubilado?"
@@ -337,6 +375,8 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                     email: affiliateData.email || '',
                                     es_jubilado: affiliateData.es_jubilado || false,
                                     fecha_nacimiento: affiliateData.fecha_nacimiento || '',
+                                    conyuge_nombre: affiliateData.conyuge_nombre || '',
+                                    conyuge_dni: affiliateData.conyuge_dni || '',
                                 });
                             }}
                             sx={{ flex: 1 }}

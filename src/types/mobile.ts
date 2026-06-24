@@ -8,4 +8,6 @@ export interface AffiliateData {
     es_jubilado?: boolean;
     validation_token?: string;
     fecha_nacimiento?: string;
+    conyuge_nombre?: string;
+    conyuge_dni?: string;
 }

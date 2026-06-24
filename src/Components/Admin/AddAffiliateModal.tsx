@@ -40,6 +40,8 @@ export default function AddAffiliateModal({
     provincia: "",
     ciudad: "",
     sexo: "Hombre",
+    conyuge_nombre: "",
+    conyuge_dni: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +87,8 @@ export default function AddAffiliateModal({
         provincia: "",
         ciudad: "",
         sexo: "Hombre",
+        conyuge_nombre: "",
+        conyuge_dni: "",
       });
     } catch (err: any) {
       console.error(err);
@@ -160,6 +164,25 @@ export default function AddAffiliateModal({
               label="Provincia"
               name="provincia"
               value={formData.provincia}
+              onChange={handleChange}
+              size="small"
+            />
+          </Stack>
+
+          <Stack direction="row" spacing={2}>
+            <TextField
+              fullWidth
+              label="Nombre de Cónyuge"
+              name="conyuge_nombre"
+              value={formData.conyuge_nombre}
+              onChange={handleChange}
+              size="small"
+            />
+            <TextField
+              fullWidth
+              label="DNI de Cónyuge"
+              name="conyuge_dni"
+              value={formData.conyuge_dni}
               onChange={handleChange}
               size="small"
             />

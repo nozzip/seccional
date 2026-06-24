@@ -16,6 +16,7 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import { AffiliateData } from '../../types/mobile';
 import { jsPDF } from 'jspdf';
 import { generateQRCodeDataURL } from '../../utils/qrGenerator';
+import { supabase } from '../../supabaseClient';
 
 interface CarnetViewProps {
     affiliateData: AffiliateData | null;
@@ -24,6 +25,7 @@ interface CarnetViewProps {
 export default function CarnetView({ affiliateData }: CarnetViewProps) {
     const theme = useTheme();
     const [qrDataUrl, setQrDataUrl] = React.useState<string>('');
+    const [familyMembers, setFamilyMembers] = React.useState<any[]>([]);
 
     React.useEffect(() => {
         const fetchQR = async () => {
@@ -38,6 +40,35 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
             }
         };
         fetchQR();
+    }, [affiliateData]);
+
+    React.useEffect(() => {
+        const fetchFamily = async () => {
+            if (!affiliateData?.legajo) return;
+            try {
+                const { data: affData } = await supabase
+                    .from('affiliates')
+                    .select('id')
+                    .eq('legajo', affiliateData.legajo)
+                    .eq('branch', 'noroeste')
+                    .limit(1);
+
+                if (affData && affData.length > 0) {
+                    const { data: famData } = await supabase
+                        .from('affiliate_family_members')
+                        .select('nombre, apellido, dni')
+                        .eq('affiliate_id', affData[0].id)
+                        .order('nombre', { ascending: true });
+
+                    if (famData) {
+                        setFamilyMembers(famData);
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching family members for carnet:", err);
+            }
+        };
+        fetchFamily();
     }, [affiliateData]);
 
     const downloadQR = () => {
@@ -119,6 +150,72 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
         // QR Code - In PDF
         if (qrDataUrl) {
             doc.addImage(qrDataUrl, 'PNG', 68, 30, 15, 15);
+        }
+
+        // Page 2: Grupo Familiar
+        if (familyMembers.length > 0 || affiliateData.conyuge_nombre) {
+            doc.addPage([85.6, 53.98], 'landscape');
+
+            // Background
+            doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+            doc.rect(0, 0, 85.6, 53.98, 'F');
+
+            // Header
+            doc.setFillColor(26, 95, 122);
+            doc.rect(0, 0, 85.6, 12, 'F');
+
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.text('GRUPO FAMILIAR BENEFICIARIO', 42.8, 8, { align: 'center' });
+
+            doc.setTextColor(0, 0, 0);
+            let yOffset = 18;
+
+            // Render Spouse/Cónyuge
+            if (affiliateData.conyuge_nombre) {
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Cónyuge:', 5, yOffset);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`${affiliateData.conyuge_nombre}`.toUpperCase(), 18, yOffset);
+                if (affiliateData.conyuge_dni) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('DNI:', 55, yOffset);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(affiliateData.conyuge_dni, 62, yOffset);
+                }
+                yOffset += 5;
+            }
+
+            // Render Children
+            if (familyMembers.length > 0) {
+                doc.setFontSize(6.5);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(26, 95, 122);
+                doc.text(`Familiares a cargo (${familyMembers.length}):`, 5, yOffset);
+                doc.setTextColor(0, 0, 0);
+                yOffset += 4.5;
+
+                familyMembers.forEach((member) => {
+                    if (yOffset > 48) return; // Prevent overflow
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(6);
+                    doc.text(`• ${member.nombre} ${member.apellido}`.toUpperCase(), 7, yOffset);
+                    if (member.dni) {
+                        doc.setFont('helvetica', 'bold');
+                        doc.text('DNI:', 55, yOffset);
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(member.dni, 62, yOffset);
+                    }
+                    yOffset += 4;
+                });
+            }
+
+            // Footer of page 2
+            doc.setFontSize(5);
+            doc.setTextColor(80, 80, 80);
+            doc.text(`Titular: ${affiliateData.nombre} ${affiliateData.apellido} - Legajo: ${affiliateData.legajo}`, 5, 51);
         }
 
         doc.save(`Carnet_AEFIP_${affiliateData.legajo}.pdf`);
@@ -238,6 +335,39 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
                         </Typography>
                         <Chip label="Afiliado Activo" color="success" size="small" sx={{ fontWeight: 700 }} />
                     </Box>
+
+                    {/* Cónyuge display */}
+                    {(affiliateData.conyuge_nombre || affiliateData.conyuge_dni) && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, position: 'relative', zIndex: 1 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                Cónyuge
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                {affiliateData.conyuge_nombre || '-'} {affiliateData.conyuge_dni ? `(DNI: ${affiliateData.conyuge_dni})` : ''}
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {/* Grupo Familiar display */}
+                    {familyMembers.length > 0 && (
+                        <Box sx={{ mt: 1.5, mb: 1, position: 'relative', zIndex: 1 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+                                Familiares a cargo ({familyMembers.length})
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, pl: 1, borderLeft: '2px solid', borderColor: 'primary.light' }}>
+                                {familyMembers.map((member, index) => (
+                                    <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                                            • {member.nombre} {member.apellido}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                            DNI: {member.dni || '-'}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </Box>
+                    )}
 
                     <Divider sx={{ my: 2, position: 'relative', zIndex: 1 }} />
 
