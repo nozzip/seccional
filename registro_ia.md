@@ -422,6 +422,17 @@
    - Agregado el control `<FormControlLabel>` con un `<Switch>` para la variable `is_aefip`, sincronizándolo con el estado reactivo `editData`.
 2. **Compilación:**
    - Generación exitosa de un build de producción limpio sin advertencias ni errores.
+## [ÉXITO] - Solución de Altura Responsiva para el Carrusel de Banners Principal en Móvil
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se solucionó el problema en la versión móvil donde el carrusel de banners principal (`Carusel.tsx`) se colapsaba verticalmente (aplanado) debido a la falta de un valor de altura fijo propagado durante las transiciones absolutas de los slides.
 
-
-
+### Cambios realizados:
+1. **Detección y Cómputo Responsivo con `useMediaQuery`:**
+   - Se importó `useMediaQuery` en `Carusel.tsx` para detectar los puntos de quiebre responsivos de Material-UI.
+   - Se computó un valor numérico explícito `carouselHeight`: `250` para móviles (xs), `350` para tablets (sm), y `400` para pantallas de escritorio (md+).
+2. **Propagación de Altura Firme a `react-material-ui-carousel`:**
+   - Se inyectó la propiedad `height={carouselHeight}` al componente `<Carousel>` para que la biblioteca escriba de forma inline la altura correspondiente en el wrapper del slide track, previniendo el colapso a cero o a valores mínimos incorrectos en móviles.
+   - Se pasó dicho valor a cada `<Item>` como parámetro y se forzó en su componente `<Paper>` (`height` y `minHeight` establecidos al valor responsivo calculado).
+3. **Verificación:**
+   - Se ejecutó `npm run build` con éxito asegurando cero errores de compilación TypeScript.
