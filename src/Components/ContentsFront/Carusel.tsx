@@ -352,6 +352,26 @@ function Item({ item, isAdmin, onDelete, onZoom, height }: { item: CarouselImage
       }}
       onClick={() => onZoom(item.image_url)}
     >
+      {/* Blurred background backdrop */}
+      <Box
+        component="img"
+        src={item.image_url}
+        alt="banner-bg"
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          filter: 'blur(15px) brightness(0.5)',
+          transform: 'scale(1.1)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
+      {/* Main crisp contained image */}
       <Box
         component="img"
         src={item.image_url}
@@ -360,6 +380,8 @@ function Item({ item, isAdmin, onDelete, onZoom, height }: { item: CarouselImage
           width: '100%',
           height: '100%',
           objectFit: 'contain',
+          position: 'relative',
+          zIndex: 1,
         }}
       />
       
