@@ -22,6 +22,7 @@ import {
     Chip,
     alpha,
     useTheme,
+    MenuItem,
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import EditIcon from '@mui/icons-material/Edit';
@@ -59,6 +60,7 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
     const [familyDialogOpen, setFamilyDialogOpen] = useState(false);
     const [editingMember, setEditingMember] = useState<Partial<FamilyMember> | null>(null);
     const [affiliateId, setAffiliateId] = useState<number | null>(null);
+    const [memberRelationship, setMemberRelationship] = useState<'hijo' | 'conyuge'>('hijo');
 
     const theme = useTheme();
 
@@ -67,8 +69,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
         email: '',
         es_jubilado: false,
         fecha_nacimiento: '',
-        conyuge_nombre: '',
-        conyuge_dni: '',
     });
 
     useEffect(() => {
@@ -78,8 +78,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 email: affiliateData.email || localStorage.getItem('mobile_app_email') || '',
                 es_jubilado: affiliateData.es_jubilado || localStorage.getItem('mobile_app_jubilado') === 'true',
                 fecha_nacimiento: affiliateData.fecha_nacimiento || localStorage.getItem('mobile_app_fecha_nacimiento') || '',
-                conyuge_nombre: affiliateData.conyuge_nombre || localStorage.getItem('mobile_app_conyuge_nombre') || '',
-                conyuge_dni: affiliateData.conyuge_dni || localStorage.getItem('mobile_app_conyuge_dni') || '',
             });
             fetchAffiliateId();
         }
@@ -136,8 +134,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     email: formData.email,
                     es_jubilado: formData.es_jubilado,
                     fecha_nacimiento: formData.fecha_nacimiento || null,
-                    conyuge_nombre: formData.conyuge_nombre || null,
-                    conyuge_dni: formData.conyuge_dni || null,
                 })
                 .eq('legajo', affiliateData.legajo)
                 .eq('branch', 'noroeste');
@@ -149,8 +145,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 email: formData.email,
                 es_jubilado: formData.es_jubilado,
                 fecha_nacimiento: formData.fecha_nacimiento,
-                conyuge_nombre: formData.conyuge_nombre,
-                conyuge_dni: formData.conyuge_dni,
             });
 
             setSuccess('Datos guardados correctamente');
@@ -167,30 +161,79 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
         if (!affiliateId || !editingMember?.nombre || !editingMember?.apellido) return;
 
         try {
-            const memberToInsert = {
-                affiliate_id: affiliateId,
-                nombre: editingMember.nombre?.trim() || '',
-                apellido: editingMember.apellido?.trim() || '',
-                dni: editingMember.dni?.trim() || null,
-                fecha_nacimiento: editingMember.fecha_nacimiento || null,
-                edad: editingMember.edad || null,
-                grado_escolar: editingMember.grado_escolar?.trim() || null,
-            };
+            if (memberRelationship === 'conyuge') {
+                const fullName = `${editingMember.nombre.trim()} ${editingMember.apellido.trim()}`;
+                const dni = editingMember.dni?.trim() || null;
+                
+                const { error } = await supabase
+                    .from('affiliates')
+                    .update({
+                        conyuge_nombre: fullName,
+                        conyuge_dni: dni
+                    })
+                    .eq('id', affiliateId);
 
-            const { data, error } = await supabase
-                .from('affiliate_family_members')
-                .insert(memberToInsert)
-                .select()
-                .single();
+                if (error) throw error;
 
-            if (error) throw error;
+                onUpdate({
+                    conyuge_nombre: fullName,
+                    conyuge_dni: dni
+                });
+                
+                setFamilyDialogOpen(false);
+                setEditingMember(null);
+                setSuccess('Cónyuge agregado correctamente');
+            } else {
+                const memberToInsert = {
+                    affiliate_id: affiliateId,
+                    nombre: editingMember.nombre?.trim() || '',
+                    apellido: editingMember.apellido?.trim() || '',
+                    dni: editingMember.dni?.trim() || null,
+                    fecha_nacimiento: editingMember.fecha_nacimiento || null,
+                    edad: editingMember.edad || null,
+                    grado_escolar: editingMember.grado_escolar?.trim() || null,
+                };
 
-            setFamilyMembers([...familyMembers, data]);
-            setFamilyDialogOpen(false);
-            setEditingMember(null);
-        } catch (err) {
+                const { data, error } = await supabase
+                    .from('affiliate_family_members')
+                    .insert(memberToInsert)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                setFamilyMembers([...familyMembers, data]);
+                setFamilyDialogOpen(false);
+                setEditingMember(null);
+                setSuccess('Familiar agregado correctamente');
+            }
+        } catch (err: any) {
             console.error('Error adding family member:', err);
             setError('Error al agregar familiar');
+        }
+    };
+
+    const handleDeleteConyuge = async () => {
+        if (!window.confirm('¿Eliminar al cónyuge del grupo familiar?')) return;
+        try {
+            const { error } = await supabase
+                .from('affiliates')
+                .update({
+                    conyuge_nombre: null,
+                    conyuge_dni: null
+                })
+                .eq('id', affiliateId);
+                
+            if (error) throw error;
+            
+            onUpdate({
+                conyuge_nombre: null,
+                conyuge_dni: null
+            });
+            setSuccess('Cónyuge eliminado correctamente');
+        } catch (err) {
+            console.error('Error deleting conyuge:', err);
+            setError('Error al eliminar cónyuge');
         }
     };
 
@@ -283,16 +326,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                 {affiliateData.fecha_nacimiento ? new Date(affiliateData.fecha_nacimiento).toLocaleDateString('es-AR') : '-'}
                             </Typography>
                         </Box>
-                        {(affiliateData.conyuge_nombre || affiliateData.conyuge_dni) && (
-                            <Box sx={{ mb: 2 }}>
-                                <Typography variant="caption" color="text.secondary">
-                                    Cónyuge
-                                </Typography>
-                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                    {affiliateData.conyuge_nombre || '-'} {affiliateData.conyuge_dni ? `(DNI: ${affiliateData.conyuge_dni})` : ''}
-                                </Typography>
-                            </Box>
-                        )}
                     </>
                 )}
 
@@ -332,25 +365,7 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 />
 
 
-                <TextField
-                    fullWidth
-                    label="Nombre de Cónyuge"
-                    value={formData.conyuge_nombre}
-                    onChange={(e) => setFormData({ ...formData, conyuge_nombre: e.target.value })}
-                    disabled={!editMode}
-                    size="small"
-                    sx={{ mb: 2 }}
-                />
 
-                <TextField
-                    fullWidth
-                    label="DNI de Cónyuge"
-                    value={formData.conyuge_dni}
-                    onChange={(e) => setFormData({ ...formData, conyuge_dni: e.target.value })}
-                    disabled={!editMode}
-                    size="small"
-                    sx={{ mb: 2 }}
-                />
 
                 <FormControlLabel
                     control={
@@ -375,8 +390,6 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                     email: affiliateData.email || '',
                                     es_jubilado: affiliateData.es_jubilado || false,
                                     fecha_nacimiento: affiliateData.fecha_nacimiento || '',
-                                    conyuge_nombre: affiliateData.conyuge_nombre || '',
-                                    conyuge_dni: affiliateData.conyuge_dni || '',
                                 });
                             }}
                             sx={{ flex: 1 }}
@@ -407,6 +420,7 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     <IconButton
                         onClick={() => {
                             setEditingMember({ nombre: '', apellido: '', dni: '', edad: undefined });
+                            setMemberRelationship('hijo');
                             setFamilyDialogOpen(true);
                         }}
                         color="primary"
@@ -415,12 +429,42 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     </IconButton>
                 </Box>
 
-                {familyMembers.length === 0 ? (
+                {familyMembers.length === 0 && !affiliateData.conyuge_nombre ? (
                     <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
                         No hay familiares registrados
                     </Typography>
                 ) : (
                     <List disablePadding>
+                        {affiliateData.conyuge_nombre && (
+                            <>
+                                <ListItem>
+                                    <ListItemText
+                                        primary={
+                                            <Typography sx={{ fontWeight: 600 }}>
+                                                {affiliateData.conyuge_nombre}
+                                            </Typography>
+                                        }
+                                        secondary={
+                                            <>
+                                                Cónyuge
+                                                {affiliateData.conyuge_dni && ` - DNI: ${affiliateData.conyuge_dni}`}
+                                            </>
+                                        }
+                                    />
+                                    <ListItemSecondaryAction>
+                                        <IconButton
+                                            edge="end"
+                                            color="error"
+                                            size="small"
+                                            onClick={handleDeleteConyuge}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    </ListItemSecondaryAction>
+                                </ListItem>
+                                {familyMembers.length > 0 && <Divider />}
+                            </>
+                        )}
                         {familyMembers.map((member, index) => (
                             <React.Fragment key={member.id}>
                                 <ListItem>
@@ -432,7 +476,8 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                         }
                                         secondary={
                                             <>
-                                                {member.dni && `DNI: ${member.dni}`}
+                                                Hijo/a
+                                                {member.dni && ` - DNI: ${member.dni}`}
                                                 {member.edad && ` - ${member.edad} años`}
                                                 {member.grado_escolar && ` - ${member.grado_escolar}`}
                                             </>
@@ -471,6 +516,17 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 <DialogContent>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
                         <TextField
+                            select
+                            label="Parentesco / Relación"
+                            value={memberRelationship}
+                            onChange={(e) => setMemberRelationship(e.target.value as 'hijo' | 'conyuge')}
+                            fullWidth
+                            size="small"
+                        >
+                            <MenuItem value="hijo">Hijo/a</MenuItem>
+                            {!affiliateData.conyuge_nombre && <MenuItem value="conyuge">Cónyuge</MenuItem>}
+                        </TextField>
+                        <TextField
                             label="Nombre"
                             value={editingMember?.nombre || ''}
                             onChange={(e) => setEditingMember({ ...editingMember, nombre: e.target.value })}
@@ -491,21 +547,25 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                             fullWidth
                             size="small"
                         />
-                        <TextField
-                            label="Edad"
-                            type="number"
-                            value={editingMember?.edad || ''}
-                            onChange={(e) => setEditingMember({ ...editingMember, edad: parseInt(e.target.value) || undefined })}
-                            fullWidth
-                            size="small"
-                        />
-                        <TextField
-                            label="Grado escolar"
-                            value={editingMember?.grado_escolar || ''}
-                            onChange={(e) => setEditingMember({ ...editingMember, grado_escolar: e.target.value })}
-                            fullWidth
-                            size="small"
-                        />
+                        {memberRelationship === 'hijo' && (
+                            <>
+                                <TextField
+                                    label="Edad"
+                                    type="number"
+                                    value={editingMember?.edad || ''}
+                                    onChange={(e) => setEditingMember({ ...editingMember, edad: parseInt(e.target.value) || undefined })}
+                                    fullWidth
+                                    size="small"
+                                />
+                                <TextField
+                                    label="Grado escolar"
+                                    value={editingMember?.grado_escolar || ''}
+                                    onChange={(e) => setEditingMember({ ...editingMember, grado_escolar: e.target.value })}
+                                    fullWidth
+                                    size="small"
+                                />
+                            </>
+                        )}
                     </Box>
                 </DialogContent>
                 <DialogActions>
