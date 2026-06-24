@@ -8,10 +8,10 @@ import {
   ListItemAvatar,
   Avatar,
   ListItemText,
-  Divider,
   Skeleton,
   alpha,
   useTheme,
+  Tooltip,
 } from "@mui/material";
 import CakeIcon from "@mui/icons-material/Cake";
 import { supabase } from "../../supabaseClient";
@@ -80,98 +80,79 @@ export default function Birthdays() {
         flexDirection: "column",
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-        <Avatar sx={{ bgcolor: "secondary.main", width: 40, height: 40, borderRadius: 1 }}>
-          <CakeIcon sx={{ color: "white" }} />
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+        <Avatar sx={{ bgcolor: "secondary.main", width: 32, height: 32, borderRadius: 1 }}>
+          <CakeIcon sx={{ color: "white", fontSize: 20 }} />
         </Avatar>
         <Typography
-          variant="h6"
-          sx={{ fontWeight: 800, color: "primary.main" }}
+          variant="subtitle1"
+          sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1 }}
         >
           Cumpleaños del Mes
         </Typography>
       </Box>
 
       {loading ? (
-        <Stack spacing={2}>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Box key={i} sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <Skeleton variant="circular" width={40} height={40} />
-              <Box sx={{ flex: 1 }}>
-                <Skeleton variant="text" width="60%" />
-                <Skeleton variant="text" width="40%" />
-              </Box>
+        <Box sx={{ display: "flex", gap: 2, overflowX: "hidden" }}>
+          {[1, 2, 3, 4].map((i) => (
+            <Box key={i} sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, minWidth: 60 }}>
+              <Skeleton variant="circular" width={48} height={48} />
+              <Skeleton variant="text" width={40} />
             </Box>
           ))}
-        </Stack>
+        </Box>
       ) : (
-        <List sx={{ p: 0, flex: 1, overflowY: "auto", maxHeight: 400 }}>
+        <Box 
+          sx={{ 
+            display: "flex", 
+            overflowX: "auto", 
+            gap: 2, 
+            pb: 1, 
+            '&::-webkit-scrollbar': { height: 6 }, 
+            '&::-webkit-scrollbar-thumb': { backgroundColor: alpha(theme.palette.primary.main, 0.3), borderRadius: 4 },
+            '&::-webkit-scrollbar-track': { backgroundColor: alpha(theme.palette.common.black, 0.05) }
+          }}
+        >
           {affiliates.length > 0 ? (
             affiliates.map((aff, index) => (
-              <React.Fragment key={index}>
-                <ListItem sx={{ px: 0, py: 1.5 }}>
-                  <ListItemAvatar>
-                    <Avatar
-                      sx={{
-                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                        color: "primary.main",
-                        fontWeight: 700,
-                        fontSize: "0.9rem",
-                        borderRadius: 1,
-                      }}
-                    >
-                      {aff.nombre[0]}
-                      {aff.apellido[0]}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={`${aff.nombre} ${aff.apellido}`}
-                    secondary={aff.fecha_nacimiento ? `${new Date(aff.fecha_nacimiento).getUTCDate()} de ${new Date(aff.fecha_nacimiento).toLocaleString('es-AR', { month: 'long', timeZone: 'UTC' })}` : "Afiliado Seccional"}
-                    primaryTypographyProps={{
-                      fontWeight: 600,
-                      color: "text.primary",
-                      variant: "body2",
+              <Box key={index} sx={{ minWidth: 70, textAlign: "center" }}>
+                <Tooltip title={`${aff.nombre} ${aff.apellido} - ${aff.fecha_nacimiento ? `${new Date(aff.fecha_nacimiento).getUTCDate()} de ${new Date(aff.fecha_nacimiento).toLocaleString('es-AR', { month: 'long', timeZone: 'UTC' })}` : ""}`} arrow>
+                  <Avatar
+                    sx={{
+                      margin: "auto",
+                      mb: 1,
+                      width: 48,
+                      height: 48,
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                      color: "primary.main",
+                      fontWeight: 700,
+                      fontSize: "1rem",
+                      borderRadius: 2,
                     }}
-                    secondaryTypographyProps={{
-                      variant: "caption",
-                      sx: { opacity: 0.7, textTransform: 'capitalize' },
-                    }}
-                  />
-                </ListItem>
-                {index < affiliates.length - 1 && (
-                  <Divider component="li" sx={{ opacity: 0.5 }} />
-                )}
-              </React.Fragment>
+                  >
+                    {aff.nombre[0]}
+                    {aff.apellido[0]}
+                  </Avatar>
+                </Tooltip>
+                <Typography variant="caption" display="block" noWrap sx={{ fontWeight: 700, fontSize: "0.7rem", lineHeight: 1.2 }}>
+                  {aff.apellido.split(' ')[0]}
+                </Typography>
+                <Typography variant="caption" display="block" noWrap color="text.secondary" sx={{ fontSize: "0.65rem", fontWeight: 600 }}>
+                  {aff.fecha_nacimiento ? `${new Date(aff.fecha_nacimiento).getUTCDate()}/${new Date(aff.fecha_nacimiento).getUTCMonth()+1}` : ""}
+                </Typography>
+              </Box>
             ))
           ) : (
             <Typography
               variant="body2"
               color="text.secondary"
-              sx={{ textAlign: "center", py: 4 }}
+              sx={{ textAlign: "center", width: "100%", py: 2 }}
             >
-              No se encontraron afiliados.
+              No hay cumpleaños este mes.
             </Typography>
           )}
-        </List>
+        </Box>
       )}
-
-      <Box
-        sx={{
-          mt: 2,
-          pt: 2,
-          borderTop: "1px solid",
-          borderColor: "divider",
-          textAlign: "center",
-        }}
-      >
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ fontStyle: "italic" }}
-        >
-          ¡Felicidades a nuestros compañeros!
-        </Typography>
-      </Box>
     </Paper>
   );
 }

@@ -448,8 +448,8 @@ export default function AdminOverview() {
             <Typography variant="h6" sx={{ mb: 3, fontWeight: 800 }}>
               Ingresos vs Gastos
             </Typography>
-            <Box sx={{ width: "100%", height: 350, minWidth: 0 }}>
-              <ResponsiveContainer>
+            <Box sx={{ width: "100%", height: 350 }}>
+              <ResponsiveContainer width="100%" height="100%" debounce={50}>
                 <AreaChart data={data.financialSeries}>
                   <defs>
                     <linearGradient
@@ -542,8 +542,8 @@ export default function AdminOverview() {
               <Typography variant="h6" sx={{ mb: 3, fontWeight: 800 }}>
                 Distribución
               </Typography>
-              <Box sx={{ width: "100%", height: 200, minWidth: 0 }}>
-                <ResponsiveContainer>
+              <Box sx={{ width: "100%", height: 200 }}>
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
                   <PieChart>
                     <Pie
                       data={data.categories}

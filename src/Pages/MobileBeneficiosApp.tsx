@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Typography, IconButton, AppBar, Toolbar, useTheme, alpha, BottomNavigation, BottomNavigationAction, Paper, Tooltip } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import HomeIcon from '@mui/icons-material/Home';
@@ -27,6 +27,8 @@ export default function MobileBeneficiosApp() {
     const theme = useTheme();
     const { toggleColorMode } = useColorMode();
 
+    const showServiciosTab = false; // TODO: Cambiar a true cuando esté lista la base de datos de deudas de servicios
+
     useEffect(() => {
         const storedLegajo = localStorage.getItem('mobile_app_legajo');
         const storedName = localStorage.getItem('mobile_app_name');
@@ -47,6 +49,44 @@ export default function MobileBeneficiosApp() {
                 es_jubilado: localStorage.getItem('mobile_app_jubilado') === 'true',
                 fecha_nacimiento: localStorage.getItem('mobile_app_fecha_nacimiento') || '',
             });
+
+            // Sincronizar datos actualizados desde la base de datos en segundo plano
+            const syncProfileFromDB = async () => {
+                try {
+                    const { data, error } = await supabase
+                        .from('affiliates')
+                        .select('nombre, apellido, legajo, cuil, telefono, email, es_jubilado, validation_token, fecha_nacimiento')
+                        .eq('legajo', storedLegajo)
+                        .eq('branch', 'noroeste')
+                        .maybeSingle();
+
+                    if (!error && data) {
+                        localStorage.setItem('mobile_app_name', `${data.nombre} ${data.apellido}`);
+                        localStorage.setItem('mobile_app_cuil', data.cuil || '');
+                        localStorage.setItem('mobile_app_validation_token', data.validation_token || '');
+                        localStorage.setItem('mobile_app_telefono', data.telefono || '');
+                        localStorage.setItem('mobile_app_email', data.email || '');
+                        localStorage.setItem('mobile_app_jubilado', String(data.es_jubilado || false));
+                        localStorage.setItem('mobile_app_fecha_nacimiento', data.fecha_nacimiento || '');
+
+                        setUserName(`${data.nombre} ${data.apellido}`);
+                        setAffiliateData({
+                            legajo: data.legajo,
+                            nombre: data.nombre,
+                            apellido: data.apellido,
+                            cuil: data.cuil || '',
+                            validation_token: data.validation_token || undefined,
+                            telefono: data.telefono || '',
+                            email: data.email || '',
+                            es_jubilado: !!data.es_jubilado,
+                            fecha_nacimiento: data.fecha_nacimiento || '',
+                        });
+                    }
+                } catch (err) {
+                    console.error("Error syncing profile from DB:", err);
+                }
+            };
+            syncProfileFromDB();
         }
     }, []);
 
@@ -114,21 +154,17 @@ export default function MobileBeneficiosApp() {
         }
     };
 
+    const tabs = useMemo(() => [
+        { id: 'inicio', label: 'Inicio', icon: <HomeIcon />, component: <GridBeneficios /> },
+        ...(showServiciosTab ? [{ id: 'servicios', label: 'Servicios', icon: <AssignmentIcon />, component: <ServiciosView affiliateData={affiliateData} /> }] : []),
+        { id: 'carnet', label: 'Carnet', icon: <BadgeIcon />, component: <CarnetView affiliateData={affiliateData} /> },
+        { id: 'solicitudes', label: 'Solicitudes', icon: <BeachAccessIcon />, component: <SolicitudesView affiliateData={affiliateData} /> },
+        { id: 'perfil', label: 'Perfil', icon: <PersonIcon />, component: <PerfilView affiliateData={affiliateData} onUpdate={updateAffiliateData} onLogout={handleLogout} /> }
+    ], [affiliateData, showServiciosTab]);
+
     const renderContent = () => {
-        switch (currentTab) {
-            case 0:
-                return <GridBeneficios />;
-            case 1:
-                return <ServiciosView affiliateData={affiliateData} />;
-            case 2:
-                return <CarnetView affiliateData={affiliateData} />;
-            case 3:
-                return <SolicitudesView affiliateData={affiliateData} />;
-            case 4:
-                return <PerfilView affiliateData={affiliateData} onUpdate={updateAffiliateData} onLogout={handleLogout} />;
-            default:
-                return <GridBeneficios />;
-        }
+        if (currentTab >= tabs.length) return <GridBeneficios />;
+        return tabs[currentTab].component;
     };
 
     if (!isAuthenticated) {
@@ -219,11 +255,9 @@ export default function MobileBeneficiosApp() {
                             }
                         }}
                     >
-                        <BottomNavigationAction label="Inicio" icon={<HomeIcon />} />
-                        <BottomNavigationAction label="Servicios" icon={<AssignmentIcon />} />
-                        <BottomNavigationAction label="Carnet" icon={<BadgeIcon />} />
-                        <BottomNavigationAction label="Solicitudes" icon={<BeachAccessIcon />} />
-                        <BottomNavigationAction label="Perfil" icon={<PersonIcon />} />
+                        {tabs.map((tab) => (
+                            <BottomNavigationAction key={tab.id} label={tab.label} icon={tab.icon} />
+                        ))}
                     </BottomNavigation>
                 </Box>
             </Paper>

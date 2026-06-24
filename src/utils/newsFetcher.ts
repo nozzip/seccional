@@ -9,31 +9,42 @@ export interface NewsItem {
   summary: string;
   isLocal?: boolean;
   content?: string;
+  timestamp?: number;
 }
 
 async function fetchRssNews(): Promise<NewsItem[]> {
   try {
     const rssUrl = "https://www.aefip.org.ar/prensa?format=feed&type=rss";
     const response = await fetch(
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`,
+      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`,
     );
 
     if (!response.ok) throw new Error("Failed to fetch RSS feed");
 
-    const xmlText = await response.text();
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-    const items = Array.from(xmlDoc.querySelectorAll("item")).slice(0, 10);
+    const data = await response.json();
+    if (!data || !data.items) return [];
 
-    return items.map((item) => {
-      const title = item.querySelector("title")?.textContent || "Sin Título";
-      const link = item.querySelector("link")?.textContent || "#";
-      const pubDate = item.querySelector("pubDate")?.textContent;
+    const items = data.items.slice(0, 10);
+
+    return items.map((item: any) => {
+      const title = item.title || "Sin Título";
+      const link = item.link || "#";
+      const pubDate = item.pubDate;
 
       let formattedDate = "Fecha desconocida";
+      let timestamp = 0;
       if (pubDate) {
-        const dateObj = new Date(pubDate);
+        // Many RSS feeds provide dates like "Tue, 23 Jun 2026 12:00:00 GMT"
+        // Sometimes api.rss2json.com formats it as "YYYY-MM-DD HH:MM:SS"
+        // We will try standard parsing first, and fallback if necessary.
+        let dateObj = new Date(pubDate);
+        if (isNaN(dateObj.getTime())) {
+           // Fallback for "YYYY-MM-DD HH:MM:SS"
+           dateObj = new Date(pubDate.replace(" ", "T"));
+        }
+        
         if (!isNaN(dateObj.getTime())) {
+          timestamp = dateObj.getTime();
           formattedDate = dateObj.toLocaleDateString("es-AR", {
             year: "numeric",
             month: "long",
@@ -42,12 +53,13 @@ async function fetchRssNews(): Promise<NewsItem[]> {
         }
       }
 
-      const description = item.querySelector("description")?.textContent || "";
-      const imgMatch = description.match(/<img[^>]+src="([^">]+)"/i);
-      let imgUrl =
-        imgMatch && imgMatch[1] !== "https://www.aefip.org.ar/"
-          ? imgMatch[1]
-          : "";
+      const description = item.description || item.content || "";
+      
+      let imgUrl = item.thumbnail || "";
+      if (!imgUrl) {
+         const imgMatch = description.match(/<img[^>]+src="([^">]+)"/i);
+         imgUrl = imgMatch && imgMatch[1] !== "https://www.aefip.org.ar/" ? imgMatch[1] : "";
+      }
 
       if (imgUrl && imgUrl.startsWith("/")) {
         imgUrl = `https://www.aefip.org.ar${imgUrl}`;
@@ -74,6 +86,7 @@ async function fetchRssNews(): Promise<NewsItem[]> {
         imgUrl,
         summary: cleanSummary,
         isLocal: false,
+        timestamp,
       };
     });
   } catch (error) {
@@ -98,23 +111,28 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
       return rssNews;
     }
 
-    const localNews: NewsItem[] = (dbNews || []).map((item) => ({
-      id: item.id,
-      title: item.title,
-      link: item.link || `/prensa/${item.id}`,
-      date: new Date(item.created_at).toLocaleDateString("es-AR", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-      imgUrl: item.img_url || "",
-      summary: item.summary || "",
-      content: item.content || "",
-      isLocal: true,
-    }));
+    const localNews: NewsItem[] = (dbNews || []).map((item) => {
+      const dateObj = new Date(item.created_at);
+      return {
+        id: item.id,
+        title: item.title,
+        link: item.link || `/prensa/${item.id}`,
+        date: dateObj.toLocaleDateString("es-AR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        imgUrl: item.img_url || "",
+        summary: item.summary || "",
+        content: item.content || "",
+        isLocal: true,
+        timestamp: dateObj.getTime(),
+      };
+    });
 
-    // 3. Merge (Local news first)
-    return [...localNews, ...rssNews];
+    // 3. Merge and Sort (Newest first)
+    const allNews = [...localNews, ...rssNews];
+    return allNews.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   } catch (error) {
     console.error("General Fetch Error:", error);
     return [];

@@ -15,6 +15,7 @@ import Grid2 from "@mui/material/Grid2";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { Link } from "react-router-dom";
+import Carusel from "../Components/ContentsFront/Carusel";
 import BirthdayCarousel from "../Components/ContentsFront/BirthdayCarousel";
 import CardNoticias from "../Components/ContentsFront/CardNoticias";
 import CardServicios from "../Components/ContentsFront/CardServicios";
@@ -374,6 +375,26 @@ function Inicio() {
             Afiliate
           </Button>
         </MotionBox>
+
+        {/* Borde Institucional (Líneas horizontales) */}
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            zIndex: 1,
+          }}
+        >
+          {/* Capa 1: Franja sutil superior */}
+          <Box sx={{ height: '4px', bgcolor: alpha(theme.palette.info.light, 0.3) }} />
+          {/* Capa 2: Franja media */}
+          <Box sx={{ height: '6px', bgcolor: alpha(theme.palette.info.main, 0.6) }} />
+          {/* Capa 3: Franja principal gruesa */}
+          <Box sx={{ height: '12px', bgcolor: theme.palette.info.main }} />
+        </Box>
       </Box>
 
 
@@ -384,6 +405,7 @@ function Inicio() {
         sx={{
           position: "relative",
           zIndex: 2,
+          pt: 8,
           pb: 15,
           px: { xs: 2, md: 5 },
         }}
@@ -399,30 +421,27 @@ function Inicio() {
             >
               <Box
                 sx={{
-                   ...getGlassStyles(theme),
+                  ...getGlassStyles(theme),
                   p: { xs: 3, md: 8 },
                   borderRadius: 2, // Consistent with theme (4px * 2 = 8px or just use 1 for 4px)
                   boxShadow: `0 20px 60px ${alpha(theme.palette.primary.main, 0.1)}`,
                   border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
                 }}
               >
-                <Typography
-                  variant="h3"
-                  sx={{
-                    mb: 6,
-                    color: "primary.main",
-                    fontWeight: 900,
-                    letterSpacing: -1,
-                  }}
-                >
-                  AFILIADOS
-                </Typography>
-                <Grid2 container spacing={6}>
-                  <Grid2 size={{ xs: 12, lg: 8 }}>
-                    <BirthdayCarousel />
+
+                <Grid2 container spacing={4} alignItems="stretch">
+                  <Grid2 size={{ xs: 12, lg: 9 }} sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <Carusel />
+                    </Box>
                   </Grid2>
-                  <Grid2 size={{ xs: 12, lg: 4 }}>
-                    <Birthdays />
+                  <Grid2 size={{ xs: 12, lg: 3 }} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ flex: 1, minHeight: 0 }}>
+                      <BirthdayCarousel />
+                    </Box>
+                    <Box>
+                      <Birthdays />
+                    </Box>
                   </Grid2>
                 </Grid2>
               </Box>
@@ -460,7 +479,7 @@ function Inicio() {
                     component={Link}
                     to="/prensa"
                     variant="outlined"
-                     sx={{
+                    sx={{
                       borderRadius: 1,
                       px: 4,
                       fontWeight: 700,
@@ -506,7 +525,7 @@ function Inicio() {
                   component={Link}
                   to="/servicios"
                   variant="outlined"
-                   sx={{
+                  sx={{
                     borderRadius: 1,
                     px: 4,
                     fontWeight: 700,

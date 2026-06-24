@@ -7,7 +7,7 @@ import FooterElements from "./Components/Footer/FooterElements";
 import { AnimatePresence, motion } from "framer-motion";
 import { Suspense, lazy, useEffect } from "react";
 import { isUserAdmin } from "./utils/auth";
-
+import RouteErrorBoundary from "./Components/Error/RouteErrorBoundary";
 
 const Inicio = lazy(() => import("./Pages/Inicio"));
 const Beneficios = lazy(() => import("./Pages/Beneficios"));
@@ -91,6 +91,7 @@ const router = createHashRouter([
   {
     path: "/",
     element: <Layout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         index: true,
@@ -148,6 +149,7 @@ const router = createHashRouter([
   },
   {
     path: "/app/beneficios",
+    errorElement: <RouteErrorBoundary />,
     element: (
       <ColorModeProvider>
         <CssBaseline />

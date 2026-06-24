@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     Box,
     Paper,
@@ -23,6 +23,9 @@ import {
     MenuItem,
     Grid,
     Divider,
+    Alert,
+    Checkbox,
+    Snackbar,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -35,6 +38,7 @@ import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
 import HouseSidingIcon from '@mui/icons-material/HouseSiding';
 import { supabase } from '../../supabaseClient';
+import { logAction } from '../../utils/auditLogger';
 
 interface Request {
     id: number;
@@ -61,6 +65,7 @@ export default function RequestManager() {
     const [requests, setRequests] = useState<Request[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [detailOpen, setDetailOpen] = useState(false);
     const [createOpen, setCreateOpen] = useState(false);
     const [executingNotes, setExecutingNotes] = useState('');
@@ -73,8 +78,35 @@ export default function RequestManager() {
         priority: 'media',
     });
 
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+
     useEffect(() => {
         fetchRequests();
+    }, []);
+
+    // Real-time subscription for new requests
+    useEffect(() => {
+        const channel = supabase
+            .channel('workflow_requests_realtime')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'workflow_requests' },
+                (payload: any) => {
+                    const newReq = payload.new as Request;
+                    const requesterName = newReq.requester_info?.nombre || 'Alguien';
+                    const typeLabel = REQUEST_TYPES.find(t => t.value === newReq.type)?.label || newReq.type;
+                    setSnackbarMessage(`Nueva solicitud de ${requesterName}: ${typeLabel}`);
+                    setSnackbarOpen(true);
+                    // Prepend new request to list
+                    setRequests(prev => [newReq, ...prev]);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     const fetchRequests = async () => {
@@ -82,6 +114,7 @@ export default function RequestManager() {
         const { data, error } = await supabase
             .from('workflow_requests')
             .select('*')
+            .neq('status', 'archived')
             .order('created_at', { ascending: false });
 
         if (!error) setRequests(data || []);
@@ -92,28 +125,104 @@ export default function RequestManager() {
         const updateData: any = { status: newStatus };
         if (notes) updateData.performer_notes = notes;
 
-        const { error } = await supabase
+        const { error, count } = await supabase
             .from('workflow_requests')
-            .update(updateData)
+            .update(updateData, { count: 'exact' })
             .eq('id', id);
 
-        if (!error) {
-            setRequests(requests.map(r => r.id === id ? { ...r, ...updateData } : r));
-            setDetailOpen(false);
-            setExecutingNotes('');
+        if (error) {
+            alert('Error de base de datos: ' + error.message);
+            return;
         }
+
+        if (count === 0) {
+            alert('La base de datos bloqueó la actualización (0 filas afectadas). Verifica las políticas RLS en Supabase para la tabla workflow_requests.');
+            return;
+        }
+
+        const reqData = requests.find(r => r.id === id);
+        const statusLabels: Record<string, string> = { approved: 'Aprobada', rejected: 'Rechazada', in_progress: 'En Proceso', pending: 'Pendiente', completed: 'Completada' };
+        await logAction(
+            'ACTUALIZAR_SOLICITUD',
+            `Solicitud #${id} cambiada a estado "${statusLabels[newStatus] || newStatus}" (Tipo: ${reqData?.type || 'N/A'})`
+        );
+        setRequests(requests.map(r => r.id === id ? { ...r, ...updateData } : r));
+        setDetailOpen(false);
+        setExecutingNotes('');
     };
 
     const handleDelete = async (id: number) => {
         if (!window.confirm('¿Está seguro de eliminar este pedido permanentemente?')) return;
         
-        const { error } = await supabase
-            .from('workflow_requests')
-            .delete()
-            .eq('id', id);
+        try {
+            const { error, count } = await supabase
+                .from('workflow_requests')
+                .update({ status: 'archived' }, { count: 'exact' })
+                .eq('id', id);
 
-        if (!error) {
-            setRequests(requests.filter(r => r.id !== id));
+            if (error) throw error;
+            
+            if (count === 0) {
+                alert('La base de datos bloqueó la eliminación (0 filas afectadas). Verifica las políticas RLS en Supabase para la tabla workflow_requests.');
+                return;
+            }
+
+            const reqData = requests.find(r => r.id === id);
+            await logAction(
+                'ELIMINAR_SOLICITUD',
+                `Solicitud #${id} eliminada permanentemente (Tipo: ${reqData?.type || 'N/A'}, Solicitante: ${reqData?.requester_info?.nombre || 'N/A'})`
+            );
+            
+            setRequests(prev => prev.filter(r => r.id !== id));
+            setSelectedIds(prev => prev.filter(v => v !== id));
+            setSnackbarMessage('Solicitud eliminada correctamente');
+            setSnackbarOpen(true);
+        } catch (err: any) {
+            console.error('Error al eliminar solicitud:', err);
+            alert('Error al intentar eliminar: ' + err.message);
+        }
+    };
+
+    const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.checked) {
+            setSelectedIds(requests.map(r => r.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const handleSelectRow = (id: number) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
+    };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(`¿Está seguro de eliminar ${selectedIds.length} pedidos permanentemente?`)) return;
+        
+        try {
+            const { error, count } = await supabase
+                .from('workflow_requests')
+                .update({ status: 'archived' }, { count: 'exact' })
+                .in('id', selectedIds);
+
+            if (error) throw error;
+            
+            if (count === 0) {
+                alert('La base de datos bloqueó la eliminación (0 filas afectadas). Verifica las políticas RLS en Supabase para la tabla workflow_requests.');
+                return;
+            }
+
+            await logAction(
+                'ELIMINAR_SOLICITUD_MULTIPLE',
+                `Se eliminaron ${selectedIds.length} solicitudes permanentemente`
+            );
+            
+            setRequests(prev => prev.filter(r => !selectedIds.includes(r.id)));
+            setSelectedIds([]);
+            setSnackbarMessage(`Se eliminaron ${selectedIds.length} solicitudes correctamente`);
+            setSnackbarOpen(true);
+        } catch (err: any) {
+            console.error('Error al eliminar solicitudes:', err);
+            alert('Error al intentar eliminar: ' + err.message);
         }
     };
 
@@ -134,6 +243,10 @@ export default function RequestManager() {
             });
 
         if (!error) {
+            await logAction(
+                'CREAR_ORDEN_INTERNA',
+                `Orden interna creada: "${newRequest.title}" (Tipo: ${newRequest.type}, Prioridad: ${newRequest.priority})`
+            );
             setCreateOpen(false);
             setNewRequest({ type: 'task', title: '', description: '', priority: 'media' });
             fetchRequests();
@@ -158,6 +271,7 @@ export default function RequestManager() {
     };
 
     return (
+        <>
         <Box>
             <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
@@ -176,27 +290,13 @@ export default function RequestManager() {
                         Cargar Tarea / Pedido
                     </Button>
                     <Button 
-                        variant="outlined" 
-                        color="secondary"
-                        onClick={async () => {
-                            const tests = [
-                                { type: 'affiliation', requester: 'Test Afiliación', data: { worker: { nombre: 'Juan', apellido: 'Prueba', cuil: '20-12345678-9', dependencia: 'AFIP Salta' }, family: [] } },
-                                { type: 'tourism', requester: 'Test Turismo', data: { destino: 'Bariloche', fecha_ingreso: '2026-06-01', fecha_salida: '2026-06-08', plazas_req: 2 } },
-                                { type: 'benefit', requester: 'Test Kit', data: { benefit_type: 'Kit Escolar', observations: 'Prueba de kit para 2 niños' } },
-                                { type: 'cabin_reservation', requester: 'Test Mollar', data: { destino: 'El Mollar', fecha_ingreso: '2026-05-15', fecha_salida: '2026-05-20' } }
-                            ];
-                            for (const test of tests) {
-                                await supabase.from('workflow_requests').insert({
-                                    type: test.type,
-                                    status: 'pending',
-                                    requester_info: { nombre: test.requester },
-                                    data: test.data
-                                });
-                            }
-                            fetchRequests();
-                        }}
+                        variant="contained" 
+                        color="error"
+                        startIcon={<DeleteIcon />}
+                        disabled={selectedIds.length === 0}
+                        onClick={handleBulkDelete}
                     >
-                        Generar Test de Prueba
+                        Eliminar Seleccionados ({selectedIds.length})
                     </Button>
                 </Box>
             </Box>
@@ -205,6 +305,13 @@ export default function RequestManager() {
                 <Table>
                     <TableHead>
                         <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+                            <TableCell padding="checkbox">
+                                <Checkbox
+                                    indeterminate={selectedIds.length > 0 && selectedIds.length < requests.length}
+                                    checked={requests.length > 0 && selectedIds.length === requests.length}
+                                    onChange={handleSelectAll}
+                                />
+                            </TableCell>
                             <TableCell sx={{ fontWeight: 800 }}>Tipo de Pedido</TableCell>
                             <TableCell sx={{ fontWeight: 800 }}>Descripción / Asunto</TableCell>
                             <TableCell sx={{ fontWeight: 800 }}>Fecha</TableCell>
@@ -215,7 +322,7 @@ export default function RequestManager() {
                     <TableBody>
                         {requests.length === 0 && !loading && (
                             <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
+                                <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
                                     <Typography color="text.secondary">No hay pedidos ni tareas pendientes.</Typography>
                                 </TableCell>
                             </TableRow>
@@ -231,6 +338,12 @@ export default function RequestManager() {
                             }
                             return (
                                 <TableRow key={request.id} hover sx={{ opacity: request.status === 'done' ? 0.7 : 1 }}>
+                                    <TableCell padding="checkbox">
+                                        <Checkbox
+                                            checked={selectedIds.includes(request.id)}
+                                            onChange={() => handleSelectRow(request.id)}
+                                        />
+                                    </TableCell>
                                     <TableCell>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                             {icon}
@@ -291,6 +404,9 @@ export default function RequestManager() {
                                     <Box sx={{ mt: 2 }}>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Datos del Trabajador:</Typography>
                                         <Typography variant="body2">CUIL: {selectedRequest.data?.worker?.cuil}</Typography>
+                                        <Typography variant="body2">Legajo: {selectedRequest.data?.worker?.legajo}</Typography>
+                                        <Typography variant="body2">Email: {selectedRequest.data?.worker?.email}</Typography>
+                                        <Typography variant="body2">Teléfono: {selectedRequest.data?.worker?.telefono}</Typography>
                                         <Typography variant="body2">Dependencia: {selectedRequest.data?.worker?.dependencia}</Typography>
                                         <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 700 }}>Grupo Familiar ({selectedRequest.data?.family?.length || 0}):</Typography>
                                         {selectedRequest.data?.family?.map((f: any, i: number) => (
@@ -340,6 +456,9 @@ export default function RequestManager() {
                                 <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 900 }}>Solicitante</Typography>
                                 <Typography variant="body2"><strong>{selectedRequest.requester_info?.nombre}</strong></Typography>
                                 {selectedRequest.requester_info?.legajo && <Typography variant="body2">Legajo: {selectedRequest.requester_info.legajo}</Typography>}
+                                {selectedRequest.requester_info?.cuil && <Typography variant="body2">CUIL: {selectedRequest.requester_info.cuil}</Typography>}
+                                {selectedRequest.requester_info?.email && <Typography variant="body2">Email: {selectedRequest.requester_info.email}</Typography>}
+                                {selectedRequest.requester_info?.telefono && <Typography variant="body2">Teléfono: {selectedRequest.requester_info.telefono}</Typography>}
                             </Grid>
 
                             <Grid item xs={12}>
@@ -446,5 +565,23 @@ export default function RequestManager() {
                 </DialogActions>
             </Dialog>
         </Box>
+
+        {/* Toast de notificación de nueva solicitud */}
+        <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={6000}
+            onClose={() => setSnackbarOpen(false)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+            <Alert
+                onClose={() => setSnackbarOpen(false)}
+                severity="info"
+                variant="filled"
+                sx={{ width: '100%', fontWeight: 600 }}
+            >
+                {snackbarMessage}
+            </Alert>
+        </Snackbar>
+        </>
     );
 }

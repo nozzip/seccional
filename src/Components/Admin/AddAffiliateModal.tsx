@@ -18,6 +18,8 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { supabase } from "../../supabaseClient";
+import { logAction } from "../../utils/auditLogger";
+import { cleanLocationName } from "./AfiliadosManager";
 
 interface AddAffiliateModalProps {
   open: boolean;
@@ -56,14 +58,22 @@ export default function AddAffiliateModal({
     setError(null);
 
     try {
+      const cleanProv = cleanLocationName(formData.provincia);
       const { error: insertError } = await supabase.from("affiliates").insert([
         {
           ...formData,
+          provincia: cleanProv,
+          ciudad: cleanProv,
           branch: "noroeste",
         },
       ]);
 
       if (insertError) throw insertError;
+
+      await logAction(
+        "CREAR_AFILIADO",
+        `Alta de afiliado titular: ${formData.apellido}, ${formData.nombre} (CUIL: ${formData.cuil}, Legajo: ${formData.legajo || "N/A"})`
+      );
 
       onSuccess();
       onClose();
@@ -150,14 +160,6 @@ export default function AddAffiliateModal({
               label="Provincia"
               name="provincia"
               value={formData.provincia}
-              onChange={handleChange}
-              size="small"
-            />
-            <TextField
-              fullWidth
-              label="Ciudad"
-              name="ciudad"
-              value={formData.ciudad}
               onChange={handleChange}
               size="small"
             />

@@ -9,6 +9,7 @@ import {
     alpha,
     useTheme,
     CircularProgress,
+    Tooltip,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import BadgeIcon from '@mui/icons-material/Badge';
@@ -38,6 +39,16 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
         };
         fetchQR();
     }, [affiliateData]);
+
+    const downloadQR = () => {
+        if (!qrDataUrl) return;
+        const link = document.createElement('a');
+        link.href = qrDataUrl;
+        link.download = `QR_Carnet_AEFIP_${affiliateData?.legajo || 'afiliado'}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const generatePDF = async () => {
         if (!affiliateData) return;
@@ -235,21 +246,30 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
                             Documento válido con presentación de DNI. Escanee el QR para validar vigencia.
                         </Typography>
                         {qrDataUrl ? (
-                            <Box 
-                                component="img" 
-                                src={qrDataUrl} 
-                                alt="QR Validation"
-                                sx={{ 
-                                    width: 50, 
-                                    height: 50, 
-                                    borderRadius: 1,
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    bgcolor: 'white',
-                                    p: 0.5,
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                }}
-                            />
+                            <Tooltip title="Hacé clic para descargar el código QR" arrow>
+                                <Box 
+                                    component="img" 
+                                    src={qrDataUrl} 
+                                    alt="QR Validation"
+                                    onClick={downloadQR}
+                                    sx={{ 
+                                        width: 50, 
+                                        height: 50, 
+                                        borderRadius: 1,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        bgcolor: 'white',
+                                        p: 0.5,
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease-in-out',
+                                        '&:hover': {
+                                            transform: 'scale(1.1)',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.18)'
+                                        }
+                                    }}
+                                />
+                            </Tooltip>
                         ) : affiliateData.validation_token ? (
                             <CircularProgress size={24} />
                         ) : (

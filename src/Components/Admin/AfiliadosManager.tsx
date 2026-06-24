@@ -45,6 +45,7 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import * as XLSX from "xlsx";
 import { supabase } from "../../supabaseClient";
+import { logAction } from "../../utils/auditLogger";
 import AffiliateDetailsModal from "./AffiliateDetailsModal";
 import AddAffiliateModal from "./AddAffiliateModal";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
@@ -174,6 +175,26 @@ const calculateAge = (dateString: string | null): number | null => {
   return age;
 };
 
+export const cleanLocationName = (name: string | null | undefined): string => {
+  if (!name) return "";
+  const upper = name.trim().toUpperCase();
+  
+  if (upper.includes("TUCUMAN") || upper.includes("TUCUMÁN")) {
+    return "TUCUMAN";
+  }
+  if (upper.includes("JUJUY")) {
+    return "JUJUY";
+  }
+  if (upper.includes("CATAMARCA")) {
+    return "CATAMARCA";
+  }
+  if (upper.includes("ORAN") || upper.includes("ORÁN")) {
+    return "ORAN";
+  }
+  
+  return upper;
+};
+
 const fixLocation = (prov: string, city: string) => {
   const p = prov.trim().toUpperCase();
   const c = city.trim().toUpperCase();
@@ -184,14 +205,20 @@ const fixLocation = (prov: string, city: string) => {
     "NEUQUEN", "RIO NEGRO", "CHUBUT", "SANTA CRUZ", "TIERRA DEL FUEGO"
   ];
 
+  let rawProv = prov;
+  let rawCity = city;
+
   // If Province looks like a city (more specific) and City looks like a province (broader)
   if (p.includes("S.M.") || p.includes("SAN MIGUEL") || p.includes("S.S. DE") || p.includes("SAN SALVADOR") || p.includes("CAPITAL")) {
-    return { provincia: city, ciudad: prov };
+    rawProv = city;
+    rawCity = prov;
+  } else if (provincesList.includes(c) && !provincesList.includes(p)) {
+    rawProv = city;
+    rawCity = prov;
   }
-  if (provincesList.includes(c) && !provincesList.includes(p)) {
-    return { provincia: city, ciudad: prov };
-  }
-  return { provincia: prov, ciudad: city };
+
+  const cleaned = cleanLocationName(rawProv);
+  return { provincia: cleaned, ciudad: cleaned };
 };
 
 export default function AfiliadosManager() {
@@ -224,7 +251,6 @@ export default function AfiliadosManager() {
 
   // Multi-select Filter State
   const [selectedProvinces, setSelectedProvinces] = useState<string[]>([]);
-  const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
 
   // Age Filters for Familiares Tab
@@ -244,20 +270,6 @@ export default function AfiliadosManager() {
     }, 150);
     return () => clearTimeout(timer);
   }, [searchInput]);
-
-  // Limpiar ciudades que no pertenecen a las provincias seleccionadas
-  useEffect(() => {
-    if (selectedProvinces.length > 0) {
-      const validCities = Array.from(
-        new Set(
-          affiliates
-            .filter((a) => selectedProvinces.includes(a.provincia))
-            .map((a) => a.ciudad)
-        )
-      );
-      setSelectedCities((prev) => prev.filter((c) => validCities.includes(c)));
-    }
-  }, [selectedProvinces, affiliates]);
 
   const fetchAffiliates = async () => {
     setLoading(true);
@@ -280,13 +292,17 @@ export default function AfiliadosManager() {
       (famResponse.data || []).forEach((f: any) => {
         countMap[f.affiliate_id] = (countMap[f.affiliate_id] || 0) + 1;
       });
-
-      const affsWithSearch = (affResponse.data || []).map((a: any) => ({
-        ...a,
-        family_count: countMap[a.id] || 0,
-        _searchStr:
-          `${a.nombre} ${a.apellido} ${a.cuil} ${a.legajo} ${a.dni}`.toLowerCase(),
-      }));
+      const affsWithSearch = (affResponse.data || []).map((a: any) => {
+        const cleanedProv = cleanLocationName(a.provincia);
+        return {
+          ...a,
+          provincia: cleanedProv,
+          ciudad: cleanedProv,
+          family_count: countMap[a.id] || 0,
+          _searchStr:
+            `${a.nombre} ${a.apellido} ${a.cuil} ${a.legajo} ${a.dni}`.toLowerCase(),
+        };
+      });
 
       // Build Family Member Details
       const familyDetails: FamilyMemberDetail[] = (famResponse.data || [])
@@ -296,13 +312,17 @@ export default function AfiliadosManager() {
             (parentItem: any) => parentItem.id === f.affiliate_id,
           );
 
+          const cleanedProv = parent ? parent.provincia : cleanLocationName(f.provincia);
+
           return {
             ...f,
+            provincia: cleanedProv,
+            ciudad: cleanedProv,
             parent_cuil: parent?.cuil || "",
             parent_nombre: parent?.nombre || "",
             parent_apellido: parent?.apellido || "",
-            parent_provincia: parent?.provincia || "",
-            parent_ciudad: parent?.ciudad || "",
+            parent_provincia: cleanedProv,
+            parent_ciudad: cleanedProv,
             _inferredGender: inferGender(f.nombre, f.dni),
             _searchStr:
               `${f.nombre} ${f.apellido} ${f.dni} ${parent?.nombre} ${parent?.apellido} ${parent?.cuil}`.toLowerCase(),
@@ -416,6 +436,12 @@ export default function AfiliadosManager() {
         }
 
         alert(`Importación finalizada:\n- ${updates.length} Afiliados actualizados.\n- ${inserts.length} Nuevos afiliados agregados.\n- ${disaffiliateIds.length} Afiliados marcados como "Baja" (no estaban en la lista).`);
+
+        await logAction(
+          "IMPORTAR_EXCEL",
+          `Importación de Titulares AEFIP: ${updates.length} actualizados, ${inserts.length} nuevos, ${disaffiliateIds.length} dados de baja`
+        );
+
         setShowSuccess(true);
         fetchAffiliates();
       } catch (error: any) {
@@ -592,6 +618,12 @@ export default function AfiliadosManager() {
             .from("affiliate_family_members")
             .insert(formattedFamily);
           if (error) throw error;
+
+          await logAction(
+            "IMPORTAR_EXCEL",
+            `Importación de Familiares: ${formattedFamily.length} hijos cargados`
+          );
+
           setShowSuccess(true);
         }
 
@@ -637,6 +669,12 @@ export default function AfiliadosManager() {
         .neq("id", 0); // Hack to delete all if RLS allows and no filter provided
 
       if (error) throw error;
+
+      await logAction(
+        "VACIAR_FAMILIARES",
+        `Eliminación masiva de TODOS los familiares cargados`
+      );
+
       alert("Todos los familiares han sido eliminados.");
       fetchAffiliates();
     } catch (error: any) {
@@ -889,6 +927,13 @@ export default function AfiliadosManager() {
     try {
       const { error } = await supabase.from("affiliates").delete().eq("id", id);
       if (error) throw error;
+
+      const deleted = affiliates.find((a: any) => a.id === id);
+      await logAction(
+        "ELIMINAR_AFILIADO",
+        `Baja de afiliado: ${deleted?.apellido || 'N/A'}, ${deleted?.nombre || 'N/A'} (ID: ${id})`
+      );
+
       fetchAffiliates();
     } catch (error: any) {
       setErrorMessage("Error al eliminar: " + error.message);
@@ -915,6 +960,11 @@ export default function AfiliadosManager() {
         .eq("id", secondaryId);
       
       if (delErr) throw delErr;
+
+      await logAction(
+        "UNIFICAR_AFILIADOS",
+        `Unificación de doble afiliación: ID primario ${primaryId} (marcado UPS), ID secundario ${secondaryId} (eliminado)`
+      );
 
       alert("Registros unificados con éxito.");
       fetchAffiliates();
@@ -964,33 +1014,32 @@ export default function AfiliadosManager() {
 
   // Base list of affiliates that meet the current status toggles (Active, UPS, Jubilados)
   const baseAffiliates = useMemo(() => {
+    const hasAnyFilter = filterActive || filterUPS || filterJubiladosAP;
+    
     return affiliates.filter((a: any) => {
       // Base validation: Only show Active AEFIP, UPS, or AP Retirees
-      const isValidMember = a.is_aefip || a.is_ups || (a.es_jubilado && a.is_aportante);
+      const isActivo = a.is_aefip && !a.is_ups && !a.es_jubilado;
+      const isUps = a.is_ups;
+      const isJubiladoAp = a.es_jubilado && a.is_aportante;
+      
+      const isValidMember = isActivo || isUps || isJubiladoAp;
       if (!isValidMember) return false;
 
-      const matchesActive = !filterActive || a.is_aefip;
-      const matchesUPS = !filterUPS || a.is_ups;
-      const matchesJubiladosAP =
-        !filterJubiladosAP || (a.es_jubilado && a.is_aportante);
+      if (!hasAnyFilter) return true;
 
-      return matchesActive && matchesUPS && matchesJubiladosAP;
+      return (
+        (filterActive && isActivo) ||
+        (filterUPS && isUps) ||
+        (filterJubiladosAP && isJubiladoAp)
+      );
     });
   }, [affiliates, filterActive, filterUPS, filterJubiladosAP]);
 
   // Derive filter options based on the base list
   const provinces = useMemo(
-    () => Array.from(new Set(baseAffiliates.map((a) => a.provincia))).sort(),
+    () => Array.from(new Set(baseAffiliates.map((a) => a.provincia).filter(Boolean))).sort(),
     [baseAffiliates],
   );
-  
-  const cities = useMemo(() => {
-    const filteredByProv =
-      selectedProvinces.length > 0
-        ? baseAffiliates.filter((a) => selectedProvinces.includes(a.provincia))
-        : baseAffiliates;
-    return Array.from(new Set(filteredByProv.map((a) => a.ciudad))).sort();
-  }, [baseAffiliates, selectedProvinces]);
 
   const genders = useMemo(
     () =>
@@ -1005,15 +1054,12 @@ export default function AfiliadosManager() {
       const matchesProv =
         selectedProvinces.length === 0 ||
         selectedProvinces.includes(a.provincia);
-      const matchesCity =
-        selectedCities.length === 0 || selectedCities.includes(a.ciudad);
       const matchesGender =
         selectedGenders.length === 0 || selectedGenders.includes(a.sexo);
 
       return (
         matchesSearch &&
         matchesProv &&
-        matchesCity &&
         matchesGender
       );
     });
@@ -1021,7 +1067,6 @@ export default function AfiliadosManager() {
     baseAffiliates,
     debouncedSearch,
     selectedProvinces,
-    selectedCities,
     selectedGenders,
   ]);
 
@@ -1062,17 +1107,20 @@ export default function AfiliadosManager() {
           shouldSwap = true;
         }
 
-        if (shouldSwap) {
+        const rawProv = shouldSwap ? aff.ciudad : aff.provincia;
+        const cleanProv = cleanLocationName(rawProv);
+
+        if (aff.provincia !== cleanProv || aff.ciudad !== cleanProv) {
           toUpdate.push({
             id: aff.id,
-            provincia: aff.ciudad, // Correct: Province is usually the broader one
-            ciudad: aff.provincia  // Correct: City is the specific one
+            provincia: cleanProv,
+            ciudad: cleanProv
           });
         }
       }
 
       if (toUpdate.length === 0) {
-        alert("No se encontraron registros para normalizar.");
+        alert("Todos los registros ya están normalizados.");
         return;
       }
 
@@ -1097,10 +1145,10 @@ export default function AfiliadosManager() {
   };
 
   const stats = useMemo(() => {
-    const totalAefip = affiliates.filter(a => a.is_aefip || a.is_aportante).length;
-    const totalDouble = affiliates.filter(a => a.is_aefip && a.is_ups).length;
+    const totalActivos = affiliates.filter(a => a.is_aefip && !a.is_ups && !a.es_jubilado).length;
+    const totalUPS = affiliates.filter(a => a.is_ups).length;
     const totalJubiladosAP = affiliates.filter(a => a.es_jubilado && a.is_aportante).length;
-    return { totalAefip, totalDouble, totalJubiladosAP };
+    return { totalActivos, totalUPS, totalJubiladosAP };
   }, [affiliates]);
 
   const potentialMatches = useMemo(() => {
@@ -1151,8 +1199,6 @@ export default function AfiliadosManager() {
       const matchesProv =
         selectedProvinces.length === 0 ||
         selectedProvinces.includes(f.parent_provincia);
-      const matchesCity =
-        selectedCities.length === 0 || selectedCities.includes(f.parent_ciudad);
       const matchesGender =
         selectedGenders.length === 0 ||
         selectedGenders.includes(f._inferredGender || "");
@@ -1170,7 +1216,6 @@ export default function AfiliadosManager() {
       return (
         matchesSearch &&
         matchesProv &&
-        matchesCity &&
         matchesGender &&
         matchesAge
       );
@@ -1179,7 +1224,6 @@ export default function AfiliadosManager() {
     allFamilyMembers,
     debouncedSearch,
     selectedProvinces,
-    selectedCities,
     selectedGenders,
     minAge,
     maxAge,
@@ -1230,7 +1274,6 @@ export default function AfiliadosManager() {
         APELLIDO: a.apellido,
         NOMBRE: a.nombre,
         PROVINCIA: a.provincia,
-        CIUDAD: a.ciudad,
         SEXO: a.sexo,
         CANT_HIJOS: a.family_count || 0,
       }));
@@ -1257,7 +1300,6 @@ export default function AfiliadosManager() {
           "Titular - Nombre": member.parent_nombre,
           "Titular - CUIL": member.parent_cuil,
           "Titular - Provincia": member.parent_provincia,
-          "Titular - Ciudad": member.parent_ciudad,
         };
       });
 
@@ -1273,8 +1315,8 @@ export default function AfiliadosManager() {
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, md: 4 }}>
           <InfoCard
-            title="Total Afiliados AEFIP"
-            value={stats.totalAefip}
+            title="Afiliados Activos"
+            value={stats.totalActivos}
             icon={PeopleIcon}
             selected={filterActive}
             onClick={() => {
@@ -1286,8 +1328,8 @@ export default function AfiliadosManager() {
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
           <InfoCard
-            title="Doble Afiliación (UPS)"
-            value={stats.totalDouble}
+            title="UPS / Doble Afiliación"
+            value={stats.totalUPS}
             icon={AssignmentIndIcon}
             color="warning.main"
             selected={filterUPS}
@@ -1526,7 +1568,7 @@ export default function AfiliadosManager() {
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="caption" color="warning.main" sx={{ fontWeight: 800 }}>REGISTRO UPS SOLO</Typography>
                         <Typography sx={{ fontWeight: 700 }}>{pair.secondary.apellido}, {pair.secondary.nombre}</Typography>
-                        <Typography variant="body2" color="text.secondary">{pair.secondary.ciudad}, {pair.secondary.provincia}</Typography>
+                        <Typography variant="body2" color="text.secondary">{pair.secondary.provincia}</Typography>
                       </Box>
 
                       <Button 
@@ -1664,25 +1706,6 @@ export default function AfiliadosManager() {
           </FormControl>
 
           <FormControl fullWidth size="small">
-            <InputLabel>Ciudad</InputLabel>
-            <Select
-              multiple
-              value={selectedCities}
-              onChange={handleFilterChange(setSelectedCities)}
-              input={<OutlinedInput label="Ciudad" sx={{ borderRadius: 2 }} />}
-              renderValue={(selected) => selected.join(", ")}
-              MenuProps={MenuProps}
-            >
-              {cities.map((city) => (
-                <MenuItem key={city} value={city}>
-                  <Checkbox checked={selectedCities.includes(city)} />
-                  <ListItemText primary={city} />
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth size="small">
             <InputLabel>Sexo</InputLabel>
             <Select
               multiple
@@ -1703,14 +1726,12 @@ export default function AfiliadosManager() {
         </Box>
 
         {(selectedProvinces.length > 0 ||
-          selectedCities.length > 0 ||
           selectedGenders.length > 0) && (
           <Button
             size="small"
             variant="text"
             onClick={() => {
               setSelectedProvinces([]);
-              setSelectedCities([]);
               setSelectedGenders([]);
               setPage(0);
             }}
@@ -1741,7 +1762,6 @@ export default function AfiliadosManager() {
                     "APELLIDO",
                     "NOMBRE",
                     "PROVINCIA",
-                    "CIUDAD",
                     "SEXO",
                   ].map((header) => (
                     <TableCell
@@ -1772,7 +1792,7 @@ export default function AfiliadosManager() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
                       <CircularProgress />
                       <Typography variant="body2" sx={{ mt: 2 }}>
                         Cargando titulares...
@@ -1781,7 +1801,7 @@ export default function AfiliadosManager() {
                   </TableRow>
                 ) : filteredAffiliates.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
                       <Typography variant="body1" color="text.secondary">
                         No se encontraron titulares.
                       </Typography>
@@ -1816,7 +1836,6 @@ export default function AfiliadosManager() {
                       </TableCell>
                       <TableCell>{affiliate.nombre}</TableCell>
                       <TableCell>{affiliate.provincia}</TableCell>
-                      <TableCell>{affiliate.ciudad}</TableCell>
                       <TableCell>
                         <Chip
                           icon={
@@ -1907,7 +1926,6 @@ export default function AfiliadosManager() {
                     "EDAD",
                     "TITULAR",
                     "PROVINCIA",
-                    "CIUDAD",
                   ].map((header) => (
                     <TableCell
                       key={header}
@@ -1926,7 +1944,7 @@ export default function AfiliadosManager() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
                       <CircularProgress />
                       <Typography variant="body2" sx={{ mt: 2 }}>
                         Cargando familiares...
@@ -1935,7 +1953,7 @@ export default function AfiliadosManager() {
                   </TableRow>
                 ) : filteredFamilyMembers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
                       <Typography variant="body1" color="text.secondary">
                         No se encontraron familiares.
                       </Typography>
@@ -1967,9 +1985,6 @@ export default function AfiliadosManager() {
                         </TableCell>
                         <TableCell>
                           {member.parent_provincia}
-                        </TableCell>
-                        <TableCell>
-                          {member.parent_ciudad}
                         </TableCell>
                       </TableRow>
                     );

@@ -41,6 +41,8 @@ import AdminCapabilitiesModal from "../../Components/Admin/AdminCapabilitiesModa
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import RequestManager from "../../Components/Admin/RequestManager";
 import HelpCenterIcon from "@mui/icons-material/HelpCenter";
+import AuditLogsManager from "../../Components/Admin/AuditLogsManager";
+import HistoryIcon from "@mui/icons-material/History";
 
 function AdminDashboard() {
   const [activeBranch, setActiveBranch] = useState<"azucena" | "noroeste">(
@@ -187,6 +189,13 @@ function AdminDashboard() {
           <LocalShippingIcon sx={{ fontSize: 20, mb: "0 !important", mr: 1 }} />
         ),
         component: <ProvidersManager />,
+      },
+      {
+        label: "Auditoría",
+        icon: (
+          <HistoryIcon sx={{ fontSize: 20, mb: "0 !important", mr: 1 }} />
+        ),
+        component: <AuditLogsManager />,
       },
     ],
   };

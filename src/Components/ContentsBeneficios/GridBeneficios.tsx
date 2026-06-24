@@ -73,19 +73,19 @@ export default function GridBeneficios() {
         .from('benefit_categories')
         .select('name')
         .order('name');
-      
+
       const benefitList = currentBenefits || beneficios;
       const dynamicRubros = [...new Set(benefitList.map(b => b.rubro).filter(Boolean) as string[])];
-      
+
       const allRubros = ["Todos"];
-      
+
       // Add from categories table
       if (catData) {
         catData.forEach(c => {
           if (!allRubros.includes(c.name)) allRubros.push(c.name);
         });
       }
-      
+
       // Add from actual benefits (safety net)
       dynamicRubros.forEach(r => {
         if (!allRubros.includes(r)) allRubros.push(r);
@@ -186,7 +186,15 @@ export default function GridBeneficios() {
   };
 
   const [currentAffiliate, setCurrentAffiliate] = useState<any>(null);
-  const isAdmin = useMemo(() => isUserAdmin(currentAffiliate), [currentAffiliate]);
+  const isAdmin = useMemo(() => {
+    if (!currentAffiliate) return false;
+    return (
+      isUserAdmin(currentAffiliate) ||
+      currentAffiliate.role === 'admin' ||
+      ['34185803', '042418/00', '23276817159'].includes(currentAffiliate.legajo) ||
+      ['34185803', '23276817159'].includes(currentAffiliate.cuil)
+    );
+  }, [currentAffiliate]);
 
   useEffect(() => {
     const checkUser = () => {
@@ -321,28 +329,30 @@ export default function GridBeneficios() {
       )}
 
       {isAdmin && (
-        <Tooltip title="Agregar beneficio">
-          <Fab
-            color="primary"
-            onClick={handleAdd}
-            sx={{
-              position: "fixed",
-              bottom: 80,
-              right: 24,
-              zIndex: 1000,
-            }}
-          >
-            <AddIcon />
-          </Fab>
-        </Tooltip>
-      )}
+        <>
+          <Tooltip title="Agregar convenio">
+            <Fab
+              color="primary"
+              onClick={handleAdd}
+              sx={{
+                position: "fixed",
+                bottom: 80,
+                right: 24,
+                zIndex: 1000,
+              }}
+            >
+              <AddIcon />
+            </Fab>
+          </Tooltip>
 
-      <BenefitEditModal
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        benefit={selectedBenefit}
-        onSave={handleSaveEdit}
-      />
+          <BenefitEditModal
+            open={editModalOpen}
+            onClose={() => setEditModalOpen(false)}
+            benefit={selectedBenefit}
+            onSave={handleSaveEdit}
+          />
+        </>
+      )}
     </Box>
   );
 }
@@ -365,6 +375,13 @@ function BenefitItemComponent({
   const [reportLoading, setReportLoading] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [isZoomedIn, setIsZoomedIn] = useState(false);
+
+  const handleCloseZoom = () => {
+    setZoomImage(null);
+    setIsZoomedIn(false);
+  };
   const theme = useTheme();
 
   const handleOpen = useCallback(() => {
@@ -619,6 +636,7 @@ function BenefitItemComponent({
           {/* Carousel Section */}
           <Box sx={{ position: "relative", mb: 4 }}>
             <Box
+              onClick={() => setZoomImage(gallery[currentImgIndex])}
               sx={{
                 width: "100%",
                 height: 350,
@@ -631,7 +649,12 @@ function BenefitItemComponent({
                 border: "1px solid",
                 borderColor: "divider",
                 p: 4,
-                transition: "background-image 0.5s ease",
+                cursor: "pointer",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  transform: "scale(1.02)",
+                  boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
+                },
               }}
             />
             {gallery.length > 1 && (
@@ -773,6 +796,19 @@ function BenefitItemComponent({
             </Box>
           </Paper>
 
+          {isAdmin && (item as any).attachment_url && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              fullWidth
+              sx={{ mt: 3, fontWeight: 800, borderRadius: 2 }}
+              href={(item as any).attachment_url}
+              target="_blank"
+            >
+              Ver PDF del Convenio (Solo Admins)
+            </Button>
+          )}
+
           {currentAffiliate && (
             <Box sx={{ mt: 4 }}>
               <Button
@@ -888,6 +924,66 @@ function BenefitItemComponent({
             </Button>
           </DialogActions>
         )}
+      </Dialog>
+      <Dialog 
+        open={!!zoomImage} 
+        onClose={handleCloseZoom} 
+        maxWidth="lg" 
+        fullWidth
+        PaperProps={{
+          onClick: handleCloseZoom,
+          sx: { 
+            bgcolor: 'transparent', 
+            boxShadow: 'none',
+            overflow: isZoomedIn ? 'auto' : 'hidden',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            cursor: 'zoom-out'
+          }
+        }}
+      >
+        <Box 
+          onClick={(e) => e.stopPropagation()} 
+          sx={{ 
+            position: 'relative', 
+            display: 'inline-block',
+            textAlign: 'center',
+            overflow: isZoomedIn ? 'auto' : 'hidden',
+            p: 2
+          }}
+        >
+          <IconButton 
+            onClick={handleCloseZoom}
+            sx={{ 
+              position: 'absolute', 
+              top: 24, 
+              right: 24, 
+              color: 'white', 
+              bgcolor: 'rgba(0,0,0,0.5)',
+              zIndex: 10,
+              '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          {zoomImage && (
+            <img 
+              src={zoomImage} 
+              alt="Zoomed Benefit" 
+              onClick={(e) => { e.stopPropagation(); setIsZoomedIn(!isZoomedIn); }}
+              style={{ 
+                maxWidth: isZoomedIn ? 'none' : '100%', 
+                maxHeight: isZoomedIn ? 'none' : '90vh', 
+                width: isZoomedIn ? '180%' : 'auto',
+                objectFit: 'contain',
+                borderRadius: 8,
+                cursor: isZoomedIn ? 'zoom-out' : 'zoom-in',
+                transition: 'all 0.3s ease-in-out'
+              }} 
+            />
+          )}
+        </Box>
       </Dialog>
     </>
   );

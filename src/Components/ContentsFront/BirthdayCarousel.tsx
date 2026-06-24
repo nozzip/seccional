@@ -60,7 +60,7 @@ export default function BirthdayCarousel() {
     return (
       <Skeleton
         variant="rectangular"
-        height={500}
+        height={350}
         sx={{ borderRadius: 1, width: "100%" }}
       />
     );
@@ -84,8 +84,8 @@ export default function BirthdayCarousel() {
         activeIndicatorIconButtonProps={{
           style: { color: theme.palette.primary.main },
         }}
-        height={500}
-        sx={{ minHeight: { xs: 350, md: 500 } }}
+        height={350}
+        sx={{ minHeight: { xs: 350, md: 350 } }}
       >
         {affiliates.length > 0 ? (
           affiliates.map((item, i) => (
@@ -94,7 +94,7 @@ export default function BirthdayCarousel() {
         ) : (
           <Box
             sx={{
-              height: 500,
+              height: 350,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -117,7 +117,7 @@ function BirthdayItem({ name, lastName }: { name: string; lastName: string }) {
     <Paper
       elevation={0}
       sx={{
-        height: { xs: 350, md: 500 },
+        height: { xs: 350, md: 350 },
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -127,7 +127,7 @@ function BirthdayItem({ name, lastName }: { name: string; lastName: string }) {
         position: "relative",
         overflow: "hidden",
         textAlign: "center",
-        p: 4,
+        p: 2,
       }}
     >
       {/* Decorative Ornaments */}
@@ -140,11 +140,11 @@ function BirthdayItem({ name, lastName }: { name: string; lastName: string }) {
 
       <Avatar
         sx={{
-          width: 120,
-          height: 120,
+          width: 80,
+          height: 80,
           bgcolor: "primary.main",
-          mb: 3,
-          fontSize: "3rem",
+          mb: 2,
+          fontSize: "2rem",
           fontWeight: 800,
           borderRadius: 1,
           boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
@@ -172,7 +172,7 @@ function BirthdayItem({ name, lastName }: { name: string; lastName: string }) {
         sx={{
           fontWeight: 900,
           color: "primary.main",
-          fontSize: { xs: "1.8rem", md: "3rem" },
+          fontSize: { xs: "1.6rem", md: "2.2rem" },
           mb: 1,
           lineHeight: 1.2,
           px: 2,
@@ -189,10 +189,6 @@ function BirthdayItem({ name, lastName }: { name: string; lastName: string }) {
           maxWidth: 400,
         }}
       ></Typography>
-
-      <Box sx={{ mt: 4 }}>
-        <CakeIcon color="secondary" sx={{ fontSize: 40, opacity: 0.8 }} />
-      </Box>
     </Paper>
   );
 }

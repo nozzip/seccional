@@ -72,7 +72,53 @@ export default function AffiliateForm() {
         fechaNacimiento: '',
     });
 
-    const handleNext = () => setActiveStep((prev) => prev + 1);
+    const handleNext = async () => {
+        setError('');
+        if (activeStep === 0) {
+            if (!workerData.nombre.trim()) {
+                setError('Por favor, ingresá tu nombre.');
+                return;
+            }
+            if (!workerData.apellido.trim()) {
+                setError('Por favor, ingresá tu apellido.');
+                return;
+            }
+            if (!workerData.cuil.trim() && !workerData.legajo.trim()) {
+                setError('Por favor, ingresá tu número de CUIL o tu número de Legajo (al menos uno es requerido).');
+                return;
+            }
+
+            setLoading(true);
+            try {
+                let orConditions = [];
+                if (workerData.legajo.trim()) orConditions.push(`legajo.eq.${workerData.legajo.trim()}`);
+                if (workerData.cuil.trim()) orConditions.push(`cuil.eq.${workerData.cuil.trim()}`);
+
+                const { data, error: dbError } = await supabase
+                    .from('affiliates')
+                    .select('id')
+                    .or(orConditions.join(','))
+                    .eq('branch', 'noroeste')
+                    .maybeSingle();
+
+                if (dbError) throw dbError;
+
+                if (data) {
+                    setError('El número de CUIL y/o Legajo ingresado ya se encuentra registrado en nuestra base de datos. Ya estás afiliado, por favor ingresá directamente desde el ícono de login.');
+                    setLoading(false);
+                    return;
+                }
+            } catch (err: any) {
+                console.error('Error al verificar legajo:', err);
+                setError('Error de conexión al verificar el legajo. Por favor, intentá nuevamente.');
+                setLoading(false);
+                return;
+            } finally {
+                setLoading(false);
+            }
+        }
+        setActiveStep((prev) => prev + 1);
+    };
     const handleBack = () => setActiveStep((prev) => prev - 1);
 
     const handleAddMember = () => {
@@ -103,7 +149,8 @@ export default function AffiliateForm() {
                         nombre: `${workerData.nombre} ${workerData.apellido}`,
                         cuil: workerData.cuil,
                         legajo: workerData.legajo,
-                        email: workerData.email
+                        email: workerData.email,
+                        telefono: workerData.telefono
                     },
                     data: {
                         worker: workerData,
@@ -373,9 +420,10 @@ export default function AffiliateForm() {
                                     variant="contained"
                                     onClick={handleNext}
                                     size="large"
+                                    disabled={loading}
                                     sx={{ px: 6, fontWeight: 900 }}
                                 >
-                                    Siguiente
+                                    {loading ? <CircularProgress size={24} color="inherit" /> : 'Siguiente'}
                                 </Button>
                             )}
                         </Box>

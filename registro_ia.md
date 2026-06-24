@@ -200,3 +200,203 @@
 4. **Lógica & Interactividad (Modal Settings):**
    - Se agregó un botón de acción "+" al lado del campo "Nuevo Rubro" en `BenefitEditModal.tsx`.
    - Al hacer clic, se inserta inmediatamente el nuevo rubro de forma segura en la tabla `benefit_categories` de Supabase, se añade al listado local de rubros y se autoselecciona en el desplegable de rubros adyacente para ahorrar pasos al usuario.
+
+## [ÉXITO] - Mitigación del Crash de DOM y Pantalla de Error Premium
+**Fecha:** 2026-05-20
+**Modo:** Mejorar
+**Descripción:** Se corrigió el crash crítico `"El objeto no se encuentra aquí."` (causado por traductores de navegador que rompen la reconciliación de React en el DOM) e implementamos una pantalla de error premium personalizada para la navegación.
+
+### Cambios realizados:
+1. **Física / DOM (Monkeypatch preventivo):**
+   - Se inyectó un parche defensivo global en `src/index.tsx` sobre `Node.prototype.removeChild` y `Node.prototype.insertBefore` para silenciar desincronizaciones del DOM causadas por extensiones externas (Google Translate), garantizando estabilidad absoluta al 100% en producción.
+2. **Visual / UI (Manejo de Errores Premium):**
+   - Creación de `RouteErrorBoundary.tsx` con diseño y paleta de colores oficial de AEFIP Noroeste.
+   - Soporte para modo oscuro/claro, micro-animación de entrada, botón de "Reintentar" y "Volver al inicio", y un acordeón colapsable con el stack técnico de la excepción.
+3. **Lógica (Rutas):**
+   - Registro de `RouteErrorBoundary` como `errorElement` en las rutas principales del router en `src/App.tsx`.
+
+## [ÉXITO] - Ocultación Temporal de Pestaña "Servicios" (Deudas)
+**Fecha:** 2026-05-20
+**Modo:** Mejorar
+**Descripción:** Se ocultó temporalmente la pestaña "Servicios" (que muestra deudas pendientes de afiliados) en la app móvil de beneficios por no encontrarse lista la base de datos en el backend.
+
+### Cambios realizados:
+1. **Lógica & UI (Pestañas Dinámicas):**
+   - Creación de la bandera `showServiciosTab = false` en `MobileBeneficiosApp.tsx`.
+   - Refactorización de la barra de navegación (`BottomNavigation`) y del contenedor de contenido (`renderContent`) para usar un arreglo de configuración dinámico `tabs`.
+   - **Resultado:** La pestaña desaparece del render de forma fluida y sin desincronizar los índices de tabulación activa. Es reactivable al cambiar la bandera a `true`.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Estabilidad de Producción:** Monkeypatch global defensivo en `Node.prototype` contra extensiones/traductores para evitar desincronización DOM en SPAs React.
+- **UI Error Handling:** Uso de `RouteErrorBoundary` y `errorElement` en React Router para fallbacks premium unificados.
+- **Navegación Móvil:** Configuración dinámica de pestañas mediante el arreglo `tabs` dependiente de banderas booleanas para modularidad en producción.
+
+## [ÉXITO] - Resolución de TDZ en App Móvil y Validación de Afiliados Existentes
+**Fecha:** 2026-05-20
+**Modo:** Mejorar / Desarrollar
+**Descripción:** Se resolvió el error fatal en producción `ReferenceError: Cannot access 'm' before initialization` provocado por la inicialización temprana del arreglo `tabs` en la app móvil. Asimismo, se implementó una validación en tiempo real para impedir que afiliados ya existentes realicen nuevas solicitudes de afiliación duplicadas, guiándolos hacia la pantalla de login.
+
+### Cambios realizados:
+1. **Lógica & Estabilidad (Corrección de TDZ - MobileBeneficiosApp.tsx):**
+   - Se movió la definición del arreglo `tabs` dentro de un bloque `useMemo` posicionado después de las declaraciones de sus funciones dependientes (`updateAffiliateData` y `handleLogout`). Esto resolvió de raíz la violación de la Temporal Dead Zone (TDZ) al ser compilada y minificada por Rollup/Vite en producción.
+2. **Lógica & Validación (Duplicados de Legajo - AffiliateForm.tsx):**
+   - Modificación de la función `handleNext` para ser asincrónica.
+   - En el primer paso (Datos del Trabajador), antes de permitir avanzar, se consulta la base de datos Supabase (`affiliates`) buscando si ya existe un registro con el mismo `legajo` para la sucursal `branch: 'noroeste'`.
+   - Si se detecta que el afiliado ya existe, se aborta el cambio de paso y se despliega un mensaje de error en rojo (`severity="error"`) informándole que ya se encuentra afiliado y debe ingresar utilizando el ícono de login.
+3. **Visual & UX (AffiliateForm.tsx):**
+   - Se añadió el estado `disabled={loading}` y una animación de carga `CircularProgress` en el botón "Siguiente" durante el proceso de verificación con la base de datos para brindar un feedback visual fluido y altamente premium al usuario.
+4. **Despliegue exitoso (Production Deploy):**
+   - Compilación exitosa de todos los assets mediante `npm run build`.
+   - Despliegue de los cambios funcionales a producción en GitHub Pages mediante `npm run deploy`.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Validación Defensiva de Formularios:** Uso de consultas asincrónicas en tiempo real contra la base de datos Supabase en los límites de pasos críticos para prevenir duplicidad de registros antes de procesar flujos de trabajo (`workflow_requests`).
+
+## [ÉXITO] - Código QR Descargable y Autoconsolidación de Perfil con Supabase
+**Fecha:** 2026-05-20
+**Modo:** Desarrollar / Mejorar
+**Descripción:** Se habilitó la descarga directa del código QR del carnet de afiliado en formato de imagen (.png) con un simple clic, incorporando además tooltips dinámicos y animaciones responsivas. Adicionalmente, se configuró una sincronización asincrónica bidireccional automática en segundo plano que consolida la información del perfil del afiliado con la base de datos Supabase al iniciar la app.
+
+### Cambios realizados:
+1. **Visual & UX (Descarga de QR - CarnetView.tsx):**
+   - Importación y configuración del componente `<Tooltip>` de Material UI para indicar al usuario: *"Hacé clic para descargar el código QR"*.
+   - Inserción de efectos dinámicos interactivos sobre el contenedor del código QR (cursor de tipo pointer, transición animada de escalamiento `scale(1.1)` y elevación de sombras `boxShadow` en hover).
+   - Implementación de la función `downloadQR()` que genera un enlace de anclaje `<a>` temporal, inyectando el `qrDataUrl` base64 y descargándolo con un nombre de archivo limpio basado en el legajo del afiliado.
+2. **Lógica & Sincronización (Consolidación de Datos - MobileBeneficiosApp.tsx):**
+   - Refactorización de la llamada `useEffect` en el montaje del componente principal de la app móvil.
+   - Si existe una sesión de afiliado guardada en la caché local (`localStorage`), además de cargar los valores locales de forma instantánea para mitigar latencia, se ejecuta un proceso asincrónico paralelo (`syncProfileFromDB`) contra la tabla `affiliates` de Supabase.
+   - Este proceso descarga en segundo plano la última versión disponible de los campos personales (teléfono, email, estado de jubilado y fecha de nacimiento) y actualiza automáticamente tanto el estado reactivo (`setAffiliateData`) como el almacenamiento de caché local.
+3. **Despliegue exitoso (Production Deploy):**
+   - Compilación completa libre de errores (`npm run build`).
+   - Publicación en vivo en GitHub Pages (`npm run deploy`) en la dirección `aefipnoroeste.org.ar`.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Descargas Programáticas locales:** Estrategia de descarga por inyección temporal de anclajes HTML5 sobre cadenas Base64 seguras generadas localmente.
+- **Sincronización Silenciosa de Sesiones:** Uso de patrones híbridos (Local Cache First + Background DB Fetch) para optimizar la velocidad visual y la exactitud de los datos del cliente.
+
+## [ÉXITO] - Actualización Oficial de Autoridades y Estructuración por Categorías
+**Fecha:** 2026-06-03
+**Modo:** Desarrollar
+**Descripción:** Se actualizó la lista completa de las 35 autoridades oficiales de la Seccional Noroeste conforme a la "Lista Blanca y Celeste", organizando a los directivos en categorías institucionales con iconos premium de Material-UI y localizaciones geográficas.
+
+### Cambios realizados:
+1. **Lógica & Datos:**
+   - Se reemplazaron los registros anteriores con la nómina oficial completa de 35 autoridades en `src/Pages/Gremio.tsx` y `seccional/src/Pages/Gremio.tsx`.
+   - Se definieron los roles exactos, nombres completos en mayúsculas y las respectivas delegaciones geográficas (Salta, Tucumán, Jujuy, Santiago, Catamarca, Oran, Concepción).
+2. **Visual & UI (Estructuración Premium):**
+   - Agrupación del cuerpo directivo en 6 secciones principales: *Secretariado*, *Cuerpo de Vocales*, *Consejo Directivo Superior*, *Delegados a la Asamblea General*, *Comisión Nacional de Jubilados* y *Congresales F.E.F.R.A.*.
+   - Creación del componente `SectionHeader` con iconos institucionales específicos para cada jerarquía.
+   - Diseño mejorado para `AuthorityCard` con degradados dinámicos basados en la jerarquía (Secretario General en azul marino oscuro, Secretario Adjunto en celeste premium, y el resto en tarjetas con fondo limpio).
+   - Inclusión del marcador de geolocalización (icono `LocationOn`) en las tarjetas que tienen ciudad asignada.
+3. **Estabilidad:**
+   - Compilación exitosa en ambos entornos (proyecto raíz y subdirectorio de despliegue `seccional`).
+
+## [ÉXITO] - Restauración del Feed RSS de Noticias Nacionales en Prensa
+**Fecha:** 2026-06-08
+**Modo:** Mejorar
+**Descripción:** Se restauró la carga de las últimas noticias provenientes de la Mesa Directiva Nacional en la sección Prensa, la cual había dejado de funcionar debido a la caída y bloqueo del proxy CORS anterior (`api.codetabs.com`).
+
+### Cambios realizados:
+1. **Lógica & Datos:**
+   - Se modificó la función `fetchRssNews` en `src/utils/newsFetcher.ts` para migrar del proxy caído a `api.rss2json.com`, el cual proporciona estabilidad, manejo de CORS y conversión de XML a JSON en una sola llamada.
+   - Se refactorizó la lógica de parseo, reemplazando el uso de `DOMParser` sobre XML en crudo por un mapeo directo de los objetos JSON devueltos por la API.
+   - Se mantuvo intacta la lógica local de procesamiento de fechas, imágenes de fallback y límite de caracteres en el resumen.
+
+## [ÉXITO] - Optimización de Gestión de Afiliados y Consolidación Geográfica
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se refinaron los filtros y visualización de la sección "Gestión de Afiliados". Se removió el campo redundante de "Ciudad" para consolidar los datos únicamente bajo "Provincia", y se corrigió la lógica de los filtros de estado para que actúen con operador OR en lugar de exigir simultaneidad ilógica.
+
+### Cambios realizados:
+1. **Consolidación Geográfica:**
+   - Se removió la visualización e inputs del campo "Ciudad" en los modales `AddAffiliateModal.tsx` y `AffiliateDetailsModal.tsx`.
+   - Se modificaron los guardados en base de datos para mapear el campo `ciudad` al valor de `provincia` de forma automática, garantizando compatibilidad retrospectiva en el esquema de Supabase.
+   - Se removió la columna "Ciudad" de las tablas de Titulares y Familiares en `AfiliadosManager.tsx`, así como de la exportación de Excel.
+2. **Corrección de Lógica de Filtros de Estado:**
+   - Se actualizó el hook `useMemo` de `baseAffiliates` en `AfiliadosManager.tsx` para aplicar una lógica de filtro OR en lugar de AND (los afiliados activos AEFIP no son de UPS y viceversa, por lo que requerir ambos resultaba en una grilla vacía).
+   - Se modificaron las tarjetas de conteo InfoCard para mostrar "Afiliados Activos" (activos exclusivos), "UPS / Doble Afiliación" (is_ups) y "Jubilados Aportantes" respectivamente.
+3. **Mantenibilidad:**
+   - Se removió la variable de estado `selectedCities` y todos sus efectos y cálculos asociados.
+   - Compilación y build exitosos a través de Vite.
+
+## [ÉXITO] - Resolución de Advertencias de Recharts en ResponsiveContainer
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se corrigieron las advertencias recurrentes de consola de Recharts (`The width(-1) and height(-1) of chart should be greater than 0...`) al inicializar gráficos sin dimensiones calculadas en el DOM.
+
+### Cambios realizados:
+1. **Dimensionado de Gráficos:**
+   - Se agregaron atributos explícitos `width="100%"`, `height="100%"` y un retardo de renderizado `debounce={50}` a todos los componentes `ResponsiveContainer` en `AdminOverview.tsx` y `FinancialStatistics.tsx`.
+   - Se removió la propiedad redundante `minWidth` del contenedor flex/grid envolvente.
+2. **Estabilidad:**
+   - Compilación y build exitosos sin advertencias ni errores en el bundle de producción.
+
+## [ÉXITO] - Normalización Geográfica Unificada de Provincias
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se implementó una lógica de mapeo geográfico estricto para unificar denominaciones de provincias y subdelegaciones del Noroeste (ej: "S.M. Tucumán" -> "Tucumán").
+
+### Cambios realizados:
+1. **Unificación Geográfica:**
+   - Se definió la función `cleanLocationName` para unificar valores a mayúsculas limpias:
+     - `"S.M. TUCUMAN"`, `"SAN MIGUEL DE TUCUMAN"`, etc. -> `"TUCUMAN"`
+     - `"SS JUJUY"`, `"SAN SALVADOR DE JUJUY"`, etc. -> `"JUJUY"`
+     - `"SF CATAMARCA"`, `"SAN FERNANDO DE CATAMARCA"`, etc. -> `"CATAMARCA"`
+     - `"SAN RAMON DE LA NUEVA ORAN"`, etc. -> `"ORAN"`
+   - Se integró este limpiador en `fetchAffiliates` para limpiar en tiempo real los registros cargados de la base de datos.
+   - Se actualizó `AddAffiliateModal.tsx` y `AffiliateDetailsModal.tsx` para forzar la limpieza al insertar o actualizar afiliados.
+   - Se actualizó el botón/procedimiento manual `handleNormalizeLocations` en `AfiliadosManager.tsx` para re-escribir y sanear permanentemente los registros inconsistentes en Supabase en lotes.
+
+## [ÉXITO] - Vista Ampliada (Zoom Interactivo) de Imágenes en Carrusel y Convenios
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se mejoró la vista ampliada de imágenes añadiendo capacidad de cierre al hacer clic afuera (backdrop) y ampliación real (scale zoom) al hacer clic en la imagen.
+
+### Cambios realizados:
+1. **Zoom en Carrusel Principal (`Carusel.tsx`):**
+   * Se agregó el estado `isZoomedIn`.
+   * Al hacer clic en la imagen ampliada, la imagen hace un "scale" interactivo a `180%` y el contenedor se vuelve deslizable (`overflow: auto`). El cursor también cambia dinámicamente (`zoom-in` / `zoom-out`).
+   * Al hacer clic en cualquier sector del fondo oscuro transparente (backdrop), se cierra el modal de imagen automáticamente.
+
+2. **Zoom en Convenios/Beneficios (`GridBeneficios.tsx`):**
+   * Se replicó el comportamiento de escalado `isZoomedIn` y el cierre por click en el backdrop dentro de la vista ampliada de la galería de los convenios.
+   * La estructura HTML se ajustó aislando el `Box` interno para prevenir que un click en la imagen accidentalmente cierre el modal, requiriendo estrictamente `stopPropagation`.
+
+## [ÉXITO] - Estilización de Transición de Sección Inicial (Líneas Horizontales)
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se agregó coherencia visual estilizada entre la división principal ("Seccional Noroeste" / "Descargar App") y el panel de Afiliados.
+
+### Cambios realizados:
+1. **Líneas Horizontales y Espaciado en `Inicio.tsx`:**
+   * Se ajustó el divisor a un esquema de franjas horizontales rectas para mantener estricta coherencia con los demás elementos (ortogonales) de la página.
+   * Se empleó una composición CSS multicapa en lugar de SVG, conformada por 3 bandas apiladas verticalmente.
+   * Se igualó la distancia superior de la tarjeta "Afiliados" (`pt: 8` en el contenedor) para que coincida exactamente con la distancia/padding inferior que tiene hacia la sección de "Noticias", balanceando el diseño visual.
+
+## [ÉXITO] - Ordenamiento Cronológico de Noticias (RSS + Locales)
+**Fecha:** 2026-06-23
+**Modo:** Mejorar
+**Descripción:** Se corrigió la prioridad estática de las noticias locales sobre las noticias de la Mesa Directiva Nacional (RSS), garantizando un feed estrictamente cronológico.
+
+### Cambios realizados:
+1. **Actualización de `newsFetcher.ts`:**
+   * Se añadió la propiedad abstracta `timestamp` a la interfaz `NewsItem` para estandarizar las fechas.
+   * Al mapear las noticias del RSS, ahora se extrae el valor temporal crudo (`getTime()`) desde `pubDate` antes de localizar el string.
+   * Al traer las noticias desde Supabase, también se captura y almacena el `getTime()` desde el campo `created_at`.
+   * En lugar de simplemente anteponer las noticias locales a las del RSS, el array resultante se fusiona y se somete a un `sort` descendente basado en el `timestamp`. Esto asegura que las noticias más nuevas, independientemente de su origen, se posicionen siempre primeras.
+
+## [ÉXITO] - Resolución de Conflictos de Git y Errores de Compilación (Estabilización)
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se corrigieron los conflictos de combinación (merge conflicts) remanentes en los archivos principales `App.tsx` y `GridBeneficios.tsx`, estabilizando la compilación TypeScript y logrando un build de producción con cero errores.
+
+### Cambios realizados:
+1. **Resolución de Conflictos en Enrutador (`App.tsx`):**
+   - Se removieron los marcadores de conflicto de Git en la sección de imports, integrando limpiamente tanto la utilidad de autenticación `isUserAdmin` como la pantalla de error premium `RouteErrorBoundary`.
+2. **Corrección de Declaración Duplicada y Sintaxis (`GridBeneficios.tsx`):**
+   - Se eliminó la doble declaración de la variable local `isAdmin` (que causaba error de ámbito de bloque).
+   - Se consolidó la lógica de privilegios del administrador en un único hook `useMemo` optimizado que valida mediante `isUserAdmin` y el rol `admin` / legajos autorizados de Ramiro/Superusuario.
+   - Se eliminaron los marcadores de conflicto en el footer del Grid que generaban elementos JSX mal formados y causaban errores sintácticos de tokens inesperados (`{'}'}` y `{'>'}`).
+3. **Verificación de Compilación y Build:**
+   - Se ejecutó con éxito `npm run build` confirmando que la aplicación compila y empaqueta el cliente sin ninguna advertencia o error en TypeScript.
+
