@@ -436,7 +436,7 @@ function Inicio() {
                     </Box>
                   </Grid2>
                   <Grid2 size={{ xs: 12, lg: 3 }} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{ flex: 1, minHeight: 0 }}>
+                    <Box sx={{ flex: { xs: "none", lg: 1 }, minHeight: 0 }}>
                       <BirthdayCarousel />
                     </Box>
                     <Box>
