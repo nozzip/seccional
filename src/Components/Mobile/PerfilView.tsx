@@ -68,16 +68,22 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
         telefono: '',
         email: '',
         es_jubilado: false,
-        fecha_nacimiento: '',
+        dia: '',
+        mes: '',
+        anio: '',
     });
 
     useEffect(() => {
         if (affiliateData) {
+            const fechaStr = affiliateData.fecha_nacimiento || localStorage.getItem('mobile_app_fecha_nacimiento') || '';
+            const [anio, mes, dia] = fechaStr ? fechaStr.split('-') : ['', '', ''];
             setFormData({
                 telefono: affiliateData.telefono || localStorage.getItem('mobile_app_telefono') || '',
                 email: affiliateData.email || localStorage.getItem('mobile_app_email') || '',
                 es_jubilado: affiliateData.es_jubilado || localStorage.getItem('mobile_app_jubilado') === 'true',
-                fecha_nacimiento: affiliateData.fecha_nacimiento || localStorage.getItem('mobile_app_fecha_nacimiento') || '',
+                dia: dia || '',
+                mes: mes || '',
+                anio: anio || '',
             });
             fetchAffiliateId();
         }
@@ -127,13 +133,17 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
         setSuccess('');
 
         try {
+            const fechaStr = formData.anio && formData.mes && formData.dia
+                ? `${formData.anio.padStart(4, '0')}-${formData.mes.padStart(2, '0')}-${formData.dia.padStart(2, '0')}`
+                : null;
+
             const { error: updateError } = await supabase
                 .from('affiliates')
                 .update({
                     telefono: formData.telefono,
                     email: formData.email,
                     es_jubilado: formData.es_jubilado,
-                    fecha_nacimiento: formData.fecha_nacimiento || null,
+                    fecha_nacimiento: fechaStr,
                 })
                 .eq('legajo', affiliateData.legajo)
                 .eq('branch', 'noroeste');
@@ -144,7 +154,7 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 telefono: formData.telefono,
                 email: formData.email,
                 es_jubilado: formData.es_jubilado,
-                fecha_nacimiento: formData.fecha_nacimiento,
+                fecha_nacimiento: fechaStr ?? undefined,
             });
 
             setSuccess('Datos guardados correctamente');
@@ -169,7 +179,7 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     .from('affiliates')
                     .update({
                         conyuge_nombre: fullName,
-                        conyuge_dni: dni
+                        conyuge_dni: dni ?? undefined
                     })
                     .eq('id', affiliateId);
 
@@ -177,7 +187,7 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
 
                 onUpdate({
                     conyuge_nombre: fullName,
-                    conyuge_dni: dni
+                    conyuge_dni: dni ?? undefined
                 });
                 
                 setFamilyDialogOpen(false);
@@ -227,8 +237,8 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
             if (error) throw error;
             
             onUpdate({
-                conyuge_nombre: null,
-                conyuge_dni: null
+                conyuge_nombre: undefined,
+                conyuge_dni: undefined
             });
             setSuccess('Cónyuge eliminado correctamente');
         } catch (err) {
@@ -323,7 +333,7 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                 Fecha de Nacimiento
                             </Typography>
                             <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                {affiliateData.fecha_nacimiento ? new Date(affiliateData.fecha_nacimiento).toLocaleDateString('es-AR') : '-'}
+                                {affiliateData.fecha_nacimiento ? (() => { const [y, m, d] = affiliateData.fecha_nacimiento.split('-'); return `${d}/${m}/${y}`; })() : '-'}
                             </Typography>
                         </Box>
                     </>
@@ -352,17 +362,49 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     sx={{ mb: 2 }}
                 />
 
-                <TextField
-                    fullWidth
-                    label="Fecha de Nacimiento"
-                    type="date"
-                    value={formData.fecha_nacimiento}
-                    onChange={(e) => setFormData({ ...formData, fecha_nacimiento: e.target.value })}
-                    disabled={!editMode}
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ mb: 2 }}
-                />
+                <Box sx={{ mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                        Fecha de Nacimiento
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                            label="Día"
+                            value={formData.dia}
+                            onChange={(e) => {
+                                const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                setFormData({ ...formData, dia: v });
+                            }}
+                            disabled={!editMode}
+                            size="small"
+                            sx={{ width: 80 }}
+                            inputProps={{ inputMode: 'numeric', maxLength: 2 }}
+                        />
+                        <TextField
+                            label="Mes"
+                            value={formData.mes}
+                            onChange={(e) => {
+                                const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                setFormData({ ...formData, mes: v });
+                            }}
+                            disabled={!editMode}
+                            size="small"
+                            sx={{ width: 80 }}
+                            inputProps={{ inputMode: 'numeric', maxLength: 2 }}
+                        />
+                        <TextField
+                            label="Año"
+                            value={formData.anio}
+                            onChange={(e) => {
+                                const v = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                setFormData({ ...formData, anio: v });
+                            }}
+                            disabled={!editMode}
+                            size="small"
+                            sx={{ width: 100 }}
+                            inputProps={{ inputMode: 'numeric', maxLength: 4 }}
+                        />
+                    </Box>
+                </Box>
 
 
 
@@ -385,11 +427,15 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                             variant="outlined"
                             onClick={() => {
                                 setEditMode(false);
+                                const fechaStr = affiliateData.fecha_nacimiento || '';
+                                const [anio, mes, dia] = fechaStr ? fechaStr.split('-') : ['', '', ''];
                                 setFormData({
                                     telefono: affiliateData.telefono || '',
                                     email: affiliateData.email || '',
                                     es_jubilado: affiliateData.es_jubilado || false,
-                                    fecha_nacimiento: affiliateData.fecha_nacimiento || '',
+                                    dia: dia || '',
+                                    mes: mes || '',
+                                    anio: anio || '',
                                 });
                             }}
                             sx={{ flex: 1 }}

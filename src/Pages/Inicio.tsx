@@ -175,12 +175,18 @@ function Inicio() {
   const statsInView = useInView(statsRef, { once: true });
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   useEffect(() => {
+    // Check for prompt already captured at App level
+    const existing = (window as any).__deferredPrompt;
+    if (existing) setDeferredPrompt(existing);
+
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -211,8 +217,9 @@ function Inicio() {
         setDeferredPrompt(null);
         setIsInstalled(true);
       }
+    } else if (isIOS) {
+      setShowIOSInstructions(true);
     }
-    // No else - never show instructions. If the prompt isn't available, the button does nothing.
   };
 
   return (
@@ -348,6 +355,22 @@ function Inicio() {
             >
               Descargar la App
             </Button>
+          )}
+          {showIOSInstructions && (
+            <Typography
+              sx={{
+                width: '100%',
+                textAlign: 'center',
+                color: alpha('#fff', 0.9),
+                fontSize: '0.85rem',
+                bgcolor: alpha('#000', 0.3),
+                p: 2,
+                borderRadius: 1,
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              En Safari, tocá el ícono de Compartir y seleccioná "Agregar a Pantalla de Inicio"
+            </Typography>
           )}
           <Button
             component={Link}
