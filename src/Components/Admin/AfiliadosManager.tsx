@@ -195,15 +195,18 @@ export const cleanLocationName = (name: string | null | undefined): string => {
   return upper;
 };
 
-const fixLocation = (prov: string, city: string) => {
-  const p = prov.trim().toUpperCase();
-  const c = city.trim().toUpperCase();
-  const provincesList = [
+export const PROVINCES_LIST = [
     "TUCUMAN", "SALTA", "JUJUY", "CATAMARCA", "SANTIAGO DEL ESTERO", 
     "LA RIOJA", "CORDOBA", "SANTA FE", "BUENOS AIRES", "MENDOZA", "SAN LUIS",
     "ENTRE RIOS", "CORRIENTES", "MISIONES", "CHACO", "FORMOSA", "LA PAMPA",
-    "NEUQUEN", "RIO NEGRO", "CHUBUT", "SANTA CRUZ", "TIERRA DEL FUEGO"
-  ];
+    "NEUQUEN", "RIO NEGRO", "CHUBUT", "SANTA CRUZ", "TIERRA DEL FUEGO",
+    "CABA"
+];
+
+const fixLocation = (prov: string, city: string) => {
+  const p = prov.trim().toUpperCase();
+  const c = city.trim().toUpperCase();
+  const provincesList = PROVINCES_LIST;
 
   let rawProv = prov;
   let rawCity = city;
@@ -1021,8 +1024,9 @@ export default function AfiliadosManager() {
       const isActivo = a.is_aefip && !a.is_ups && !a.es_jubilado;
       const isUps = a.is_ups;
       const isJubiladoAp = a.es_jubilado && a.is_aportante;
+      const isJubiladoNoAp = a.es_jubilado && !a.is_aportante;
       
-      const isValidMember = isActivo || isUps || isJubiladoAp;
+      const isValidMember = isActivo || isUps || isJubiladoAp || isJubiladoNoAp;
       if (!isValidMember) return false;
 
       if (!hasAnyFilter) return true;
@@ -1030,7 +1034,7 @@ export default function AfiliadosManager() {
       return (
         (filterActive && isActivo) ||
         (filterUPS && isUps) ||
-        (filterJubiladosAP && isJubiladoAp)
+        (filterJubiladosAP && (isJubiladoAp || isJubiladoNoAp))
       );
     });
   }, [affiliates, filterActive, filterUPS, filterJubiladosAP]);

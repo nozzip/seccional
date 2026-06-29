@@ -19,7 +19,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { supabase } from "../../supabaseClient";
 import { logAction } from "../../utils/auditLogger";
-import { cleanLocationName } from "./AfiliadosManager";
+import { cleanLocationName, PROVINCES_LIST } from "./AfiliadosManager";
 
 interface AddAffiliateModalProps {
   open: boolean;
@@ -159,14 +159,20 @@ export default function AddAffiliateModal({
           </Stack>
 
           <Stack direction="row" spacing={2}>
-            <TextField
-              fullWidth
-              label="Provincia"
-              name="provincia"
-              value={formData.provincia}
-              onChange={handleChange}
-              size="small"
-            />
+            <FormControl fullWidth size="small">
+              <InputLabel>Provincia</InputLabel>
+              <Select
+                name="provincia"
+                value={formData.provincia}
+                label="Provincia"
+                onChange={handleChange}
+              >
+                <MenuItem value=""><em>Ninguna</em></MenuItem>
+                {PROVINCES_LIST.map((prov) => (
+                  <MenuItem key={prov} value={prov}>{prov}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Stack>
 
           <Stack direction="row" spacing={2}>

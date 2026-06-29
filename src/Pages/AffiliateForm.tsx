@@ -21,13 +21,18 @@ import {
     ListItem,
     ListItemText,
     ListItemSecondaryAction,
+    FormControl,
+    InputLabel,
+    Select,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import DescriptionIcon from '@mui/icons-material/Description';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { PROVINCES_LIST } from '../Components/Admin/AfiliadosManager';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -41,6 +46,9 @@ interface FamilyMember {
     parentesco: string;
     dni: string;
     fechaNacimiento: string;
+    diaNac?: string;
+    mesNac?: string;
+    anioNac?: string;
 }
 
 const PARENTESCOS = ['Cónyuge', 'Hijo/a', 'Padre/Madre', 'Hermano/a', 'Otro'];
@@ -61,6 +69,10 @@ export default function AffiliateForm() {
         telefono: '',
         seccional: 'Noroeste',
         dependencia: '',
+        provincia: '',
+        diaNac: '',
+        mesNac: '',
+        anioNac: '',
     });
 
     const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
@@ -70,6 +82,9 @@ export default function AffiliateForm() {
         parentesco: '',
         dni: '',
         fechaNacimiento: '',
+        diaNac: '',
+        mesNac: '',
+        anioNac: '',
     });
 
     const handleNext = async () => {
@@ -126,8 +141,12 @@ export default function AffiliateForm() {
             setError('Complete los datos básicos del familiar');
             return;
         }
-        setFamilyMembers([...familyMembers, newMember]);
-        setNewMember({ nombre: '', apellido: '', parentesco: '', dni: '', fechaNacimiento: '' });
+        let fechaNac = '';
+        if (newMember.diaNac && newMember.mesNac && newMember.anioNac) {
+            fechaNac = `${newMember.anioNac}-${newMember.mesNac.padStart(2, '0')}-${newMember.diaNac.padStart(2, '0')}`;
+        }
+        setFamilyMembers([...familyMembers, { ...newMember, fechaNacimiento: fechaNac }]);
+        setNewMember({ nombre: '', apellido: '', parentesco: '', dni: '', fechaNacimiento: '', diaNac: '', mesNac: '', anioNac: '' });
         setError('');
     };
 
@@ -153,7 +172,12 @@ export default function AffiliateForm() {
                         telefono: workerData.telefono
                     },
                     data: {
-                        worker: workerData,
+                        worker: {
+                            ...workerData,
+                            fecha_nacimiento: workerData.anioNac && workerData.mesNac && workerData.diaNac 
+                                ? `${workerData.anioNac}-${workerData.mesNac.padStart(2, '0')}-${workerData.diaNac.padStart(2, '0')}` 
+                                : null
+                        },
                         family: familyMembers
                     }
                 });
@@ -224,13 +248,70 @@ export default function AffiliateForm() {
                                 onChange={(e) => setWorkerData({ ...workerData, telefono: e.target.value })}
                             />
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid item xs={12} sm={6}>
                             <TextField
                                 label="Dependencia / Oficina"
                                 fullWidth
                                 value={workerData.dependencia}
                                 onChange={(e) => setWorkerData({ ...workerData, dependencia: e.target.value })}
                             />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                                <InputLabel>Provincia (Opcional)</InputLabel>
+                                <Select
+                                    value={workerData.provincia}
+                                    label="Provincia (Opcional)"
+                                    onChange={(e) => setWorkerData({ ...workerData, provincia: e.target.value })}
+                                >
+                                    <MenuItem value=""><em>Ninguna</em></MenuItem>
+                                    {PROVINCES_LIST.map((prov) => (
+                                        <MenuItem key={prov} value={prov}>{prov}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1, px: 2, position: 'relative' }}>
+                                <Typography variant="caption" sx={{ position: 'absolute', top: -10, left: 10, bgcolor: 'background.paper', px: 0.5, color: 'text.secondary' }}>
+                                    Fecha de Nacimiento
+                                </Typography>
+                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                                    <TextField
+                                        label="Día"
+                                        size="small"
+                                        value={workerData.diaNac}
+                                        onChange={(e) => {
+                                            const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                            setWorkerData({ ...workerData, diaNac: v });
+                                        }}
+                                        fullWidth
+                                        inputProps={{ inputMode: 'numeric', maxLength: 2 }}
+                                    />
+                                    <TextField
+                                        label="Mes"
+                                        size="small"
+                                        value={workerData.mesNac}
+                                        onChange={(e) => {
+                                            const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                            setWorkerData({ ...workerData, mesNac: v });
+                                        }}
+                                        fullWidth
+                                        inputProps={{ inputMode: 'numeric', maxLength: 2 }}
+                                    />
+                                    <TextField
+                                        label="Año"
+                                        size="small"
+                                        value={workerData.anioNac}
+                                        onChange={(e) => {
+                                            const v = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                            setWorkerData({ ...workerData, anioNac: v });
+                                        }}
+                                        fullWidth
+                                        inputProps={{ inputMode: 'numeric', maxLength: 4 }}
+                                    />
+                                </Box>
+                            </Box>
                         </Grid>
                     </Grid>
                 );
@@ -278,7 +359,16 @@ export default function AffiliateForm() {
                                     <TextField label="DNI" size="small" fullWidth value={newMember.dni} onChange={(e) => setNewMember({ ...newMember, dni: e.target.value })} />
                                 </Grid>
                                 <Grid item xs={12} sm={4}>
-                                    <TextField label="F. Nacimiento" size="small" type="date" fullWidth InputLabelProps={{ shrink: true }} value={newMember.fechaNacimiento} onChange={(e) => setNewMember({ ...newMember, fechaNacimiento: e.target.value })} />
+                                    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1, px: 1, position: 'relative' }}>
+                                        <Typography variant="caption" sx={{ position: 'absolute', top: -10, left: 10, bgcolor: 'background.paper', px: 0.5, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                                            F. Nacimiento
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                                            <TextField label="Día" size="small" value={newMember.diaNac} onChange={(e) => { const v = e.target.value.replace(/\D/g, '').slice(0, 2); setNewMember({ ...newMember, diaNac: v }); }} inputProps={{ inputMode: 'numeric', maxLength: 2 }} />
+                                            <TextField label="Mes" size="small" value={newMember.mesNac} onChange={(e) => { const v = e.target.value.replace(/\D/g, '').slice(0, 2); setNewMember({ ...newMember, mesNac: v }); }} inputProps={{ inputMode: 'numeric', maxLength: 2 }} />
+                                            <TextField label="Año" size="small" value={newMember.anioNac} onChange={(e) => { const v = e.target.value.replace(/\D/g, '').slice(0, 4); setNewMember({ ...newMember, anioNac: v }); }} inputProps={{ inputMode: 'numeric', maxLength: 4 }} />
+                                        </Box>
+                                    </Box>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Button variant="outlined" startIcon={<AddIcon />} fullWidth onClick={handleAddMember}>

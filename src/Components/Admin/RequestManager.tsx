@@ -141,7 +141,63 @@ export default function RequestManager() {
         }
 
         const reqData = requests.find(r => r.id === id);
-        const statusLabels: Record<string, string> = { approved: 'Aprobada', rejected: 'Rechazada', in_progress: 'En Proceso', pending: 'Pendiente', completed: 'Completada' };
+
+        if (newStatus === 'done' && reqData?.type === 'affiliation' && reqData?.data?.worker) {
+            const worker = reqData.data.worker;
+            
+            let conyuge_nombre = '';
+            let conyuge_dni = '';
+            if (reqData.data.family && Array.isArray(reqData.data.family)) {
+                const conyuge = reqData.data.family.find((f: any) => 
+                    f.parentesco?.toLowerCase().includes('cónyuge') || 
+                    f.parentesco?.toLowerCase().includes('esposo') ||
+                    f.parentesco?.toLowerCase().includes('esposa')
+                );
+                if (conyuge) {
+                    conyuge_nombre = `${conyuge.nombre} ${conyuge.apellido}`.trim();
+                    conyuge_dni = conyuge.dni || '';
+                }
+            }
+
+            const { error: insertError, data: newAffiliate } = await supabase.from('affiliates').insert([{
+                cuil: worker.cuil || null,
+                legajo: worker.legajo || null,
+                nombre: worker.nombre || '',
+                apellido: worker.apellido || '',
+                email: worker.email || '',
+                telefono: worker.telefono || '',
+                fecha_nacimiento: worker.fecha_nacimiento || null,
+                provincia: worker.provincia || null,
+                ciudad: worker.provincia || null,
+                branch: 'noroeste',
+                conyuge_nombre: conyuge_nombre,
+                conyuge_dni: conyuge_dni
+            }]).select().single();
+
+            if (insertError) {
+                console.error("Error inserting affiliate automatically:", insertError);
+                alert("Se actualizó el pedido, pero hubo un error al crear al afiliado en la base de datos automáticamente: " + insertError.message);
+            } else if (newAffiliate) {
+                if (reqData.data.family && reqData.data.family.length > 0) {
+                    const familyToInsert = reqData.data.family.map((f: any) => ({
+                        affiliate_id: newAffiliate.id,
+                        parentesco: f.parentesco,
+                        nombre: f.nombre,
+                        apellido: f.apellido,
+                        dni: f.dni || null,
+                        fecha_nacimiento: f.fechaNacimiento || null
+                    }));
+                    const { error: familyError } = await supabase.from('affiliate_family_members').insert(familyToInsert);
+                    if (familyError) {
+                        console.error('Error insertando familiares:', familyError);
+                    }
+                }
+                setSnackbarMessage(`¡Afiliado ${worker.nombre} ${worker.apellido} y su grupo familiar creados en la base de datos!`);
+                setSnackbarOpen(true);
+            }
+        }
+
+        const statusLabels: Record<string, string> = { approved: 'Aprobada', rejected: 'Rechazada', in_progress: 'En Proceso', pending: 'Pendiente', completed: 'Completada', done: 'Realizado' };
         await logAction(
             'ACTUALIZAR_SOLICITUD',
             `Solicitud #${id} cambiada a estado "${statusLabels[newStatus] || newStatus}" (Tipo: ${reqData?.type || 'N/A'})`
@@ -409,9 +465,17 @@ export default function RequestManager() {
                                         <Typography variant="body2">Teléfono: {selectedRequest.data?.worker?.telefono}</Typography>
                                         <Typography variant="body2">Dependencia: {selectedRequest.data?.worker?.dependencia}</Typography>
                                         <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 700 }}>Grupo Familiar ({selectedRequest.data?.family?.length || 0}):</Typography>
-                                        {selectedRequest.data?.family?.map((f: any, i: number) => (
-                                            <Typography key={i} variant="caption" sx={{ display: 'block' }}>- {f.nombre} {f.apellido} ({f.parentesco})</Typography>
-                                        ))}
+                                        {selectedRequest.data?.family?.map((f: any, i: number) => {
+                                            let extra = '';
+                                            if (f.fechaNacimiento) {
+                                                const diff = Date.now() - new Date(f.fechaNacimiento).getTime();
+                                                const age = new Date(diff).getUTCFullYear() - 1970;
+                                                extra = ` - Nac: ${f.fechaNacimiento.split('-').reverse().join('/')} (${age} años)`;
+                                            }
+                                            return (
+                                                <Typography key={i} variant="caption" sx={{ display: 'block' }}>- {f.nombre} {f.apellido} ({f.parentesco}){extra}</Typography>
+                                            );
+                                        })}
                                     </Box>
                                 )}
 
