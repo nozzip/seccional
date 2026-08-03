@@ -378,8 +378,9 @@ function Item({ item, isAdmin, onDelete, onZoom, height }: { item: CarouselImage
               position: 'absolute',
               top: 16,
               right: 60,
+              zIndex: 10,
               bgcolor: 'rgba(255,255,255,0.8)',
-              opacity: 0,
+              opacity: { xs: 1, md: 0 },
               transition: 'opacity 0.2s',
               '&:hover': {
                 bgcolor: 'rgba(255,255,255,1)',
