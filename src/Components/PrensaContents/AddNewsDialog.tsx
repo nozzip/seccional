@@ -136,19 +136,32 @@ export default function AddNewsDialog({
         }
       }
 
-      // 3. Insert into news table
-      const { error: insertError } = await supabase.from("news").insert([
-        {
-          title: formData.title,
-          summary: formData.summary,
-          content: formData.content,
-          link: formData.link,
-          img_url: finalImgUrl,
-          gallery_urls: uploadedThumbnails,
-          gallery: uploadedThumbnails,
-          thumbnails: uploadedThumbnails,
-        },
-      ]);
+      // 3. Prepare payload for news table
+      let finalContent = formData.content;
+      if (uploadedThumbnails.length > 0) {
+        finalContent = `${formData.content}\n\n<!--GALLERY:${JSON.stringify(uploadedThumbnails)}-->`;
+      }
+
+      const insertPayload: any = {
+        title: formData.title,
+        summary: formData.summary,
+        content: finalContent,
+        link: formData.link,
+        img_url: finalImgUrl,
+      };
+
+      if (uploadedThumbnails.length > 0) {
+        insertPayload.gallery_urls = uploadedThumbnails;
+      }
+
+      let { error: insertError } = await supabase.from("news").insert([insertPayload]);
+
+      // Si falla porque la columna 'gallery_urls' no existe en la BD de Supabase, reintentar omitiendo esa columna
+      if (insertError && (insertError.code === "PGRST204" || insertError.message?.includes("gallery_urls"))) {
+        delete insertPayload.gallery_urls;
+        const retry = await supabase.from("news").insert([insertPayload]);
+        insertError = retry.error;
+      }
 
       if (insertError) throw insertError;
 
@@ -156,7 +169,7 @@ export default function AddNewsDialog({
       handleClose();
     } catch (error: any) {
       console.error("Error al guardar noticia:", error);
-      alert("Error al guardar la noticia: " + error.message);
+      alert("Error al guardar la noticia: " + (error.message || "Comprueba los datos ingresados."));
     } finally {
       setLoading(false);
     }

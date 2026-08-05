@@ -9,7 +9,7 @@
 1. **Modal de Carga (`AddNewsDialog.tsx`):**
    - Inserción de la sección *"Cargar imagenes thumbnails (pie de noticia)"* situada justo debajo de *"Imagen de la Noticia"*.
    - Soporte para selección múltiple de archivos de imagen con previsualización en miniatura responsiva y botón individual de descarte (`IconButton` + `CloseIcon`).
-   - Carga automática de todas las miniaturas al bucket `benefits` en Supabase Storage bajo `news/thumbnails/` y guardado de las URLs públicas en la base de datos `news`.
+   - Carga automática de todas las miniaturas al bucket `benefits` en Supabase Storage bajo `news/thumbnails/` y guardado defensivo (con fallback inteligente contra errores 400 si la columna no existe en Supabase).
 2. **Modelo de Datos (`newsFetcher.ts`):**
    - Extensión de la interfaz `NewsItem` con `gallery_urls?: string[]`.
    - Mapeo unificado de arreglos de imágenes desde Supabase `news`.

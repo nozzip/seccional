@@ -114,6 +114,17 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
 
     const localNews: NewsItem[] = (dbNews || []).map((item) => {
       const dateObj = new Date(item.created_at);
+      let galleryUrls: string[] = item.gallery_urls || item.gallery || item.thumbnails || [];
+      
+      if ((!galleryUrls || galleryUrls.length === 0) && item.content) {
+        const match = item.content.match(/<!--GALLERY:(.*?)-->/);
+        if (match && match[1]) {
+          try {
+            galleryUrls = JSON.parse(match[1]);
+          } catch (e) {}
+        }
+      }
+
       return {
         id: item.id,
         title: item.title,
@@ -128,7 +139,7 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
         content: item.content || "",
         isLocal: true,
         timestamp: dateObj.getTime(),
-        gallery_urls: item.gallery_urls || item.gallery || item.thumbnails || [],
+        gallery_urls: galleryUrls,
       };
     });
 
