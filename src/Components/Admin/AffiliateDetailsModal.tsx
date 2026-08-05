@@ -38,7 +38,7 @@ import ChildCareIcon from "@mui/icons-material/ChildCare";
 import SaveIcon from "@mui/icons-material/Save";
 import { supabase } from "../../supabaseClient";
 import { logAction } from "../../utils/auditLogger";
-import { cleanLocationName } from "./AfiliadosManager";
+import { cleanLocationName, PROVINCES_LIST } from "./AfiliadosManager";
 
 interface FamilyMember {
   id?: number;
@@ -310,10 +310,19 @@ export default function AffiliateDetailsModal({
             </Stack>
 
             <Stack direction="row" spacing={2}>
-              <TextField
-                fullWidth label="Provincia" value={editData.provincia || ""}
-                onChange={(e) => setEditData({...editData, provincia: e.target.value, ciudad: e.target.value})}
-              />
+              <FormControl fullWidth>
+                <InputLabel>Provincia</InputLabel>
+                <Select
+                  value={editData.provincia || ""}
+                  label="Provincia"
+                  onChange={(e) => setEditData({...editData, provincia: e.target.value, ciudad: e.target.value})}
+                >
+                  <MenuItem value=""><em>Ninguna</em></MenuItem>
+                  {PROVINCES_LIST.map((prov) => (
+                    <MenuItem key={prov} value={prov}>{prov}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Stack>
 
             <Stack direction="row" spacing={2} alignItems="center">
@@ -348,7 +357,27 @@ export default function AffiliateDetailsModal({
               />
             </Stack>
 
+            <Stack direction="row" spacing={2}>
+              <TextField
+                fullWidth label="Nombre de Cónyuge" value={editData.conyuge_nombre || ""}
+                onChange={(e) => setEditData({...editData, conyuge_nombre: e.target.value})}
+              />
+              <TextField
+                fullWidth label="DNI de Cónyuge" value={editData.conyuge_dni || ""}
+                onChange={(e) => setEditData({...editData, conyuge_dni: e.target.value})}
+              />
+            </Stack>
+
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editData.is_aefip || false}
+                    onChange={(e) => setEditData({...editData, is_aefip: e.target.checked})}
+                  />
+                }
+                label="Afiliado AEFIP"
+              />
               <FormControlLabel
                 control={
                   <Switch

@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import PrensaCard from "../Components/PrensaContents/PrensaCard";
 import AddNewsDialog from "../Components/PrensaContents/AddNewsDialog";
 import { Helmet } from "react-helmet-async";
+import { isUserAdmin } from "../utils/auth";
 
 function Prensa() {
   const theme = useTheme();
@@ -19,8 +20,7 @@ function Prensa() {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        // El admin oficial es DNI 34185803, pero también permitimos cualquier usuario con rol 'admin'
-        setIsAdmin(user.role === "admin" || user.dni === "34185803");
+        setIsAdmin(isUserAdmin(user));
       } catch (e) {
         console.error("Error parsing user from localStorage", e);
       }

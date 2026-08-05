@@ -11,6 +11,8 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { Link, useLocation } from "react-router-dom";
+import { isUserAdmin } from "../../utils/auth";
+
 
 function DrawerComponent() {
   const [openDrawer, setOpenDrawer] = useState(false);
@@ -22,7 +24,7 @@ function DrawerComponent() {
       const stored = localStorage.getItem("current_affiliate");
       if (stored) {
         const user = JSON.parse(stored);
-        setIsAdmin(user.role === "admin");
+        setIsAdmin(isUserAdmin(user));
       } else {
         setIsAdmin(false);
       }

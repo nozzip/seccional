@@ -20,6 +20,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
 import { Link } from "react-router-dom";
 import { supabase } from "../../supabaseClient";
+import { isUserAdmin } from "../../utils/auth";
 const seccionalLogo = `${import.meta.env.BASE_URL}seccionalLogo2.png`;
 
 interface PrensaCardProps {
@@ -33,6 +34,13 @@ export default function PrensaCard({ isAdmin, onRefresh }: PrensaCardProps) {
   const [progress, setProgress] = useState(0);
 
   const handleDelete = async (id: string, title: string) => {
+    const userStr = localStorage.getItem("current_affiliate");
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (!isUserAdmin(user)) {
+      alert("No tienes permisos para realizar esta acción.");
+      return;
+    }
+
     if (window.confirm(`¿Estás seguro de que deseas eliminar la noticia "${title}"?`)) {
       try {
         const { error } = await supabase.from("news").delete().eq("id", id);

@@ -6,6 +6,7 @@ import Navbar from "./Components/Navbar/Navbar";
 import FooterElements from "./Components/Footer/FooterElements";
 import { AnimatePresence, motion } from "framer-motion";
 import { Suspense, lazy, useEffect } from "react";
+import { isUserAdmin } from "./utils/auth";
 import RouteErrorBoundary from "./Components/Error/RouteErrorBoundary";
 
 const Inicio = lazy(() => import("./Pages/Inicio"));
@@ -60,7 +61,11 @@ const ProtectedRoute = ({ children, role }: { children: React.ReactNode; role?: 
     return <Navigate to="/login" replace />;
   }
 
-  if (role && user.role !== role) {
+  if (role === "admin" && !isUserAdmin(user)) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (role && role !== "admin" && user.role !== role) {
     return <Navigate to="/" replace />;
   }
 
@@ -158,6 +163,13 @@ const router = createHashRouter([
 
 function App() {
   useEffect(() => {
+    // Capture the install prompt early so it's not missed by any route
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      (window as any).__deferredPrompt = e;
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+
     // Check if the app is running in standalone mode (PWA)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
                         (window.navigator as any).standalone || 
@@ -167,6 +179,8 @@ function App() {
       // Redirect to the Benefits App if it's the PWA entry
       window.location.hash = '#/app/beneficios';
     }
+
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
   return (

@@ -48,6 +48,8 @@ export default function MobileBeneficiosApp() {
                 email: localStorage.getItem('mobile_app_email') || '',
                 es_jubilado: localStorage.getItem('mobile_app_jubilado') === 'true',
                 fecha_nacimiento: localStorage.getItem('mobile_app_fecha_nacimiento') || '',
+                conyuge_nombre: localStorage.getItem('mobile_app_conyuge_nombre') || '',
+                conyuge_dni: localStorage.getItem('mobile_app_conyuge_dni') || '',
             });
 
             // Sincronizar datos actualizados desde la base de datos en segundo plano
@@ -55,7 +57,7 @@ export default function MobileBeneficiosApp() {
                 try {
                     const { data, error } = await supabase
                         .from('affiliates')
-                        .select('nombre, apellido, legajo, cuil, telefono, email, es_jubilado, validation_token, fecha_nacimiento')
+                        .select('nombre, apellido, legajo, cuil, telefono, email, es_jubilado, validation_token, fecha_nacimiento, conyuge_nombre, conyuge_dni')
                         .eq('legajo', storedLegajo)
                         .eq('branch', 'noroeste')
                         .maybeSingle();
@@ -68,6 +70,8 @@ export default function MobileBeneficiosApp() {
                         localStorage.setItem('mobile_app_email', data.email || '');
                         localStorage.setItem('mobile_app_jubilado', String(data.es_jubilado || false));
                         localStorage.setItem('mobile_app_fecha_nacimiento', data.fecha_nacimiento || '');
+                        localStorage.setItem('mobile_app_conyuge_nombre', data.conyuge_nombre || '');
+                        localStorage.setItem('mobile_app_conyuge_dni', data.conyuge_dni || '');
 
                         setUserName(`${data.nombre} ${data.apellido}`);
                         setAffiliateData({
@@ -80,6 +84,8 @@ export default function MobileBeneficiosApp() {
                             email: data.email || '',
                             es_jubilado: !!data.es_jubilado,
                             fecha_nacimiento: data.fecha_nacimiento || '',
+                            conyuge_nombre: data.conyuge_nombre || '',
+                            conyuge_dni: data.conyuge_dni || '',
                         });
                     }
                 } catch (err) {
@@ -123,6 +129,8 @@ export default function MobileBeneficiosApp() {
         localStorage.setItem('mobile_app_email', data.email || '');
         localStorage.setItem('mobile_app_jubilado', String(data.es_jubilado || false));
         localStorage.setItem('mobile_app_fecha_nacimiento', data.fecha_nacimiento || '');
+        localStorage.setItem('mobile_app_conyuge_nombre', data.conyuge_nombre || '');
+        localStorage.setItem('mobile_app_conyuge_dni', data.conyuge_dni || '');
         
         setUserName(`${data.nombre} ${data.apellido}`);
         setAffiliateData(data);
@@ -137,6 +145,9 @@ export default function MobileBeneficiosApp() {
         localStorage.removeItem('mobile_app_email');
         localStorage.removeItem('mobile_app_jubilado');
         localStorage.removeItem('mobile_app_validation_token');
+        localStorage.removeItem('mobile_app_fecha_nacimiento');
+        localStorage.removeItem('mobile_app_conyuge_nombre');
+        localStorage.removeItem('mobile_app_conyuge_dni');
         setIsAuthenticated(false);
         setUserName('');
         setAffiliateData(null);
@@ -151,6 +162,8 @@ export default function MobileBeneficiosApp() {
             if (updates.email !== undefined) localStorage.setItem('mobile_app_email', updates.email || '');
             if (updates.es_jubilado !== undefined) localStorage.setItem('mobile_app_jubilado', String(updates.es_jubilado));
             if (updates.fecha_nacimiento !== undefined) localStorage.setItem('mobile_app_fecha_nacimiento', updates.fecha_nacimiento || '');
+            if (updates.conyuge_nombre !== undefined) localStorage.setItem('mobile_app_conyuge_nombre', updates.conyuge_nombre || '');
+            if (updates.conyuge_dni !== undefined) localStorage.setItem('mobile_app_conyuge_dni', updates.conyuge_dni || '');
         }
     };
 

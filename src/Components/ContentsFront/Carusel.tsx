@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Carousel from 'react-material-ui-carousel';
-import { Paper, Box, useTheme, IconButton, Tooltip, CircularProgress, Fab, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, alpha, Typography } from '@mui/material';
+import { Paper, Box, useTheme, IconButton, Tooltip, CircularProgress, Fab, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, alpha, Typography, useMediaQuery } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import CloseIcon from '@mui/icons-material/Close';
@@ -14,6 +14,10 @@ interface CarouselImage {
 
 function Carusel() {
   const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down('sm'));
+  const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+  const carouselHeight = isDesktop ? 595 : (isXs ? 250 : 350);
+
   const [images, setImages] = useState<CarouselImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentAffiliate, setCurrentAffiliate] = useState<any>(null);
@@ -186,17 +190,20 @@ function Carusel() {
                 color: theme.palette.primary.main
               }
             }}
+            height={carouselHeight}
             sx={{ 
               flex: 1, 
               display: 'flex', 
               flexDirection: 'column',
+              minHeight: carouselHeight,
+              height: carouselHeight,
               '& .MuiPaper-root': { height: '100%' },
               '& > div': { flex: 1, display: 'flex', flexDirection: 'column' },
               '& > div > div': { flex: 1 }
             }}
           >
             {displayImages.map((item, i) => (
-              <Item key={item.id || i} item={item} isAdmin={isAdmin} onDelete={() => handleDeleteImage(item.id)} onZoom={setZoomImage} />
+              <Item key={item.id || i} item={item} isAdmin={isAdmin} onDelete={() => handleDeleteImage(item.id)} onZoom={setZoomImage} height={carouselHeight} />
             ))}
           </Carousel>
         )}
@@ -324,14 +331,14 @@ function Carusel() {
   );
 }
 
-function Item({ item, isAdmin, onDelete, onZoom }: { item: CarouselImage, isAdmin: boolean | null, onDelete: () => void, onZoom: (url: string) => void }) {
+function Item({ item, isAdmin, onDelete, onZoom, height }: { item: CarouselImage, isAdmin: boolean | null, onDelete: () => void, onZoom: (url: string) => void, height: number | string }) {
   const theme = useTheme();
   return (
     <Paper
       elevation={0}
       sx={{
-        height: '100%',
-        minHeight: { xs: 350, md: 400 },
+        height: height,
+        minHeight: height,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
@@ -346,6 +353,8 @@ function Item({ item, isAdmin, onDelete, onZoom }: { item: CarouselImage, isAdmi
       }}
       onClick={() => onZoom(item.image_url)}
     >
+ 
+
       <Box
         component="img"
         src={item.image_url}
@@ -354,6 +363,8 @@ function Item({ item, isAdmin, onDelete, onZoom }: { item: CarouselImage, isAdmi
           width: '100%',
           height: '100%',
           objectFit: 'cover',
+          position: 'relative',
+          zIndex: 1,
         }}
       />
       
@@ -367,8 +378,9 @@ function Item({ item, isAdmin, onDelete, onZoom }: { item: CarouselImage, isAdmi
               position: 'absolute',
               top: 16,
               right: 60,
+              zIndex: 10,
               bgcolor: 'rgba(255,255,255,0.8)',
-              opacity: 0,
+              opacity: { xs: 1, md: 0 },
               transition: 'opacity 0.2s',
               '&:hover': {
                 bgcolor: 'rgba(255,255,255,1)',

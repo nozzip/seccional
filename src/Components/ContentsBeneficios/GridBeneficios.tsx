@@ -33,6 +33,7 @@ import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { dataBeneficios } from "../mockData";
 import { supabase } from "../../supabaseClient";
 import BenefitEditModal, { Benefit } from "./BenefitEditModal";
+import { isUserAdmin } from "../../utils/auth";
 
 const ITEMS_PER_PAGE = 15;
 
@@ -185,6 +186,15 @@ export default function GridBeneficios() {
   };
 
   const [currentAffiliate, setCurrentAffiliate] = useState<any>(null);
+  const isAdmin = useMemo(() => {
+    if (!currentAffiliate) return false;
+    return (
+      isUserAdmin(currentAffiliate) ||
+      currentAffiliate.role === 'admin' ||
+      ['34185803', '042418/00', '23276817159'].includes(currentAffiliate.legajo) ||
+      ['34185803', '23276817159'].includes(currentAffiliate.cuil)
+    );
+  }, [currentAffiliate]);
 
   useEffect(() => {
     const checkUser = () => {
@@ -214,12 +224,6 @@ export default function GridBeneficios() {
     window.addEventListener("affiliate_login", checkUser);
     return () => window.removeEventListener("affiliate_login", checkUser);
   }, []);
-
-  const isAdmin = currentAffiliate && (
-    currentAffiliate.role === 'admin' ||
-    ['34185803', '042418/00', '23276817159'].includes(currentAffiliate.legajo) ||
-    ['34185803', '23276817159'].includes(currentAffiliate.cuil)
-  );
 
   return (
     <Box>

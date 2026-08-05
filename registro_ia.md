@@ -21,6 +21,30 @@
 ### Arquitecturas Aprobadas (Actualización):
 - **Galería de Noticias:** Carga múltiple en Supabase Storage `benefits/news/thumbnails/` y visualización mediante cuadrícula responsiva + lightbox zoom interactivo.
 
+## [ÉXITO] - Restricción de Permisos Administrativos y Seguridad de Datos (Prensa y Convenios)
+**Fecha:** 2026-05-20
+**Modo:** Mejorar / Desarrollar
+**Descripción:** Se restringió de forma estricta y segura el acceso a los privilegios administrativos en toda la aplicación (tanto visualmente como en las consultas de base de datos) únicamente al **DNI 34185803** (Administrador del Sistema) y **Ramiro García Salado Kuhl** (Legajo: `042418/00`, CUIL: `23276817159`). Se corrigieron vulnerabilidades importantes en las secciones de Convenios (donde los botones de edición y agregado se mostraban a afiliados comunes) y Prensa (donde se podían agregar/eliminar noticias sin comprobar roles centralizados).
+
+### Cambios realizados:
+1. **Lógica de Autenticación Unificada (`src/utils/auth.ts`):**
+   - Implementación de la utilidad centralizada `isUserAdmin(user)` para determinar la identidad de los dos únicos administradores aprobados por DNI, Legajo, CUIL, Email y coincidencia de nombres oficiales.
+2. **Corrección de Asignación de Roles en Login (`FormLogin.tsx`):**
+   - Modificación del login de afiliados para asignar el rol `"admin"` en caliente a Ramiro mediante `isUserAdmin`, sorteando que su registro inicial en base de datos figure como `"user"`.
+3. **Navegación y Rutas Protegidas (`App.tsx`, `Navbar.tsx`, `Drawer.tsx`):**
+   - Actualización de `ProtectedRoute` para bloquear de raíz la ruta `/admin` basándose en `isUserAdmin`.
+   - Remoción del acceso y visibilidad visual del panel de administración ("Admin") en la navegación móvil y de escritorio para afiliados ordinarios.
+4. **Seguridad en Convenios / Beneficios (`GridBeneficios.tsx`, `BenefitEditModal.tsx`):**
+   - Ocultación del botón flotante `Fab` ("Agregar beneficio") y del botón de edición ("lápiz") en el diálogo de detalles para cualquier usuario no administrador.
+   - Enlace y validación local rígida de todas las operaciones de modificación (`handleSave`, `handleDelete`, `handleFileUpload`, `handleAddRubro`) con `isUserAdmin` para evitar bypass de seguridad.
+5. **Seguridad en Prensa y Noticias (`Prensa.tsx`, `AddNewsDialog.tsx`, `PrensaCard.tsx`):**
+   - Uso de `isUserAdmin` para mostrar/ocultar el botón `Fab` de publicación.
+   - Restricción lógica estricta en el cargador (`AddNewsDialog`) y borrador (`PrensaCard`) para anular mutaciones de Supabase si el usuario actual no es un administrador autorizado.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Privilegios y Autenticación:** Utilización del utilitario de validación unificada `isUserAdmin(user)` para todas las interfaces y operaciones críticas de mutación de base de datos.
+- **Validación del Compilador:** La aplicación compila con cero errores en TypeScript (`npx tsc --noEmit`) y empaqueta exitosamente para producción (`npm run build`).
+
 ## [ÉXITO] - Adaptación a Dominio Personalizado (CNAME) y Forzado de Actualizaciones PWA
 **Fecha:** 2026-05-18
 **Modo:** Mejorar
@@ -381,3 +405,111 @@
    * Al mapear las noticias del RSS, ahora se extrae el valor temporal crudo (`getTime()`) desde `pubDate` antes de localizar el string.
    * Al traer las noticias desde Supabase, también se captura y almacena el `getTime()` desde el campo `created_at`.
    * En lugar de simplemente anteponer las noticias locales a las del RSS, el array resultante se fusiona y se somete a un `sort` descendente basado en el `timestamp`. Esto asegura que las noticias más nuevas, independientemente de su origen, se posicionen siempre primeras.
+
+## [ÉXITO] - Resolución de Conflictos de Git y Errores de Compilación (Estabilización)
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se corrigieron los conflictos de combinación (merge conflicts) remanentes en los archivos principales `App.tsx` y `GridBeneficios.tsx`, estabilizando la compilación TypeScript y logrando un build de producción con cero errores.
+
+### Cambios realizados:
+1. **Resolución de Conflictos en Enrutador (`App.tsx`):**
+   - Se removieron los marcadores de conflicto de Git en la sección de imports, integrando limpiamente tanto la utilidad de autenticación `isUserAdmin` como la pantalla de error premium `RouteErrorBoundary`.
+2. **Corrección de Declaración Duplicada y Sintaxis (`GridBeneficios.tsx`):**
+   - Se eliminó la doble declaración de la variable local `isAdmin` (que causaba error de ámbito de bloque).
+   - Se consolidó la lógica de privilegios del administrador en un único hook `useMemo` optimizado que valida mediante `isUserAdmin` y el rol `admin` / legajos autorizados de Ramiro/Superusuario.
+   - Se eliminaron los marcadores de conflicto en el footer del Grid que generaban elementos JSX mal formados y causaban errores sintácticos de tokens inesperados (`{'}'}` y `{'>'}`).
+3. **Verificación de Compilación y Build:**
+   - Se ejecutó con éxito `npm run build` confirmando que la aplicación compila y empaqueta el cliente sin ninguna advertencia o error en TypeScript.
+
+## [ÉXITO] - Corrección de Estiramiento Vertical de Carrusel en Dispositivos Móviles
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se corrigió un problema de visualización en la versión móvil donde el carrusel de cumpleaños (`BirthdayCarousel`) quedaba aplanado o estirado verticalmente hasta ~705px debido a la propiedad `flex: 1` combinada con el alineamiento `stretch` del Grid2 padre.
+
+### Cambios realizados:
+1. **Ajuste en Diseño Responsivo (`Inicio.tsx`):**
+   - Se modificó la propiedad `flex: 1` del contenedor de `<BirthdayCarousel />` a un valor condicional responsivo: `flex: { xs: "none", lg: 1 }`.
+   - Esto evita que el carrusel intente expandirse/estirarse en resoluciones móviles, respetando su altura natural fija y proporcional de 350px.
+2. **Compilación y Empaquetado:**
+   - Se validó el cambio generando un build de producción exitoso.
+
+## [ÉXITO] - Habilitación del Toggle de Afiliado AEFIP en la Ficha
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se agregó el interruptor/toggle faltante para "Afiliado AEFIP" (`is_aefip`) en el modal de detalles del afiliado [AffiliateDetailsModal.tsx](file:///e:/Noroeste/seccional/src/Components/Admin/AffiliateDetailsModal.tsx), permitiendo que los administradores puedan dar de alta/baja o alternar este estado libremente para cualquier afiliado (incluyendo los de UPS/Jubilados).
+
+### Cambios realizados:
+1. **Adición de Control en UI (`AffiliateDetailsModal.tsx`):**
+   - Agregado el control `<FormControlLabel>` con un `<Switch>` para la variable `is_aefip`, sincronizándolo con el estado reactivo `editData`.
+2. **Compilación:**
+   - Generación exitosa de un build de producción limpio sin advertencias ni errores.
+## [ÉXITO] - Solución de Altura Responsiva para el Carrusel de Banners Principal en Móvil
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se solucionó el problema en la versión móvil donde el carrusel de banners principal (`Carusel.tsx`) se colapsaba verticalmente (aplanado) debido a la falta de un valor de altura fijo propagado durante las transiciones absolutas de los slides.
+
+### Cambios realizados:
+1. **Detección y Cómputo Responsivo con `useMediaQuery`:**
+   - Se importó `useMediaQuery` en `Carusel.tsx` para detectar los puntos de quiebre responsivos de Material-UI.
+   - Se computó un valor numérico explícito `carouselHeight`: `250` para móviles (xs), `350` para tablets (sm), y `400` para pantallas de escritorio (md+).
+2. **Propagación de Altura Firme a `react-material-ui-carousel`:**
+   - Se inyectó la propiedad `height={carouselHeight}` al componente `<Carousel>` para que la biblioteca escriba de forma inline la altura correspondiente en el wrapper del slide track, previniendo el colapso a cero o a valores mínimos incorrectos en móviles.
+   - Se pasó dicho valor a cada `<Item>` como parámetro y se forzó en su componente `<Paper>` (`height` y `minHeight` establecidos al valor responsivo calculado).
+3. **Verificación:**
+   - Se ejecutó `npm run build` con éxito asegurando cero errores de compilación TypeScript.## [ÉXITO] - Remoción del Campo de Legajo en el Carnet Digital y PDF
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se removió el campo "Legajo" del carnet digital (tanto en la visualización web de la PWA como en el PDF descargable) por razones de seguridad, ya que el legajo es el dato clave utilizado por el afiliado para autenticarse e ingresar a la aplicación.
+
+### Cambios realizados:
+1. **Limpieza en la Interfaz de Usuario (`CarnetView.tsx`):**
+   - Se removió por completo el bloque `<Box>` que renderizaba la fila "Legajo" en la tarjeta visual del carnet digital.
+2. **Actualización en el Generador del PDF (`CarnetView.tsx`):**
+   - Se eliminaron las líneas de dibujo de texto del Legajo (`Legajo:`) en la página 1 del PDF.
+   - Se actualizó el footer de la página 2 (grupo familiar) para omitir el string del legajo, mostrando únicamente el nombre del titular.
+   - Se actualizó el nombre de guardado del archivo descargado, pasando de usar el legajo a usar el apellido del afiliado (`Carnet_AEFIP_${affiliateData.apellido}.pdf`).
+3. **Verificación:**
+   - Compilación y build exitoso con `npm run build`.
+
+## [ÉXITO] - Unificación de Cónyuge en Sección Grupo Familiar (Perfil Móvil)
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se reubicaron los campos de "Cónyuge" (Nombre y DNI) desde la sección de datos personales hacia la sección unificada de "Grupo Familiar" en el perfil móvil (`PerfilView.tsx`), permitiendo agregarlo mediante un modal con selector de parentesco y manteniendo la sincronización directa con las columnas en la tabla `affiliates` de Supabase.
+
+### Cambios realizados:
+1. **Remoción de Campos en Datos Personales (`PerfilView.tsx`):**
+   - Se eliminaron los campos de entrada de cónyuge del formulario de datos personales (modo edición) y el bloque de visualización de cónyuge (modo lectura).
+2. **Integración en la Lista de Grupo Familiar (`PerfilView.tsx`):**
+   - Si el afiliado tiene cónyuge registrado (`affiliateData.conyuge_nombre`), este se renderiza al principio de la lista de familiares con la etiqueta "Cónyuge".
+   - Se añadió un botón de eliminación en este ítem que limpia los campos `conyuge_nombre` y `conyuge_dni` en la base de datos `affiliates` mediante un update.
+3. **Modal de Adición con Selector de Parentesco (`PerfilView.tsx`):**
+   - Al presionar el botón `+` para agregar familiares, se presenta un selector de parentesco: **Hijo/a** o **Cónyuge** (esta opción se oculta automáticamente si ya existe un cónyuge registrado).
+   - Si se selecciona **Cónyuge**, el modal oculta campos irrelevantes (edad, grado escolar) y al guardar, en lugar de insertar en `affiliate_family_members`, realiza un update directo sobre la tabla `affiliates` del titular.
+   - Si se selecciona **Hijo/a**, realiza la inserción estándar en `affiliate_family_members`.
+4. **Verificación:**
+   - Compilación y empaquetado exitoso sin advertencias de tipos.
+
+## [ÉXITO] - Ajuste de Visualización Completa con Fondo Desenfocado (Reflejo Backdrop) en Carrusel de Banners Principal
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se corrigió el problema visual en la versión de escritorio del carrusel de banners (`Carusel.tsx`) donde las imágenes verticales/cuadradas (ej: afiche del Prode Mundial) quedaban recortadas bajo `objectFit: 'cover'`, o se veían muy angostas con márgenes grises planos bajo `objectFit: 'contain'`. Se implementó un fondo de reflejo desenfocado premium.
+
+### Cambios realizados:
+1. **Fondo de Reflejo Desenfocado (Blur Backdrop):**
+   - Se modificó el componente `Item` en `Carusel.tsx` para renderizar dos imágenes superpuestas:
+     - **Fondo absoluto:** Una copia de la imagen del banner con `objectFit: 'cover'`, opacidad reducida (`brightness(0.5)`), filtro de desenfoque (`blur(15px)`) y un ligero escalado (`scale(1.1)`) para rellenar los laterales de forma estética y armónica.
+     - **Imagen frontal principal:** La imagen original con `objectFit: 'contain'` y posicionamiento relativo (`zIndex: 1`), manteniéndose 100% visible, nítida y centrada en pantalla.
+2. **Verificación:**
+   - Compilación exitosa del bundle de producción sin errores con `npm run build`.
+
+## [ÉXITO] - Ajuste de Altura de Carrusel Principal a 530px en Escritorio
+**Fecha:** 2026-06-24
+**Modo:** Mejorar
+**Descripción:** Se modificó la altura del carrusel de banners principal en la versión de escritorio (`Carusel.tsx`) para establecerla de forma fija en `530px`, logrando que la tarjeta del carrusel y su imagen de banner (`objectFit: 'cover'`) se alineen y extiendan perfectamente hasta el borde inferior de la tarjeta de "Cumpleaños del Mes" de la columna lateral derecha.
+
+### Cambios realizados:
+1. **Establecer Altura Fija:**
+   - Se actualizó el valor de `carouselHeight` para computar `530px` cuando la pantalla es de escritorio (`isDesktop`).
+   - Se actualizó el componente `<Box>` de la imagen del banner para usar `height: '100%'` (en lugar de `height: 'auto'`), garantizando que la imagen de banner con `objectFit: 'cover'` se estire verticalmente de forma correcta sin dejar márgenes ni espacios vacíos en la parte inferior.
+2. **Verificación:**
+   - Compilación y build de producción exitoso con `npm run build`.

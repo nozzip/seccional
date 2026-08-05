@@ -17,6 +17,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import CollectionsIcon from "@mui/icons-material/Collections";
 import { supabase } from "../../supabaseClient";
+import { isUserAdmin } from "../../utils/auth";
 
 interface AddNewsDialogProps {
   open: boolean;
@@ -82,7 +83,7 @@ export default function AddNewsDialog({
     // Doble verificación de seguridad en el cliente
     const userStr = localStorage.getItem("current_affiliate");
     const user = userStr ? JSON.parse(userStr) : null;
-    const isAdmin = user?.role === "admin" || user?.dni === "34185803";
+    const isAdmin = isUserAdmin(user);
 
     if (!isAdmin) {
       alert("No tienes permisos para realizar esta acción.");
