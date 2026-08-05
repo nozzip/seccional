@@ -10,6 +10,7 @@ export interface NewsItem {
   isLocal?: boolean;
   content?: string;
   timestamp?: number;
+  gallery_urls?: string[];
 }
 
 async function fetchRssNews(): Promise<NewsItem[]> {
@@ -127,6 +128,7 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
         content: item.content || "",
         isLocal: true,
         timestamp: dateObj.getTime(),
+        gallery_urls: item.gallery_urls || item.gallery || item.thumbnails || [],
       };
     });
 

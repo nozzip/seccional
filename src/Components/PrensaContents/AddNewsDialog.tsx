@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import CollectionsIcon from "@mui/icons-material/Collections";
 import { supabase } from "../../supabaseClient";
 
 interface AddNewsDialogProps {
@@ -39,6 +40,8 @@ export default function AddNewsDialog({
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [thumbnailFiles, setThumbnailFiles] = useState<File[]>([]);
+  const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -50,6 +53,24 @@ export default function AddNewsDialog({
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
     }
+  };
+
+  const handleThumbnailsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
+      const updatedFiles = [...thumbnailFiles, ...selectedFiles];
+      const updatedPreviews = [
+        ...thumbnailPreviews,
+        ...selectedFiles.map((file) => URL.createObjectURL(file)),
+      ];
+      setThumbnailFiles(updatedFiles);
+      setThumbnailPreviews(updatedPreviews);
+    }
+  };
+
+  const handleRemoveThumbnail = (index: number) => {
+    setThumbnailFiles((prev) => prev.filter((_, i) => i !== index));
+    setThumbnailPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -72,7 +93,7 @@ export default function AddNewsDialog({
     try {
       let finalImgUrl = formData.imgUrl;
 
-      // 1. Upload image if file exists
+      // 1. Upload main image if file exists
       if (imageFile) {
         const fileExt = imageFile.name.split(".").pop();
         const fileName = `${Math.random()}.${fileExt}`;
@@ -91,7 +112,30 @@ export default function AddNewsDialog({
         finalImgUrl = publicUrlData.publicUrl;
       }
 
-      // 2. Insert into news table
+      // 2. Upload thumbnail gallery images
+      const uploadedThumbnails: string[] = [];
+      for (const file of thumbnailFiles) {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `news/thumbnails/${fileName}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from("benefits")
+          .upload(filePath, file);
+
+        if (!uploadErr) {
+          const { data: pubData } = supabase.storage
+            .from("benefits")
+            .getPublicUrl(filePath);
+          if (pubData?.publicUrl) {
+            uploadedThumbnails.push(pubData.publicUrl);
+          }
+        } else {
+          console.warn("Upload thumbnail error:", uploadErr);
+        }
+      }
+
+      // 3. Insert into news table
       const { error: insertError } = await supabase.from("news").insert([
         {
           title: formData.title,
@@ -99,6 +143,9 @@ export default function AddNewsDialog({
           content: formData.content,
           link: formData.link,
           img_url: finalImgUrl,
+          gallery_urls: uploadedThumbnails,
+          gallery: uploadedThumbnails,
+          thumbnails: uploadedThumbnails,
         },
       ]);
 
@@ -118,6 +165,8 @@ export default function AddNewsDialog({
     setFormData({ title: "", summary: "", content: "", link: "", imgUrl: "" });
     setImageFile(null);
     setImagePreview(null);
+    setThumbnailFiles([]);
+    setThumbnailPreviews([]);
     onClose();
   };
 
@@ -251,7 +300,7 @@ export default function AddNewsDialog({
                 <Box sx={{ py: 3 }}>
                   <PhotoCameraIcon sx={{ fontSize: 48, color: "primary.main", mb: 1.5, opacity: 0.8 }} />
                   <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                    Haz clic para subir una imagen
+                    Haz clic para subir una imagen de portada
                   </Typography>
                   <Typography variant="caption" sx={{ color: "text.disabled", mt: 1, display: "block" }}>
                     Formatos soportados: JPG, PNG, WEBP
@@ -259,6 +308,100 @@ export default function AddNewsDialog({
                 </Box>
               )}
             </Box>
+          </Box>
+
+          {/* Cargar imagenes thumbnails */}
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: "text.primary", ml: 0.5 }}>
+              Cargar imagenes thumbnails (pie de noticia)
+            </Typography>
+            <Box 
+              sx={{ 
+                border: "2px dashed", 
+                borderColor: alpha(theme.palette.secondary.main, 0.4),
+                borderRadius: 4,
+                p: 3,
+                textAlign: "center",
+                bgcolor: alpha(theme.palette.secondary.main, 0.03),
+                cursor: "pointer",
+                display: "block",
+                transition: "all 0.3s ease",
+                "&:hover": { 
+                  bgcolor: alpha(theme.palette.secondary.main, 0.08),
+                  borderColor: theme.palette.secondary.main,
+                  transform: "scale(1.005)"
+                }
+              }}
+              component="label"
+            >
+              <input 
+                type="file" 
+                hidden 
+                accept="image/*" 
+                multiple 
+                onChange={handleThumbnailsChange} 
+              />
+              <Box sx={{ py: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <CollectionsIcon sx={{ fontSize: 44, color: "secondary.main", mb: 1, opacity: 0.8 }} />
+                <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                  Haz clic para agregar varias imágenes al pie
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.disabled", mt: 0.5 }}>
+                  Puedes seleccionar múltiples fotos (JPG, PNG, WEBP)
+                </Typography>
+              </Box>
+            </Box>
+
+            {thumbnailPreviews.length > 0 && (
+              <Box sx={{ mt: 2.5, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 1.5 }}>
+                {thumbnailPreviews.map((preview, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      position: "relative",
+                      width: "100%",
+                      paddingTop: "100%",
+                      borderRadius: 3,
+                      overflow: "hidden",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      border: "1px solid",
+                      borderColor: alpha(theme.palette.divider, 0.5),
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={preview}
+                      sx={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveThumbnail(index);
+                      }}
+                      sx={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        bgcolor: "rgba(0,0,0,0.65)",
+                        color: "white",
+                        p: 0.4,
+                        "&:hover": { bgcolor: "error.main" },
+                      }}
+                    >
+                      <CloseIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            )}
           </Box>
         </Box>
       </DialogContent>

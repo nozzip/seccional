@@ -1,5 +1,26 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Carga y Visualización Zoom de Imágenes Thumbnails en Noticias
+**Fecha:** 2026-08-05
+**Modo:** Desarrollar
+**Descripción:** Se otorgó la facultad a los administradores de cargar múltiples imágenes al pie de las noticias locales (thumbnails grid) desde el modal "Cargar Nueva Noticia", con previsualización en tiempo real y capacidad de deselección. Asimismo, se integró una cuadrícula interactiva de thumbnails al pie de `NoticiaDetalle.tsx` que abre un modal de zoom interactivo (lightbox) con soporte para navegación entre fotos, escalado táctil/clic y cierre al tocar el fondo.
+
+### Cambios realizados:
+1. **Modal de Carga (`AddNewsDialog.tsx`):**
+   - Inserción de la sección *"Cargar imagenes thumbnails (pie de noticia)"* situada justo debajo de *"Imagen de la Noticia"*.
+   - Soporte para selección múltiple de archivos de imagen con previsualización en miniatura responsiva y botón individual de descarte (`IconButton` + `CloseIcon`).
+   - Carga automática de todas las miniaturas al bucket `benefits` en Supabase Storage bajo `news/thumbnails/` y guardado de las URLs públicas en la base de datos `news`.
+2. **Modelo de Datos (`newsFetcher.ts`):**
+   - Extensión de la interfaz `NewsItem` con `gallery_urls?: string[]`.
+   - Mapeo unificado de arreglos de imágenes desde Supabase `news`.
+3. **Lectura Detallada de Noticia (`NoticiaDetalle.tsx`):**
+   - Renderizado de la sección *"Galería de Imágenes"* al pie de la noticia cuando existen miniaturas cargadas.
+   - Grilla interactiva con efecto de elevación y badge de lupa (`ZoomInIcon`) al hacer hover.
+   - Lightbox Zoom en pantalla completa con backdrop translúcido blur, contador de fotos, botones de avance/retroceso y alternancia de escalado (scale 1.4x / cursor zoom). Cierre suave haciendo clic en el backdrop o con el botón X.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Galería de Noticias:** Carga múltiple en Supabase Storage `benefits/news/thumbnails/` y visualización mediante cuadrícula responsiva + lightbox zoom interactivo.
+
 ## [ÉXITO] - Adaptación a Dominio Personalizado (CNAME) y Forzado de Actualizaciones PWA
 **Fecha:** 2026-05-18
 **Modo:** Mejorar

@@ -9,9 +9,16 @@ import {
   alpha,
   useTheme,
   Divider,
+  IconButton,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import CollectionsIcon from "@mui/icons-material/Collections";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import CloseIcon from "@mui/icons-material/Close";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { supabase } from "../supabaseClient";
 import { Helmet } from "react-helmet-async";
 
@@ -23,6 +30,8 @@ export default function NoticiaDetalle() {
   const theme = useTheme();
   const [news, setNews] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedImgIndex, setSelectedImgIndex] = useState<number | null>(null);
+  const [isZoomedIn, setIsZoomedIn] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -69,6 +78,8 @@ export default function NoticiaDetalle() {
     month: "long",
     day: "numeric",
   });
+
+  const gallery: string[] = news.gallery_urls || news.gallery || news.thumbnails || [];
 
   return (
     <Box sx={{ pt: { xs: 12, md: 16 }, pb: 10, bgcolor: "background.default" }}>
@@ -156,6 +167,87 @@ export default function NoticiaDetalle() {
             {news.content || "Sin contenido adicional disponible."}
           </Box>
 
+          {/* Galería de imágenes (Thumbnails Grid al pie de la noticia) */}
+          {gallery.length > 0 && (
+            <Box sx={{ mt: 8, pt: 4, borderTop: "1px dashed", borderColor: alpha(theme.palette.divider, 0.8) }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 800,
+                  color: "text.primary",
+                  mb: 3,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                }}
+              >
+                <CollectionsIcon color="primary" /> Galería de Imágenes
+              </Typography>
+
+              <Grid container spacing={2.5}>
+                {gallery.map((imgUrl: string, idx: number) => (
+                  <Grid key={idx} size={{ xs: 6, sm: 4, md: 3 }}>
+                    <Box
+                      onClick={() => {
+                        setSelectedImgIndex(idx);
+                        setIsZoomedIn(false);
+                      }}
+                      sx={{
+                        position: "relative",
+                        paddingTop: "75%",
+                        borderRadius: 3,
+                        overflow: "hidden",
+                        cursor: "pointer",
+                        boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+                        border: "1px solid",
+                        borderColor: alpha(theme.palette.divider, 0.5),
+                        transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                        "&:hover": {
+                          transform: "scale(1.04)",
+                          boxShadow: `0 14px 28px ${alpha(theme.palette.primary.main, 0.2)}`,
+                          borderColor: theme.palette.primary.main,
+                          "& .zoom-overlay": {
+                            opacity: 1,
+                          },
+                        },
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={imgUrl}
+                        alt={`Thumbnail ${idx + 1}`}
+                        sx={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                      <Box
+                        className="zoom-overlay"
+                        sx={{
+                          position: "absolute",
+                          inset: 0,
+                          bgcolor: "rgba(0, 0, 0, 0.45)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "white",
+                          opacity: 0,
+                          transition: "opacity 0.3s ease",
+                        }}
+                      >
+                        <ZoomInIcon sx={{ fontSize: 38 }} />
+                      </Box>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+
           {news.link && (
             <Box sx={{ mt: 8, p: 4, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRadius: 3, textAlign: "center" }}>
               <Typography variant="body1" sx={{ mb: 2, fontWeight: 600 }}>
@@ -174,6 +266,139 @@ export default function NoticiaDetalle() {
           )}
         </Box>
       </Container>
+
+      {/* Modal Zoom Lightbox */}
+      {selectedImgIndex !== null && gallery[selectedImgIndex] && (
+        <Box
+          onClick={() => {
+            setSelectedImgIndex(null);
+            setIsZoomedIn(false);
+          }}
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            bgcolor: "rgba(0, 0, 0, 0.92)",
+            backdropFilter: "blur(12px)",
+            zIndex: 99999,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            p: 2,
+            userSelect: "none",
+          }}
+        >
+          {/* Top Bar */}
+          <Box
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              position: "absolute",
+              top: 24,
+              left: 24,
+              right: 24,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              zIndex: 10,
+            }}
+          >
+            <Typography variant="subtitle1" sx={{ color: "white", fontWeight: 800, letterSpacing: 1 }}>
+              {selectedImgIndex + 1} / {gallery.length}
+            </Typography>
+            <IconButton
+              onClick={() => {
+                setSelectedImgIndex(null);
+                setIsZoomedIn(false);
+              }}
+              sx={{
+                color: "white",
+                bgcolor: "rgba(255, 255, 255, 0.15)",
+                "&:hover": { bgcolor: "error.main" },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          {/* Previous Button */}
+          {gallery.length > 1 && (
+            <IconButton
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedImgIndex((prev) => (prev !== null ? (prev - 1 + gallery.length) % gallery.length : 0));
+                setIsZoomedIn(false);
+              }}
+              sx={{
+                position: "absolute",
+                left: { xs: 10, md: 30 },
+                color: "white",
+                bgcolor: "rgba(255, 255, 255, 0.15)",
+                "&:hover": { bgcolor: "rgba(255, 255, 255, 0.35)", transform: "scale(1.1)" },
+                zIndex: 10,
+              }}
+            >
+              <ChevronLeftIcon fontSize="large" />
+            </IconButton>
+          )}
+
+          {/* Main Zoomed Image Container */}
+          <Box
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsZoomedIn(!isZoomedIn);
+            }}
+            sx={{
+              maxWidth: isZoomedIn ? "none" : "90vw",
+              maxHeight: isZoomedIn ? "none" : "85vh",
+              overflow: isZoomedIn ? "auto" : "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: isZoomedIn ? "zoom-out" : "zoom-in",
+            }}
+          >
+            <Box
+              component="img"
+              src={gallery[selectedImgIndex]}
+              alt={`Imagen ampliada ${selectedImgIndex + 1}`}
+              sx={{
+                maxWidth: isZoomedIn ? "160vw" : "90vw",
+                maxHeight: isZoomedIn ? "160vh" : "85vh",
+                objectFit: "contain",
+                borderRadius: 3,
+                boxShadow: "0 24px 72px rgba(0, 0, 0, 0.8)",
+                transform: isZoomedIn ? "scale(1.4)" : "scale(1)",
+                transition: "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+              }}
+            />
+          </Box>
+
+          {/* Next Button */}
+          {gallery.length > 1 && (
+            <IconButton
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedImgIndex((prev) => (prev !== null ? (prev + 1) % gallery.length : 0));
+                setIsZoomedIn(false);
+              }}
+              sx={{
+                position: "absolute",
+                right: { xs: 10, md: 30 },
+                color: "white",
+                bgcolor: "rgba(255, 255, 255, 0.15)",
+                "&:hover": { bgcolor: "rgba(255, 255, 255, 0.35)", transform: "scale(1.1)" },
+                zIndex: 10,
+              }}
+            >
+              <ChevronRightIcon fontSize="large" />
+            </IconButton>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }
+
