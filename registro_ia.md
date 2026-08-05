@@ -513,3 +513,24 @@
    - Se actualizó el componente `<Box>` de la imagen del banner para usar `height: '100%'` (en lugar de `height: 'auto'`), garantizando que la imagen de banner con `objectFit: 'cover'` se estire verticalmente de forma correcta sin dejar márgenes ni espacios vacíos en la parte inferior.
 2. **Verificación:**
    - Compilación y build de producción exitoso con `npm run build`.
+
+## [ÉXITO] - Implementación de Edición de Noticias para Administradores
+**Fecha:** 2026-08-05
+**Modo:** Desarrollar
+**Descripción:** Se extendió el sistema de noticias local para permitir que los administradores autorizados editen noticias creadas previamente. La funcionalidad incluye actualización de títulos, resúmenes, cuerpo de la noticia, imagen de portada e imágenes miniaturas de la galería al pie de la noticia.
+
+### Cambios realizados:
+1. **Refactorización de `AddNewsDialog.tsx`:**
+   - Se añadió la prop opcional `newsToEdit?: NewsItem | null` para precargar los datos de la noticia al abrir el modal.
+   - Manejo de imagen de portada (reemplazo o conservación de URL original si no se selecciona un archivo nuevo).
+   - Manejo de miniaturas de la galería (permite eliminar miniaturas existentes y agregar nuevas).
+   - Ejecución de consulta `update` en Supabase cuando existe `newsToEdit.id` (con fallback si no existe la columna `gallery_urls`).
+2. **Actualización de `PrensaCard.tsx`:**
+   - Se incorporó un botón de edición (ícono de lápiz) en las tarjetas de noticias hero y estándar (`HeroNewsItem` y `StandardNewsItem`), visible únicamente si `isAdmin` es true y la noticia es local.
+   - Se conectó la prop `onEdit` para disparar la apertura del diálogo de edición.
+3. **Actualización de `Prensa.tsx` y `NoticiaDetalle.tsx`:**
+   - `Prensa.tsx`: Manejo de estado `newsToEdit` para abrir `AddNewsDialog` en modo edición o creación.
+   - `NoticiaDetalle.tsx`: Se añadió un botón "Editar Noticia" en el encabezado para administradores y se renderizó `AddNewsDialog` configurado con los datos de la noticia visualizada.
+4. **Verificación:**
+   - Compilación y empaquetado de producción sin errores ejecutando `npm run build`.
+

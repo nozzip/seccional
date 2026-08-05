@@ -16,6 +16,7 @@ import Grid from "@mui/material/Grid2";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import LinearProgress from "@mui/material/LinearProgress";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
 import { Link } from "react-router-dom";
@@ -26,9 +27,10 @@ const seccionalLogo = `${import.meta.env.BASE_URL}seccionalLogo2.png`;
 interface PrensaCardProps {
   isAdmin?: boolean;
   onRefresh?: () => void;
+  onEdit?: (item: NewsItem) => void;
 }
 
-export default function PrensaCard({ isAdmin, onRefresh }: PrensaCardProps) {
+export default function PrensaCard({ isAdmin, onRefresh, onEdit }: PrensaCardProps) {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -118,6 +120,7 @@ export default function PrensaCard({ isAdmin, onRefresh }: PrensaCardProps) {
         item={hero}
         isAdmin={isAdmin}
         onDelete={() => hero.id && handleDelete(hero.id, hero.title)}
+        onEdit={onEdit}
       />
       <Grid container spacing={4}>
         {restNews.map((item, i) => (
@@ -126,6 +129,7 @@ export default function PrensaCard({ isAdmin, onRefresh }: PrensaCardProps) {
               item={item}
               isAdmin={isAdmin}
               onDelete={() => item.id && handleDelete(item.id, item.title)}
+              onEdit={onEdit}
             />
           </Grid>
         ))}
@@ -138,10 +142,12 @@ function HeroNewsItem({
   item,
   isAdmin,
   onDelete,
+  onEdit,
 }: {
   item: NewsItem;
   isAdmin?: boolean;
   onDelete: () => void;
+  onEdit?: (item: NewsItem) => void;
 }) {
   const theme = useTheme();
 
@@ -206,29 +212,58 @@ function HeroNewsItem({
       </Box>
 
       {isAdmin && item.isLocal && (
-        <Tooltip title="Eliminar Noticia">
-          <IconButton
-            onClick={(e) => {
-              e.preventDefault();
-              onDelete();
-            }}
-            sx={{
-              position: "absolute",
-              top: 24,
-              right: 24,
-              bgcolor: alpha(theme.palette.error.main, 0.9),
-              color: "white",
-              "&:hover": {
-                bgcolor: theme.palette.error.main,
-                transform: "scale(1.1)",
-              },
-              boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
-              zIndex: 10,
-            }}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
+        <Box
+          sx={{
+            position: "absolute",
+            top: 24,
+            right: 24,
+            display: "flex",
+            gap: 1.5,
+            zIndex: 10,
+          }}
+        >
+          <Tooltip title="Editar Noticia">
+            <IconButton
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onEdit) onEdit(item);
+              }}
+              sx={{
+                bgcolor: alpha(theme.palette.primary.main, 0.9),
+                color: "white",
+                "&:hover": {
+                  bgcolor: theme.palette.primary.main,
+                  transform: "scale(1.1)",
+                },
+                boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
+              }}
+            >
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Eliminar Noticia">
+            <IconButton
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete();
+              }}
+              sx={{
+                bgcolor: alpha(theme.palette.error.main, 0.9),
+                color: "white",
+                "&:hover": {
+                  bgcolor: theme.palette.error.main,
+                  transform: "scale(1.1)",
+                },
+                boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
+              }}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       )}
 
       <Box
@@ -333,10 +368,12 @@ function StandardNewsItem({
   item,
   isAdmin,
   onDelete,
+  onEdit,
 }: {
   item: NewsItem;
   isAdmin?: boolean;
   onDelete: () => void;
+  onEdit?: (item: NewsItem) => void;
 }) {
   const theme = useTheme();
   return (
@@ -360,30 +397,60 @@ function StandardNewsItem({
       }}
     >
       {isAdmin && item.isLocal && (
-        <Tooltip title="Eliminar Noticia">
-          <IconButton
-            onClick={(e) => {
-              e.preventDefault();
-              onDelete();
-            }}
-            size="small"
-            sx={{
-              position: "absolute",
-              top: 12,
-              right: 12,
-              bgcolor: alpha(theme.palette.error.main, 0.9),
-              color: "white",
-              "&:hover": {
-                bgcolor: theme.palette.error.main,
-                transform: "scale(1.1)",
-              },
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-              zIndex: 10,
-            }}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <Box
+          sx={{
+            position: "absolute",
+            top: 12,
+            right: 12,
+            display: "flex",
+            gap: 1,
+            zIndex: 10,
+          }}
+        >
+          <Tooltip title="Editar Noticia">
+            <IconButton
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onEdit) onEdit(item);
+              }}
+              size="small"
+              sx={{
+                bgcolor: alpha(theme.palette.primary.main, 0.9),
+                color: "white",
+                "&:hover": {
+                  bgcolor: theme.palette.primary.main,
+                  transform: "scale(1.1)",
+                },
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Eliminar Noticia">
+            <IconButton
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete();
+              }}
+              size="small"
+              sx={{
+                bgcolor: alpha(theme.palette.error.main, 0.9),
+                color: "white",
+                "&:hover": {
+                  bgcolor: theme.palette.error.main,
+                  transform: "scale(1.1)",
+                },
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       )}
       <Box sx={{ position: "relative", pt: "62%", overflow: "hidden" }}>
         <CardMedia

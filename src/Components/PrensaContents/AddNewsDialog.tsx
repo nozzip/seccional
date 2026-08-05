@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -18,17 +18,20 @@ import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import CollectionsIcon from "@mui/icons-material/Collections";
 import { supabase } from "../../supabaseClient";
 import { isUserAdmin } from "../../utils/auth";
+import { NewsItem } from "../../utils/newsFetcher";
 
 interface AddNewsDialogProps {
   open: boolean;
   onClose: () => void;
   onNewsAdded: () => void;
+  newsToEdit?: NewsItem | null;
 }
 
 export default function AddNewsDialog({
   open,
   onClose,
   onNewsAdded,
+  newsToEdit,
 }: AddNewsDialogProps) {
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
@@ -41,8 +44,52 @@ export default function AddNewsDialog({
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [existingThumbnails, setExistingThumbnails] = useState<string[]>([]);
   const [thumbnailFiles, setThumbnailFiles] = useState<File[]>([]);
   const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      if (newsToEdit) {
+        let rawContent = newsToEdit.content || "";
+        let gallery: string[] = newsToEdit.gallery_urls || [];
+        const match = rawContent.match(/<!--GALLERY:(.*?)-->/);
+        if (match && match[1]) {
+          if (!gallery || gallery.length === 0) {
+            try {
+              gallery = JSON.parse(match[1]);
+            } catch (e) {}
+          }
+        }
+        rawContent = rawContent.replace(/<!--GALLERY:.*?-->/g, "").trim();
+
+        const linkVal =
+          newsToEdit.link && !newsToEdit.link.startsWith("/prensa/")
+            ? newsToEdit.link
+            : "";
+
+        setFormData({
+          title: newsToEdit.title || "",
+          summary: newsToEdit.summary || "",
+          content: rawContent,
+          link: linkVal,
+          imgUrl: newsToEdit.imgUrl || "",
+        });
+        setImagePreview(newsToEdit.imgUrl || null);
+        setImageFile(null);
+        setExistingThumbnails(gallery || []);
+        setThumbnailFiles([]);
+        setThumbnailPreviews([]);
+      } else {
+        setFormData({ title: "", summary: "", content: "", link: "", imgUrl: "" });
+        setImageFile(null);
+        setImagePreview(null);
+        setExistingThumbnails([]);
+        setThumbnailFiles([]);
+        setThumbnailPreviews([]);
+      }
+    }
+  }, [open, newsToEdit]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -67,6 +114,10 @@ export default function AddNewsDialog({
       setThumbnailFiles(updatedFiles);
       setThumbnailPreviews(updatedPreviews);
     }
+  };
+
+  const handleRemoveExistingThumbnail = (index: number) => {
+    setExistingThumbnails((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleRemoveThumbnail = (index: number) => {
@@ -109,12 +160,12 @@ export default function AddNewsDialog({
         const { data: publicUrlData } = supabase.storage
           .from("benefits")
           .getPublicUrl(filePath);
-        
+
         finalImgUrl = publicUrlData.publicUrl;
       }
 
       // 2. Upload thumbnail gallery images
-      const uploadedThumbnails: string[] = [];
+      const newUploadedThumbnails: string[] = [];
       for (const file of thumbnailFiles) {
         const fileExt = file.name.split(".").pop();
         const fileName = `${Math.random()}.${fileExt}`;
@@ -129,47 +180,72 @@ export default function AddNewsDialog({
             .from("benefits")
             .getPublicUrl(filePath);
           if (pubData?.publicUrl) {
-            uploadedThumbnails.push(pubData.publicUrl);
+            newUploadedThumbnails.push(pubData.publicUrl);
           }
         } else {
           console.warn("Upload thumbnail error:", uploadErr);
         }
       }
 
+      const allThumbnails = [...existingThumbnails, ...newUploadedThumbnails];
+
       // 3. Prepare payload for news table
-      let finalContent = formData.content;
-      if (uploadedThumbnails.length > 0) {
-        finalContent = `${formData.content}\n\n<!--GALLERY:${JSON.stringify(uploadedThumbnails)}-->`;
+      let rawContent = formData.content.replace(/<!--GALLERY:.*?-->/g, "").trim();
+      if (allThumbnails.length > 0) {
+        rawContent = `${rawContent}\n\n<!--GALLERY:${JSON.stringify(allThumbnails)}-->`;
       }
 
-      const insertPayload: any = {
+      const payload: any = {
         title: formData.title,
         summary: formData.summary,
-        content: finalContent,
+        content: rawContent,
         link: formData.link,
         img_url: finalImgUrl,
       };
 
-      if (uploadedThumbnails.length > 0) {
-        insertPayload.gallery_urls = uploadedThumbnails;
+      if (allThumbnails.length > 0) {
+        payload.gallery_urls = allThumbnails;
       }
 
-      let { error: insertError } = await supabase.from("news").insert([insertPayload]);
+      if (newsToEdit && newsToEdit.id) {
+        let { error: updateError } = await supabase
+          .from("news")
+          .update(payload)
+          .eq("id", newsToEdit.id);
 
-      // Si falla porque la columna 'gallery_urls' no existe en la BD de Supabase, reintentar omitiendo esa columna
-      if (insertError && (insertError.code === "PGRST204" || insertError.message?.includes("gallery_urls"))) {
-        delete insertPayload.gallery_urls;
-        const retry = await supabase.from("news").insert([insertPayload]);
-        insertError = retry.error;
+        if (
+          updateError &&
+          (updateError.code === "PGRST204" || updateError.message?.includes("gallery_urls"))
+        ) {
+          delete payload.gallery_urls;
+          const retry = await supabase.from("news").update(payload).eq("id", newsToEdit.id);
+          updateError = retry.error;
+        }
+
+        if (updateError) throw updateError;
+      } else {
+        let { error: insertError } = await supabase.from("news").insert([payload]);
+
+        if (
+          insertError &&
+          (insertError.code === "PGRST204" || insertError.message?.includes("gallery_urls"))
+        ) {
+          delete payload.gallery_urls;
+          const retry = await supabase.from("news").insert([payload]);
+          insertError = retry.error;
+        }
+
+        if (insertError) throw insertError;
       }
-
-      if (insertError) throw insertError;
 
       onNewsAdded();
       handleClose();
     } catch (error: any) {
       console.error("Error al guardar noticia:", error);
-      alert("Error al guardar la noticia: " + (error.message || "Comprueba los datos ingresados."));
+      alert(
+        "Error al guardar la noticia: " +
+          (error.message || "Comprueba los datos ingresados.")
+      );
     } finally {
       setLoading(false);
     }
@@ -179,6 +255,7 @@ export default function AddNewsDialog({
     setFormData({ title: "", summary: "", content: "", link: "", imgUrl: "" });
     setImageFile(null);
     setImagePreview(null);
+    setExistingThumbnails([]);
     setThumbnailFiles([]);
     setThumbnailPreviews([]);
     onClose();
@@ -198,9 +275,15 @@ export default function AddNewsDialog({
         },
       }}
     >
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <Typography variant="h5" component="div" fontWeight={800} color="primary">
-          Cargar Nueva Noticia
+          {newsToEdit ? "Editar Noticia" : "Cargar Nueva Noticia"}
         </Typography>
         <IconButton onClick={handleClose}>
           <CloseIcon />
@@ -224,7 +307,7 @@ export default function AddNewsDialog({
               },
             }}
           />
-          
+
           <TextField
             label="Resumen / Descripción corta"
             name="summary"
@@ -275,12 +358,15 @@ export default function AddNewsDialog({
           />
 
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: "text.primary", ml: 0.5 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{ mb: 1.5, fontWeight: 800, color: "text.primary", ml: 0.5 }}
+            >
               Imagen de la Noticia
             </Typography>
-            <Box 
-              sx={{ 
-                border: "2px dashed", 
+            <Box
+              sx={{
+                border: "2px dashed",
                 borderColor: alpha(theme.palette.primary.main, 0.4),
                 borderRadius: 4,
                 p: 3,
@@ -289,34 +375,74 @@ export default function AddNewsDialog({
                 cursor: "pointer",
                 display: "block",
                 transition: "all 0.3s ease",
-                "&:hover": { 
+                "&:hover": {
                   bgcolor: alpha(theme.palette.primary.main, 0.08),
                   borderColor: theme.palette.primary.main,
-                  transform: "scale(1.01)"
-                }
+                  transform: "scale(1.01)",
+                },
               }}
               component="label"
             >
-              <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleImageChange}
+              />
               {imagePreview ? (
-                <Box 
-                  component="img" 
-                  src={imagePreview} 
-                  sx={{ 
-                    width: "100%", 
-                    maxHeight: 250, 
-                    objectFit: "cover", 
-                    borderRadius: 3,
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.2)"
-                  }} 
-                />
+                <Box sx={{ position: "relative", width: "100%" }}>
+                  <Box
+                    component="img"
+                    src={imagePreview}
+                    sx={{
+                      width: "100%",
+                      maxHeight: 250,
+                      objectFit: "cover",
+                      borderRadius: 3,
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setImageFile(null);
+                      setImagePreview(null);
+                      setFormData((prev) => ({ ...prev, imgUrl: "" }));
+                    }}
+                    sx={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      bgcolor: "rgba(0,0,0,0.65)",
+                      color: "white",
+                      "&:hover": { bgcolor: "error.main" },
+                    }}
+                  >
+                    <CloseIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Box>
               ) : (
                 <Box sx={{ py: 3 }}>
-                  <PhotoCameraIcon sx={{ fontSize: 48, color: "primary.main", mb: 1.5, opacity: 0.8 }} />
-                  <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                  <PhotoCameraIcon
+                    sx={{
+                      fontSize: 48,
+                      color: "primary.main",
+                      mb: 1.5,
+                      opacity: 0.8,
+                    }}
+                  />
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 600, color: "text.secondary" }}
+                  >
                     Haz clic para subir una imagen de portada
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "text.disabled", mt: 1, display: "block" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.disabled", mt: 1, display: "block" }}
+                  >
                     Formatos soportados: JPG, PNG, WEBP
                   </Typography>
                 </Box>
@@ -326,12 +452,15 @@ export default function AddNewsDialog({
 
           {/* Cargar imagenes thumbnails */}
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 800, color: "text.primary", ml: 0.5 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{ mb: 1.5, fontWeight: 800, color: "text.primary", ml: 0.5 }}
+            >
               Cargar imagenes thumbnails (pie de noticia)
             </Typography>
-            <Box 
-              sx={{ 
-                border: "2px dashed", 
+            <Box
+              sx={{
+                border: "2px dashed",
                 borderColor: alpha(theme.palette.secondary.main, 0.4),
                 borderRadius: 4,
                 p: 3,
@@ -340,37 +469,64 @@ export default function AddNewsDialog({
                 cursor: "pointer",
                 display: "block",
                 transition: "all 0.3s ease",
-                "&:hover": { 
+                "&:hover": {
                   bgcolor: alpha(theme.palette.secondary.main, 0.08),
                   borderColor: theme.palette.secondary.main,
-                  transform: "scale(1.005)"
-                }
+                  transform: "scale(1.005)",
+                },
               }}
               component="label"
             >
-              <input 
-                type="file" 
-                hidden 
-                accept="image/*" 
-                multiple 
-                onChange={handleThumbnailsChange} 
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                multiple
+                onChange={handleThumbnailsChange}
               />
-              <Box sx={{ py: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <CollectionsIcon sx={{ fontSize: 44, color: "secondary.main", mb: 1, opacity: 0.8 }} />
-                <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
+              <Box
+                sx={{
+                  py: 2,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <CollectionsIcon
+                  sx={{
+                    fontSize: 44,
+                    color: "secondary.main",
+                    mb: 1,
+                    opacity: 0.8,
+                  }}
+                />
+                <Typography
+                  variant="body1"
+                  sx={{ fontWeight: 600, color: "text.secondary" }}
+                >
                   Haz clic para agregar varias imágenes al pie
                 </Typography>
-                <Typography variant="caption" sx={{ color: "text.disabled", mt: 0.5 }}>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "text.disabled", mt: 0.5 }}
+                >
                   Puedes seleccionar múltiples fotos (JPG, PNG, WEBP)
                 </Typography>
               </Box>
             </Box>
 
-            {thumbnailPreviews.length > 0 && (
-              <Box sx={{ mt: 2.5, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 1.5 }}>
-                {thumbnailPreviews.map((preview, index) => (
+            {(existingThumbnails.length > 0 || thumbnailPreviews.length > 0) && (
+              <Box
+                sx={{
+                  mt: 2.5,
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
+                  gap: 1.5,
+                }}
+              >
+                {existingThumbnails.map((url, index) => (
                   <Box
-                    key={index}
+                    key={`existing-${index}`}
                     sx={{
                       position: "relative",
                       width: "100%",
@@ -379,7 +535,53 @@ export default function AddNewsDialog({
                       overflow: "hidden",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
                       border: "1px solid",
-                      borderColor: alpha(theme.palette.divider, 0.5),
+                      borderColor: alpha(theme.palette.primary.main, 0.5),
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={url}
+                      sx={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveExistingThumbnail(index);
+                      }}
+                      sx={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        bgcolor: "rgba(0,0,0,0.65)",
+                        color: "white",
+                        p: 0.4,
+                        "&:hover": { bgcolor: "error.main" },
+                      }}
+                    >
+                      <CloseIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Box>
+                ))}
+                {thumbnailPreviews.map((preview, index) => (
+                  <Box
+                    key={`new-${index}`}
+                    sx={{
+                      position: "relative",
+                      width: "100%",
+                      paddingTop: "100%",
+                      borderRadius: 3,
+                      overflow: "hidden",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      border: "1px solid",
+                      borderColor: alpha(theme.palette.secondary.main, 0.5),
                     }}
                   >
                     <Box
@@ -421,13 +623,13 @@ export default function AddNewsDialog({
       </DialogContent>
 
       <DialogActions sx={{ p: 4, pt: 2, justifyContent: "flex-end", gap: 2 }}>
-        <Button 
-          onClick={handleClose} 
-          sx={{ 
-            fontWeight: 800, 
+        <Button
+          onClick={handleClose}
+          sx={{
+            fontWeight: 800,
             color: "text.secondary",
             px: 3,
-            "&:hover": { color: "error.main" }
+            "&:hover": { color: "error.main" },
           }}
         >
           Cancelar
@@ -436,22 +638,32 @@ export default function AddNewsDialog({
           onClick={handleSubmit}
           variant="contained"
           disabled={loading}
-          sx={{ 
-            borderRadius: 10, 
-            px: 5, 
+          sx={{
+            borderRadius: 10,
+            px: 5,
             py: 1.5,
             fontWeight: 900,
             fontSize: "1rem",
             textTransform: "none",
             boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.4)}`,
             "&:hover": {
-              boxShadow: `0 12px 32px ${alpha(theme.palette.primary.main, 0.5)}`,
-            }
+              boxShadow: `0 12px 32px ${alpha(
+                theme.palette.primary.main,
+                0.5
+              )}`,
+            },
           }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : "Publicar Noticia"}
+          {loading ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : newsToEdit ? (
+            "Guardar Cambios"
+          ) : (
+            "Publicar Noticia"
+          )}
         </Button>
       </DialogActions>
     </Dialog>
   );
 }
+

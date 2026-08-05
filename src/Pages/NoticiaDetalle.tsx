@@ -19,8 +19,11 @@ import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import CloseIcon from "@mui/icons-material/Close";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import EditIcon from "@mui/icons-material/Edit";
 import { supabase } from "../supabaseClient";
 import { Helmet } from "react-helmet-async";
+import { isUserAdmin } from "../utils/auth";
+import AddNewsDialog from "../Components/PrensaContents/AddNewsDialog";
 
 const seccionalLogo = `${import.meta.env.BASE_URL}seccionalLogo2.png`;
 
@@ -30,28 +33,40 @@ export default function NoticiaDetalle() {
   const theme = useTheme();
   const [news, setNews] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedImgIndex, setSelectedImgIndex] = useState<number | null>(null);
   const [isZoomedIn, setIsZoomedIn] = useState(false);
 
+  const loadNewsData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("news")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      setNews(data);
+    } catch (err) {
+      console.error("Error cargando noticia:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    async function loadNews() {
-      try {
-        const { data, error } = await supabase
-          .from("news")
-          .select("*")
-          .eq("id", id)
-          .single();
 
-        if (error) throw error;
-        setNews(data);
-      } catch (err) {
-        console.error("Error cargando noticia:", err);
-      } finally {
-        setLoading(false);
-      }
+    const userStr = localStorage.getItem("current_affiliate");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setIsAdmin(isUserAdmin(user));
+      } catch (e) {}
     }
-    loadNews();
+
+    loadNewsData();
   }, [id]);
 
   if (loading) {
@@ -101,13 +116,26 @@ export default function NoticiaDetalle() {
         <title>{news.title} - A.E.F.I.P Prensa</title>
       </Helmet>
       <Container maxWidth="md">
-        <Button
-          onClick={() => navigate("/prensa")}
-          startIcon={<ArrowBackIcon />}
-          sx={{ mb: 4, fontWeight: 700 }}
-        >
-          Volver a Prensa
-        </Button>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
+          <Button
+            onClick={() => navigate("/prensa")}
+            startIcon={<ArrowBackIcon />}
+            sx={{ fontWeight: 700 }}
+          >
+            Volver a Prensa
+          </Button>
+          {isAdmin && (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<EditIcon />}
+              onClick={() => setOpenEditDialog(true)}
+              sx={{ borderRadius: 8, px: 3, fontWeight: 800 }}
+            >
+              Editar Noticia
+            </Button>
+          )}
+        </Box>
 
         <Box component="article">
           <Typography
@@ -412,7 +440,27 @@ export default function NoticiaDetalle() {
           )}
         </Box>
       )}
+
+      {isAdmin && news && (
+        <AddNewsDialog
+          open={openEditDialog}
+          onClose={() => setOpenEditDialog(false)}
+          onNewsAdded={loadNewsData}
+          newsToEdit={{
+            id: news.id,
+            title: news.title,
+            summary: news.summary || "",
+            content: news.content || "",
+            link: news.link || "",
+            imgUrl: news.img_url || "",
+            date: formattedDate,
+            isLocal: true,
+            gallery_urls: gallery,
+          }}
+        />
+      )}
     </Box>
   );
 }
+
 

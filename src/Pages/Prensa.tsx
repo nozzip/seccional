@@ -5,11 +5,13 @@ import PrensaCard from "../Components/PrensaContents/PrensaCard";
 import AddNewsDialog from "../Components/PrensaContents/AddNewsDialog";
 import { Helmet } from "react-helmet-async";
 import { isUserAdmin } from "../utils/auth";
+import { NewsItem } from "../utils/newsFetcher";
 
 function Prensa() {
   const theme = useTheme();
   const [isAdmin, setIsAdmin] = useState(false);
   const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [newsToEdit, setNewsToEdit] = useState<NewsItem | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -29,6 +31,16 @@ function Prensa() {
 
   const handleNewsAdded = () => {
     setRefreshKey(prev => prev + 1);
+  };
+
+  const handleEditNews = (item: NewsItem) => {
+    setNewsToEdit(item);
+    setOpenAddDialog(true);
+  };
+
+  const handleOpenAddDialog = () => {
+    setNewsToEdit(null);
+    setOpenAddDialog(true);
   };
 
   return (
@@ -85,13 +97,14 @@ function Prensa() {
           key={refreshKey} 
           isAdmin={isAdmin} 
           onRefresh={handleNewsAdded} 
+          onEdit={handleEditNews}
         />
 
         {isAdmin && (
           <Fab
             color="primary"
             aria-label="add news"
-            onClick={() => setOpenAddDialog(true)}
+            onClick={handleOpenAddDialog}
             sx={{
               position: "fixed",
               bottom: { xs: 80, md: 32 },
@@ -106,8 +119,12 @@ function Prensa() {
 
         <AddNewsDialog 
           open={openAddDialog} 
-          onClose={() => setOpenAddDialog(false)} 
+          onClose={() => {
+            setOpenAddDialog(false);
+            setNewsToEdit(null);
+          }} 
           onNewsAdded={handleNewsAdded}
+          newsToEdit={newsToEdit}
         />
       </Container>
     </Box>
@@ -115,3 +132,4 @@ function Prensa() {
 }
 
 export default Prensa;
+
