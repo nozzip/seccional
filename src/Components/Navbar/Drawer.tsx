@@ -17,21 +17,24 @@ import { isUserAdmin } from "../../utils/auth";
 function DrawerComponent() {
   const [openDrawer, setOpenDrawer] = useState(false);
   const location = useLocation();
+  const [currentAffiliate, setCurrentAffiliate] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   React.useEffect(() => {
-    const checkAdmin = () => {
+    const checkUser = () => {
       const stored = localStorage.getItem("current_affiliate");
       if (stored) {
         const user = JSON.parse(stored);
+        setCurrentAffiliate(user);
         setIsAdmin(isUserAdmin(user));
       } else {
+        setCurrentAffiliate(null);
         setIsAdmin(false);
       }
     };
-    checkAdmin();
-    window.addEventListener("affiliate_login", checkAdmin);
-    return () => window.removeEventListener("affiliate_login", checkAdmin);
+    checkUser();
+    window.addEventListener("affiliate_login", checkUser);
+    return () => window.removeEventListener("affiliate_login", checkUser);
   }, []);
 
   const navLinks = [
@@ -40,6 +43,7 @@ function DrawerComponent() {
     { name: "Beneficios Gremiales", path: "/servicios" },
     { name: "Convenios", path: "/beneficios" },
     { name: "Prensa", path: "/prensa" },
+    ...(currentAffiliate ? [{ name: "Mi Perfil", path: "/perfil" }] : []),
     ...(isAdmin ? [{ name: "Admin", path: "/admin" }] : []),
   ];
 

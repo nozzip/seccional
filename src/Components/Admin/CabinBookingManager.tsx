@@ -79,6 +79,8 @@ export default function CabinBookingManager() {
   });
   const [conflictError, setConflictError] = useState<string | null>(null);
 
+  const [editingBookingId, setEditingBookingId] = useState<number | null>(null);
+
   // Fetching data
   const fetchData = async () => {
     const { data: bData } = await supabase.from("cabin_bookings").select("*");
@@ -98,6 +100,7 @@ export default function CabinBookingManager() {
   }, [viewStartDate]);
 
   const handleDayClick = (day: moment.Moment, unit: typeof UNITS[0]) => {
+    setEditingBookingId(null);
     setSelectedRange({
         start: day.clone().toDate(),
         end: day.clone().add(1, 'day').toDate(),
@@ -109,32 +112,84 @@ export default function CabinBookingManager() {
   };
 
   const handleBookingClick = (booking: CabinBooking) => {
-    // Para simplificar, abrimos el mismo modal pero con los datos de la reserva
-    // (Podríamos hacer un modo edición más complejo luego)
-    alert(`Reserva de: ${booking.user_name}\nSaldo: $${booking.remaining_balance}`);
+    const unit = UNITS.find(u => u.type === booking.cabin_type && u.sub === booking.cabin_sub_number) || UNITS[0];
+    setEditingBookingId(booking.id);
+    setSelectedRange({
+        start: moment(booking.start_date, 'YYYY-MM-DD').toDate(),
+        end: moment(booking.end_date, 'YYYY-MM-DD').toDate(),
+        unit
+    });
+    setFormData({
+        user_name: booking.user_name,
+        is_affiliate: booking.is_affiliate,
+        deposit: booking.deposit_amount || 0,
+        notes: booking.notes || "",
+        status: booking.status || "Pendiente"
+    });
+    setConflictError(null);
+    setOpenDialog(true);
   };
 
-  const checkConflict = (start: Date, end: Date, type: number, sub: number) => {
+  const handleStartDateChange = (newStartStr: string) => {
+    if (!selectedRange || !newStartStr) return;
+    const newStart = moment(newStartStr, 'YYYY-MM-DD').toDate();
+    let newEnd = selectedRange.end;
+    if (moment(newEnd).isSameOrBefore(moment(newStart), 'day')) {
+      newEnd = moment(newStart).add(1, 'day').toDate();
+    }
+    setSelectedRange({ ...selectedRange, start: newStart, end: newEnd });
+  };
+
+  const handleEndDateChange = (newEndStr: string) => {
+    if (!selectedRange || !newEndStr) return;
+    const newEnd = moment(newEndStr, 'YYYY-MM-DD').toDate();
+    setSelectedRange({ ...selectedRange, end: newEnd });
+  };
+
+  const handleNightsChange = (newNights: number) => {
+    if (!selectedRange || newNights < 1) return;
+    const newEnd = moment(selectedRange.start).add(newNights, 'days').toDate();
+    setSelectedRange({ ...selectedRange, end: newEnd });
+  };
+
+  const checkConflict = (start: Date, end: Date, type: number, sub: number, ignoreId?: number | null) => {
     const sStr = moment(start).format('YYYY-MM-DD');
     const eStr = moment(end).format('YYYY-MM-DD');
-    return bookings.find(b => b.cabin_type === type && b.cabin_sub_number === sub && (sStr < b.end_date) && (eStr > b.start_date));
+    return bookings.find(b => b.id !== ignoreId && b.cabin_type === type && b.cabin_sub_number === sub && (sStr < b.end_date) && (eStr > b.start_date));
   };
+
+  useEffect(() => {
+    if (selectedRange && openDialog) {
+      if (moment(selectedRange.end).isSameOrBefore(moment(selectedRange.start), 'day')) {
+        setConflictError("La fecha de egreso debe ser posterior a la fecha de ingreso.");
+      } else if (checkConflict(selectedRange.start, selectedRange.end, selectedRange.unit.type, selectedRange.unit.sub, editingBookingId)) {
+        setConflictError("¡Conflicto detectado! La unidad ya se encuentra reservada en esas fechas.");
+      } else {
+        setConflictError(null);
+      }
+    }
+  }, [selectedRange, bookings, openDialog, editingBookingId]);
 
   const handleSaveBooking = async () => {
     if (!selectedRange || !formData.user_name) return;
 
-    if (checkConflict(selectedRange.start, selectedRange.end, selectedRange.unit.type, selectedRange.unit.sub)) {
+    if (moment(selectedRange.end).isSameOrBefore(moment(selectedRange.start), 'day')) {
+        setConflictError("La fecha de egreso debe ser posterior a la fecha de ingreso.");
+        return;
+    }
+
+    if (checkConflict(selectedRange.start, selectedRange.end, selectedRange.unit.type, selectedRange.unit.sub, editingBookingId)) {
         setConflictError("¡Conflicto detectado en esas fechas!");
         return;
     }
 
     const priceKey = selectedRange.unit.key as any;
-    const pricePerNight = formData.is_affiliate ? prices[priceKey].afiliado : prices[priceKey].general;
-    const nights = moment(selectedRange.end).diff(moment(selectedRange.start), 'days');
+    const pricePerNight = prices && prices[priceKey] ? (formData.is_affiliate ? prices[priceKey].afiliado : prices[priceKey].general) : 0;
+    const nights = Math.max(1, moment(selectedRange.end).diff(moment(selectedRange.start), 'days'));
     const total = nights * pricePerNight;
 
     try {
-      const { error } = await supabase.from("cabin_bookings").insert({
+      const payload = {
         cabin_type: selectedRange.unit.type,
         cabin_sub_number: selectedRange.unit.sub,
         start_date: moment(selectedRange.start).format("YYYY-MM-DD"),
@@ -147,19 +202,27 @@ export default function CabinBookingManager() {
         remaining_balance: total - formData.deposit,
         nights_count: nights,
         notes: formData.notes
-      });
+      };
 
-      if (error) throw error;
+      if (editingBookingId) {
+        const { error } = await supabase.from("cabin_bookings").update(payload).eq("id", editingBookingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("cabin_bookings").insert(payload);
+        if (error) throw error;
+      }
+
       setOpenDialog(false);
       fetchData();
     } catch (e) {
-      alert("Error al guardar.");
+      alert("Error al guardar la reserva.");
     }
   };
 
   const deleteBooking = async (id: number) => {
-    if (!window.confirm("¿Eliminar reserva?")) return;
+    if (!window.confirm("¿Eliminar esta reserva definitivamente?")) return;
     await supabase.from("cabin_bookings").delete().eq("id", id);
+    setOpenDialog(false);
     fetchData();
   };
 
@@ -282,9 +345,18 @@ export default function CabinBookingManager() {
         </Box>
       </Paper>
 
-      {/* MODAL DE RESERVA (Igual al anterior pero adaptado) */}
+      {/* MODAL DE RESERVA (Crear / Editar / Eliminar) */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 900, pb: 0 }}>Nueva Reserva: {selectedRange?.unit.name}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 900, pb: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" component="span" sx={{ fontWeight: 900 }}>
+                {editingBookingId ? `Editar Reserva: ${selectedRange?.unit.name}` : `Nueva Reserva: ${selectedRange?.unit.name}`}
+            </Typography>
+            {editingBookingId && (
+                <Button color="error" size="small" variant="outlined" startIcon={<DeleteIcon />} onClick={() => deleteBooking(editingBookingId)} sx={{ fontWeight: 800 }}>
+                    Eliminar
+                </Button>
+            )}
+        </DialogTitle>
         <DialogContent dividers sx={{ mt: 2 }}>
             {conflictError && <Alert severity="error" sx={{ mb: 2 }}>{conflictError}</Alert>}
             <Grid container spacing={3}>
@@ -293,11 +365,75 @@ export default function CabinBookingManager() {
                         <Box>
                             <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>PERIODO SELECCIONADO</Typography>
                             <Typography variant="h6" sx={{ fontWeight: 900 }}>
-                                {moment(selectedRange?.start).format('ddd DD/MM')} al {moment(selectedRange?.end).subtract(1, 'd').format('ddd DD/MM')}
+                                {selectedRange ? moment(selectedRange.start).format('DD/MM/YYYY') : ''} al {selectedRange ? moment(selectedRange.end).format('DD/MM/YYYY') : ''}
                             </Typography>
                         </Box>
-                        <Chip label={`${moment(selectedRange?.end).diff(moment(selectedRange?.start), 'days')} Noches`} color="primary" sx={{ fontWeight: 900 }} />
+                        <Stack direction="row" spacing={1} alignItems="center">
+                            <Chip label={`${selectedRange ? Math.max(0, moment(selectedRange.end).diff(moment(selectedRange.start), 'days')) : 0} Noches`} color="primary" sx={{ fontWeight: 900 }} />
+                            {prices && selectedRange?.unit.key && prices[selectedRange.unit.key as any] && (
+                                <Chip 
+                                    label={`Total: $${(
+                                        Math.max(0, moment(selectedRange.end).diff(moment(selectedRange.start), 'days')) * 
+                                        (formData.is_affiliate ? prices[selectedRange.unit.key as any].afiliado : prices[selectedRange.unit.key as any].general)
+                                    ).toLocaleString()}`} 
+                                    color="success" 
+                                    variant="outlined" 
+                                    sx={{ fontWeight: 900 }} 
+                                />
+                            )}
+                        </Stack>
                     </Box>
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 5 }}>
+                    <TextField
+                        label="Fecha de Inicio (Ingreso)"
+                        type="date"
+                        fullWidth
+                        InputLabelProps={{ shrink: true }}
+                        value={selectedRange ? moment(selectedRange.start).format('YYYY-MM-DD') : ''}
+                        onChange={(e) => handleStartDateChange(e.target.value)}
+                    />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 5 }}>
+                    <TextField
+                        label="Fecha de Fin (Egreso)"
+                        type="date"
+                        fullWidth
+                        InputLabelProps={{ shrink: true }}
+                        value={selectedRange ? moment(selectedRange.end).format('YYYY-MM-DD') : ''}
+                        onChange={(e) => handleEndDateChange(e.target.value)}
+                    />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 2 }}>
+                    <TextField
+                        label="Noches"
+                        type="number"
+                        fullWidth
+                        inputProps={{ min: 1 }}
+                        value={selectedRange ? Math.max(1, moment(selectedRange.end).diff(moment(selectedRange.start), 'days')) : 1}
+                        onChange={(e) => handleNightsChange(Number(e.target.value))}
+                    />
+                </Grid>
+
+                <Grid size={12}>
+                    <TextField 
+                        select 
+                        label="Cabaña / Unidad" 
+                        fullWidth 
+                        value={`${selectedRange?.unit.type}-${selectedRange?.unit.sub}`} 
+                        onChange={(e) => {
+                            const [type, sub] = e.target.value.split('-').map(Number);
+                            const foundUnit = UNITS.find(u => u.type === type && u.sub === sub);
+                            if (foundUnit && selectedRange) {
+                                setSelectedRange({ ...selectedRange, unit: foundUnit });
+                            }
+                        }}
+                    >
+                        {UNITS.map((u) => (
+                            <MenuItem key={`${u.type}-${u.sub}`} value={`${u.type}-${u.sub}`}>{u.name}</MenuItem>
+                        ))}
+                    </TextField>
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -330,7 +466,9 @@ export default function CabinBookingManager() {
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 1 }}>
             <Button onClick={() => setOpenDialog(false)} sx={{ fontWeight: 700 }}>Cancelar</Button>
-            <Button variant="contained" onClick={handleSaveBooking} disabled={!formData.user_name} sx={{ fontWeight: 900, px: 4 }}>Confirmar Reserva</Button>
+            <Button variant="contained" onClick={handleSaveBooking} disabled={!formData.user_name || !!conflictError} sx={{ fontWeight: 900, px: 4 }}>
+                {editingBookingId ? 'Guardar Cambios' : 'Confirmar Reserva'}
+            </Button>
         </DialogActions>
       </Dialog>
     </Box>

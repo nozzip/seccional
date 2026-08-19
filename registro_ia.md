@@ -534,3 +534,96 @@
 4. **Verificación:**
    - Compilación y empaquetado de producción sin errores ejecutando `npm run build`.
 
+## [ÉXITO] - Habilitación de Acceso a Perfil de Afiliado en la Versión Web mediante Legajo
+**Fecha:** 2026-08-19
+**Modo:** Desarrollar
+**Descripción:** Se habilitó el acceso al perfil completo de afiliados en la versión web de escritorio y móvil mediante el ingreso de su número de legajo. Al iniciar sesión, se redirige automáticamente al perfil (`/perfil`), se sincroniza el estado de autenticación y se incorpora el enlace directo "Mi Perfil" en la barra de navegación (Navbar) y en el menú lateral (Drawer).
+
+### Cambios realizados:
+1. **Creación de la Página Web de Perfil (`src/Pages/Perfil.tsx`):**
+   - Se construyó la página de perfil para la versión web general, reutilizando `PerfilView.tsx` e integrando sincronización bidireccional con Supabase (`affiliates`, `affiliate_family_members`) y `localStorage`.
+   - Soporte para visualización/edición de datos personales, carnet digital y gestión de grupo familiar / cónyuge.
+2. **Registro de Ruta en `src/App.tsx`:**
+   - Se añadió la ruta protegida `/perfil` mediante lazy loading y `ProtectedRoute`.
+3. **Actualización de Formulario de Inicio de Sesión (`FormLogin.tsx` y `Login.tsx`):**
+   - Al autenticar por legajo o CUIL en la versión web, se guardan los datos sincronizados y se redirige automáticamente a `/perfil` (o a `/admin` si es administrador).
+   - Si un usuario ya logueado visita `/login`, se lo redirige inmediatamente a su perfil.
+4. **Actualización de Navegación (`Navbar.tsx` y `Drawer.tsx`):**
+   - Se añadió el enlace "Mi Perfil" en la barra de navegación superior y en el menú drawer cuando el usuario está autenticado.
+   - El saludo "Hola, {nombre}" en la barra superior funciona como enlace directo a `/perfil`.
+   - Al hacer clic en "Salir" se limpian todas las claves de sesión y se sincroniza el estado global.
+5. **Verificación:**
+   - Compilación de producción (`npm run build`) completada con éxito (código 0).
+
+## [ÉXITO] - Integración de Pestañas de Carnet Digital y Solicitudes Gremiales en Mi Perfil Web
+**Fecha:** 2026-08-19
+**Modo:** Desarrollar
+**Descripción:** Se incorporaron las pestañas interactivas de **Mi Perfil**, **Carnet / Certificado Digital** y **Solicitudes** en la página web `/perfil`, alcanzando paridad funcional total con la versión PWA / Móvil.
+
+### Cambios realizados:
+1. **Pestañas de Navegación en `src/Pages/Perfil.tsx`:**
+   - **Mi Perfil:** Renderizado de `PerfilView` para actualización de datos de contacto y grupo familiar.
+   - **Carnet Digital:** Renderizado de `CarnetView` con QR de validación en vivo, credencial para titular y familiares, y descarga en PDF.
+   - **Solicitudes:** Renderizado de `SolicitudesView` con formularios de turismo particular, turismo subsidiado, cabañas "La Warmi" y subsidios gremiales con adjuntos.
+   - Soporte para parámetros de URL (`?tab=datos`, `?tab=carnet`, `?tab=solicitudes`) y transiciones fluidas con Framer Motion.
+2. **Verificación:**
+   - Compilación y build de producción exitoso sin errores (`npm run build`).
+
+## [ÉXITO] - Sincronización Total con Gestión Unificada en Panel Admin para Formularios y Cambios de Perfil
+**Fecha:** 2026-08-19
+**Modo:** Desarrollar
+**Descripción:** Se aseguró que todas las acciones realizadas por los afiliados tanto en la web (`/perfil`) como en la PWA/App (actualizaciones de datos de contacto, altas/cambios de cónyuge e hijos, reservas turísticas y subsidios gremiales) emitan automáticamente eventos en `workflow_requests`. Estos se reflejan en tiempo real en la **Gestión Unificada** (`RequestManager.tsx`) del panel de administración.
+
+### Cambios realizados:
+1. **Emisión de Solicitudes desde `PerfilView.tsx`:**
+   - Al editar datos de contacto (teléfono, email, condición jubilado, fecha nacimiento) se inserta una solicitud `profile_update` en `workflow_requests`.
+   - Al agregar cónyuge o hijos/as se inserta una solicitud `family_update` con los datos detallados del familiar.
+2. **Recepción y Visualización en `RequestManager.tsx`:**
+   - Se incorporaron los tipos `profile_update` y `family_update` en `REQUEST_TYPES`.
+   - Se formatearon las descripciones en la tabla y en el modal de detalle para que el administrador pueda revisar, dar seguimiento y marcar como realizado con observaciones.
+3. **Verificación:**
+   - Compilación exitosa (`npm run build`, código 0).
+
+## [ÉXITO] - Actualización de Destinos y Hoteles en Formularios de Turismo
+**Fecha:** 2026-08-19
+**Modo:** Mejorar
+**Descripción:** Se actualizaron las opciones de destinos y hoteles sindicales en el selector de turismo y en la tarjeta informativa de turismo para reflejar la oferta hotelera oficial de AEFIP.
+
+### Cambios realizados:
+1. **Actualización de Opciones en `TurismoForm.tsx`:**
+   - `Bariloche - Hostería Peumayen`
+   - `Mar del Plata - Hotel Concord`
+   - `Huerta Grande - Hotel Presidente Peron`
+   - `CABA - Hotel Davinci`
+2. **Actualización de Tarjeta Descriptiva en `SolicitudesView.tsx`:**
+   - Se reflejaron los cuatro destinos con sus nombres de hotel/hostería correspondientes.
+3. **Verificación:**
+   - Compilación exitosa (`npm run build`, código 0).
+
+## [ÉXITO] - Paridad de Gestión Unificada para El Mollar, Turismo Subsidiado y Subsidios + Estandarización de Botón "Afiliate"
+**Fecha:** 2026-08-19
+**Modo:** Mejorar
+**Descripción:** Se enriquecieron los metadatos de las solicitudes enviadas a `workflow_requests` para que las reservas de El Mollar, el turismo subsidiado y todos los subsidios gremiales (nacimiento, adopción, casamiento, kits escolares, etc.) aparezcan con sus títulos y resúmenes correspondientes en la **Gestión Unificada** del Panel de Administración. Además, se estandarizó el botón en la PWA/App a "Afiliate".
+
+### Cambios realizados:
+1. **Metadatos en `TurismoForm.tsx` y `GremialForm.tsx`:**
+   - Se añadieron `title` y `summary` formateados automáticamente según el tipo de trámite (Cabañas El Mollar, Turismo Subsidiado, Subsidios por Nacimiento/Adopción/Kit/etc.).
+   - Se asegura la visualización y trazabilidad en tiempo real en `RequestManager.tsx`.
+2. **Estandarización de Botón "Afiliate" en PWA (`MobileLogin.tsx`):**
+   - Se actualizó el botón de registro/afiliación para que muestre de forma consistente el texto **"Afiliate"**.
+3. **Verificación:**
+   - Compilación exitosa (`npm run build`, código 0).
+
+## [ÉXITO] - Verificación y Aseguramiento de Impacto en DB (Ficha del Afiliado + Hijos de Afiliados)
+**Fecha:** 2026-08-19
+**Modo:** Mejorar
+**Descripción:** Se verificó y reforzó que las modificaciones desde "Mi Perfil" (Web y PWA) impacten de forma directa y ordenada en las tablas relacionales de Supabase:
+1. `affiliates`: Actualiza datos de contacto (teléfono, email, fecha de nacimiento, estado jubilado) y cónyuge (nombre y DNI). Impacta en la **Ficha del Afiliado** (`AffiliateDetailsModal.tsx`).
+2. `affiliate_family_members`: Guarda cada hijo/a con clave foránea `affiliate_id`, nombre, apellido, DNI, fecha de nacimiento, edad y grado escolar. Impacta tanto en la **Ficha del Afiliado** (Tab Familiares) como en la pestaña general **Hijos de Afiliados** (`AfiliadosManager.tsx`).
+3. `workflow_requests`: Envía simultáneamente el evento a **Gestión Unificada** para notificación en tiempo real al administrador.
+
+### Verificación:
+- Compilación exitosa (`npm run build`, código 0).
+
+
+
