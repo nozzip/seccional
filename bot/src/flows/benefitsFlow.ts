@@ -17,7 +17,7 @@ export const benefitsFlow = addKeyword<any, any>(['1', 'beneficios', 'convenios'
       '_Escribí 0 o cancelar para volver al menú principal._'
     ].join('\n'),
     { capture: true },
-    async (ctx, { flowDynamic, fallBack }) => {
+    async (ctx: any, { flowDynamic, fallBack }: any) => {
       const input = ctx.body?.trim();
 
       if (!input || input === '0' || input.toLowerCase() === 'cancelar' || input.toLowerCase() === 'menu') {

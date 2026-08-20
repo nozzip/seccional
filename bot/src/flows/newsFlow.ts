@@ -2,7 +2,7 @@ import { addKeyword } from '@builderbot/bot';
 import { getLatestNews, formatNewsForWhatsApp } from '../services/newsService.js';
 
 export const newsFlow = addKeyword<any, any>(['2', 'noticias', 'prensa', 'comunicados', 'novedades'])
-  .addAnswer('⏳ *Buscando los últimos comunicados de prensa...*', null, async (_ctx, { flowDynamic }) => {
+  .addAnswer('⏳ *Buscando los últimos comunicados de prensa...*', null, async (_ctx: any, { flowDynamic }: any) => {
     try {
       const news = await getLatestNews(3);
       const text = formatNewsForWhatsApp(news);

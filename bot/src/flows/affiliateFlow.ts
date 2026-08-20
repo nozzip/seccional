@@ -10,7 +10,7 @@ export const affiliateFlow = addKeyword<any, any>(['4', 'afiliado', 'padron', 'c
       '_Escribí 0 o cancelar para volver al menú._'
     ].join('\n'),
     { capture: true },
-    async (ctx, { flowDynamic, fallBack }) => {
+    async (ctx: any, { flowDynamic, fallBack }: any) => {
       const input = ctx.body?.trim();
 
       if (!input || input === '0' || input.toLowerCase() === 'cancelar' || input.toLowerCase() === 'menu') {

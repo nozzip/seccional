@@ -38,7 +38,7 @@ export const welcomeFlow = addKeyword<any, any>([
       '✍️ _Respondé con el número de la opción deseada (ej: 1)_'
     ].join('\n'),
     { capture: true },
-    async (ctx, { gotoFlow, fallBack }) => {
+    async (ctx: any, { gotoFlow, fallBack }: any) => {
       const input = ctx.body?.trim().toLowerCase();
 
       switch (input) {

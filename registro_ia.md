@@ -1,5 +1,18 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Resolución de Dependencias y Tipado Estricto del Microservicio WhatsApp Bot
+**Fecha:** 2026-08-20
+**Modo:** Mejorar
+**Descripción:** Se instalaron las dependencias del microservicio `bot/` (`@builderbot/bot`, `@builderbot/provider-baileys`, `dotenv`, `@supabase/supabase-js`), se configuró la resolución de módulos TypeScript con `bundler` en `tsconfig.json` y se definieron los tipos explícitos para todos los callbacks de los flujos conversacionales. La compilación estricta de TypeScript (`npx tsc --noEmit`) y el empaquetado de producción (`npm run build`) finalizaron con cero errores.
+
+### Cambios realizados:
+1. **Instalación y Configuración (`bot/tsconfig.json`):**
+   - Configuración de `moduleResolution: "bundler"` y `module: "ES2022"`.
+2. **Tipado de Flujos (`bot/src/flows/`):**
+   - Ajuste de signatura de parámetros `(ctx: any, { ... }: any)` en `welcomeFlow.ts`, `benefitsFlow.ts`, `newsFlow.ts`, `tourismFlow.ts` y `affiliateFlow.ts`.
+3. **Validación:**
+   - `npx tsc --noEmit` completado exitosamente sin advertencias ni errores.
+
 ## [ÉXITO] - Creación del Microservicio WhatsApp Bot (BuilderBot + Baileys + Supabase)
 **Fecha:** 2026-08-20
 **Modo:** Desarrollar
