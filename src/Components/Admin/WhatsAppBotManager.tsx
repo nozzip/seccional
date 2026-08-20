@@ -49,6 +49,8 @@ interface BotConfig {
   welcome_title: string;
   custom_footer: string;
   local_port: number;
+  pause_duration_minutes: number;
+  auto_pause_on_human_reply: boolean;
 }
 
 const DEFAULT_CONFIG: BotConfig = {
@@ -59,6 +61,8 @@ const DEFAULT_CONFIG: BotConfig = {
   welcome_title: "¡Hola! Te damos la bienvenida al canal oficial de AEFIP Seccional Noroeste.",
   custom_footer: "Presentá tu carnet digital para acceder a los beneficios.",
   local_port: 3008,
+  pause_duration_minutes: 30,
+  auto_pause_on_human_reply: true,
 };
 
 interface ChatMessage {
@@ -694,13 +698,41 @@ export default function WhatsAppBotManager() {
                         onChange={(e) => setConfig({ ...config, office_hours: e.target.value })}
                       />
 
-                      <TextField
-                        label="Dirección de Sede Central"
-                        fullWidth
-                        size="small"
-                        value={config.headquarters_address}
-                        onChange={(e) => setConfig({ ...config, headquarters_address: e.target.value })}
+                      <Divider sx={{ my: 0.5 }} />
+
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={config.auto_pause_on_human_reply}
+                            onChange={(e) => setConfig({ ...config, auto_pause_on_human_reply: e.target.checked })}
+                            color="success"
+                          />
+                        }
+                        label={
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              Auto-Pausar al responder el operador
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Cuando contestes manualmente un chat, el bot se silenciará en esa conversación para no interrumpir.
+                            </Typography>
+                          </Box>
+                        }
                       />
+
+                      {config.auto_pause_on_human_reply && (
+                        <TextField
+                          label="Tiempo de Silencio / Pausa (Minutos)"
+                          type="number"
+                          fullWidth
+                          size="small"
+                          value={config.pause_duration_minutes}
+                          onChange={(e) =>
+                            setConfig({ ...config, pause_duration_minutes: Math.max(1, parseInt(e.target.value, 10) || 30) })
+                          }
+                          helperText="Tiempo que el bot permanecerá callado tras tu último mensaje (por defecto 30 min)."
+                        />
+                      )}
                     </Box>
                   </CardContent>
                 </Card>

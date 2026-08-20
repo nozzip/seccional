@@ -1,5 +1,24 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Auto-Pausa Inteligente del Bot de WhatsApp al Responder el Operador Humano
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se implementó un gestor de pausas inteligentes (`pauseManager.ts`) que detecta en tiempo real los mensajes salientes enviados manualmente por el operador humano (`key.fromMe === true`). Al responder un administrador, el bot silencia automáticamente las respuestas para ese chat específico durante 30 minutos (tiempo configurable desde el panel de administración), evitando interrupciones mientras dura la conversación humana y reactivándose automáticamente al finalizar el plazo.
+
+### Cambios realizados:
+1. **Gestor de Pausas (`bot/src/services/pauseManager.ts`):**
+   - Manejo dinámico de números silenciados con `setTimeout` y `blacklist.add(phone)`.
+   - Consulta de tiempo y estado en `system_configs -> whatsapp_bot_config` (con fallback de 30 minutos).
+   - Renovación automática de la ventana de silencio cada vez que el operador envía un nuevo mensaje.
+   - Auto-reactivación al expirar el tiempo de inactividad (`blacklist.remove(phone)`).
+2. **Monitoreo de Socket (`bot/src/app.ts`):**
+   - Intercepción de eventos `messages.upsert` de Baileys para capturar `msg.key.fromMe` en chats individuales (excluyendo estados y grupos).
+3. **Panel de Administración (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Interruptor *"Auto-Pausar al responder el operador"* y campo para personalizar los minutos de silencio (por defecto 30 min) persistidos en Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Auto-Pausa Humana en Bot:** Intercepción en Baileys `messages.upsert (fromMe)` ligada a `dynamicBlacklist` y configurable desde `system_configs`.
+
 ## [ÉXITO] - Sincronización Dinámica de Versión WhatsApp Web (Baileys) y Generación de QR
 **Fecha:** 2026-08-20
 **Modo:** Mejorar
