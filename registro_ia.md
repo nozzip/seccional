@@ -1,5 +1,18 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Aislamiento de Configuración TypeScript y Estandarización de Variables de Entorno
+**Fecha:** 2026-08-20
+**Modo:** Mejorar
+**Descripción:** Se excluyó la carpeta del microservicio `bot/` del `tsconfig.json` raíz de la aplicación web principal para prevenir colisiones en el Language Server del IDE. Asimismo, se unificó la carga de variables de entorno en el bot utilizando la importación directa y estándar de `import 'dotenv/config'`, garantizando compatibilidad total tanto en ejecución local con `tsx` como en entornos productivos.
+
+### Cambios realizados:
+1. **Aislamiento de TS (`tsconfig.json` raíz):**
+   - Inclusión de `"exclude": ["node_modules", "dist", "bot"]` para delimitar el contexto del compilador de React/Vite.
+2. **Estandarización de `dotenv` (`bot/src/config/supabase.ts`, `bot/src/app.ts`):**
+   - Migración a `import 'dotenv/config'` eliminando advertencias de resolución de tipos.
+3. **Validación:**
+   - Compilación independiente de `bot` (`npx tsc --noEmit`) con 0 errores.
+
 ## [ÉXITO] - Resolución de Dependencias y Tipado Estricto del Microservicio WhatsApp Bot
 **Fecha:** 2026-08-20
 **Modo:** Mejorar

@@ -1,9 +1,7 @@
 import { createBot, createProvider, MemoryDB } from '@builderbot/bot';
 import { BaileysProvider } from '@builderbot/provider-baileys';
 import { flows } from './flows/index.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3008;
 
