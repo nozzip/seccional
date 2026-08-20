@@ -1,10 +1,6 @@
 import { addKeyword, EVENTS } from '@builderbot/bot';
 import { isBotGloballyActive } from '../services/botConfigService.js';
-import { benefitsFlow } from './benefitsFlow.js';
-import { newsFlow } from './newsFlow.js';
-import { tourismFlow } from './tourismFlow.js';
-import { affiliateFlow } from './affiliateFlow.js';
-import { humanAgentFlow } from './humanAgentFlow.js';
+import { mainMenuFlow } from './mainMenuFlow.js';
 
 export const welcomeFlow = addKeyword<any, any>([
   'hola',
@@ -33,55 +29,43 @@ export const welcomeFlow = addKeyword<any, any>([
     [
       '👋 *¡Hola! Te damos la bienvenida al canal oficial de AEFIP Seccional Noroeste.*',
       '',
-      '¿En qué podemos ayudarte hoy? Elegí una opción respondiendo con el número correspondiente:',
+      '📍 Para brindarte información, sedes y convenios específicos de tu área, por favor *seleccioná tu provincia*:',
       '',
-      '1️⃣ *Convenios y Beneficios* (Descuentos en comercios)',
-      '2️⃣ *Prensa y Noticias* (Últimas novedades gremiales)',
-      '3️⃣ *Predio y Cabañas* (Turismo y recreación)',
-      '4️⃣ *Consultar Afiliación* (Verificar estado en padrón)',
-      '5️⃣ *Atención Gremial* (Contacto directo con sede)',
+      '1️⃣ *Salta*',
+      '2️⃣ *Jujuy*',
+      '3️⃣ *Tucumán*',
+      '4️⃣ *Santiago del Estero*',
+      '5️⃣ *Catamarca*',
+      '6️⃣ *Toda la Seccional (General)*',
       '',
       '━━━━━━━━━━━━━━━━━━━━━',
-      '✍️ _Respondé con el número de la opción deseada (ej: 1)_'
+      '✍️ _Respondé con el número de tu provincia (1 al 6)_'
     ].join('\n'),
     { capture: true },
-    async (ctx: any, { gotoFlow, fallBack }: any) => {
+    async (ctx: any, { gotoFlow, fallBack, state }: any) => {
       const input = ctx.body?.trim().toLowerCase();
 
-      switch (input) {
-        case '1':
-        case 'beneficios':
-        case 'convenios':
-          return gotoFlow(benefitsFlow);
+      let selectedProvince: string | null = null;
 
-        case '2':
-        case 'noticias':
-        case 'prensa':
-          return gotoFlow(newsFlow);
-
-        case '3':
-        case 'turismo':
-        case 'cabana':
-        case 'cabaña':
-        case 'cabañas':
-        case 'predio':
-          return gotoFlow(tourismFlow);
-
-        case '4':
-        case 'afiliado':
-        case 'padron':
-        case 'carnet':
-        case 'credencial':
-          return gotoFlow(affiliateFlow);
-
-        case '5':
-        case 'asesor':
-        case 'contacto':
-        case 'humano':
-          return gotoFlow(humanAgentFlow);
-
-        default:
-          return fallBack('⚠️ Opción no reconocida. Por favor, respondé con un número del *1 al 5* para continuar:');
+      if (input === '1' || input === 'salta') {
+        selectedProvince = 'Salta';
+      } else if (input === '2' || input === 'jujuy') {
+        selectedProvince = 'Jujuy';
+      } else if (input === '3' || input === 'tucuman' || input === 'tucumán') {
+        selectedProvince = 'Tucumán';
+      } else if (input === '4' || input.includes('santiago')) {
+        selectedProvince = 'Santiago del Estero';
+      } else if (input === '5' || input === 'catamarca') {
+        selectedProvince = 'Catamarca';
+      } else if (input === '6' || input === 'general' || input === 'todas' || input === 'toda') {
+        selectedProvince = 'General';
       }
+
+      if (!selectedProvince) {
+        return fallBack('⚠️ Opción no válida. Por favor, respondé con un número del *1 al 6* para seleccionar tu provincia:');
+      }
+
+      await state.update({ selectedProvince });
+      return gotoFlow(mainMenuFlow);
     }
   );

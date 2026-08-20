@@ -1,5 +1,26 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Filtro Previo de Provincias de la Seccional y Respuestas Contextualizadas por Zona
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se rediseñó el flujo de bienvenida e interacción del Bot de WhatsApp para solicitar en primer lugar la provincia desde la que se comunica el afiliado (Salta, Jujuy, Tucumán, Santiago del Estero, Catamarca o General). La selección se almacena en el estado del usuario (`state`) y contextualiza dinámicamente tanto el menú principal como las consultas de convenios/beneficios y las sedes gremiales de atención. Asimismo, se actualizó el motor del Simulador en Vivo del Panel de Administración para replicar con exactitud este comportamiento.
+
+### Cambios realizados:
+1. **Flujo de Bienvenida con Selección de Provincia (`bot/src/flows/welcomeFlow.ts`):**
+   - Pregunta inicial para seleccionar provincia (1: Salta, 2: Jujuy, 3: Tucumán, 4: Santiago del Estero, 5: Catamarca, 6: General).
+   - Guardado en `state.update({ selectedProvince })` y derivación a `mainMenuFlow`.
+2. **Menú Principal Contextualizado (`bot/src/flows/mainMenuFlow.ts`):**
+   - Muestra opciones contextualizadas a la provincia elegida e incorpora la opción 6 para cambiar de provincia en cualquier momento.
+3. **Filtro de Convenios por Provincia (`bot/src/flows/benefitsFlow.ts`):**
+   - Búsqueda y listado automático filtrando por la provincia seleccionada del afiliado.
+4. **Sedes y Delegaciones por Provincia (`bot/src/flows/humanAgentFlow.ts`):**
+   - Detalle de sedes y direcciones correspondientes a la provincia elegida (Salta, Jujuy, Tucumán, Santiago, Catamarca).
+5. **Simulador en Vivo (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Actualización del motor del simulador interactivo para evaluar la selección de provincia y filtrar convenios reales desde Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Segmentación Geográfica en Bot:** Solicitud inicial de provincia persistida en `state`, afectando a convenios, sedes y menús secundarios.
+
 ## [ÉXITO] - Corrección de Tipado de Severidad en Snackbar de WhatsAppBotManager
 **Fecha:** 2026-08-20
 **Modo:** Mejorar
