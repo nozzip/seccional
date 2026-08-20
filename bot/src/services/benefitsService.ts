@@ -60,6 +60,30 @@ export async function searchBenefits(query: string, province?: string): Promise<
 }
 
 /**
+ * Busca beneficios específicamente por rubro y provincia
+ */
+export async function searchBenefitsByRubro(rubro: string, province?: string): Promise<Benefit[]> {
+  try {
+    let q = supabase.from('benefits').select('*');
+
+    if (province && province.toLowerCase() !== 'todas' && province.toLowerCase() !== 'general') {
+      q = q.ilike('category', `%${province}%`);
+    }
+
+    if (rubro && rubro.trim() !== '' && rubro.toLowerCase() !== 'todos') {
+      q = q.or(`rubro.ilike.%${rubro}%,title.ilike.%${rubro}%,description.ilike.%${rubro}%`);
+    }
+
+    const { data, error } = await q.limit(6);
+    if (error) throw error;
+    return (data || []) as Benefit[];
+  } catch (err) {
+    console.error('Error searching benefits by rubro:', err);
+    return [];
+  }
+}
+
+/**
  * Formatea una lista de beneficios para WhatsApp
  */
 export function formatBenefitsForWhatsApp(benefits: Benefit[], queryContext?: string): string {

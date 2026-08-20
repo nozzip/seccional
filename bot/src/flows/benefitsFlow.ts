@@ -1,24 +1,41 @@
 import { addKeyword } from '@builderbot/bot';
-import { searchBenefits, formatBenefitsForWhatsApp } from '../services/benefitsService.js';
+import { searchBenefits, searchBenefitsByRubro, formatBenefitsForWhatsApp } from '../services/benefitsService.js';
+
+const RUBROS_MAP: Record<string, { label: string; query: string }> = {
+  '1': { label: 'Farmacias y Salud', query: 'farmacia' },
+  '2': { label: 'Gimnasios y Deportes', query: 'gimnasio' },
+  '3': { label: 'Gastronomía y Bares', query: 'gastronomia' },
+  '4': { label: 'Hotelería y Turismo', query: 'hotel' },
+  '5': { label: 'Comercios y Servicios', query: 'comercio' },
+  '6': { label: 'Ópticas y Cuidado Personal', query: 'optica' },
+  '7': { label: 'Todos los convenios', query: 'todos' },
+};
 
 export const benefitsFlow = addKeyword<any, any>(['1', 'beneficios', 'convenios', 'descuentos', 'comercios'])
   .addAction(async (ctx: any, { flowDynamic, state }: any) => {
-    const prov = state.get('selectedProvince') || 'Noroeste';
+    const prov = state.get('selectedProvince') || 'General';
     const text = [
-      `🏷️ *CONVENIOS Y BENEFICIOS - ${prov.toUpperCase()}*`,
+      `🏷️ *CONVENIOS Y COMERCIOS - ${prov.toUpperCase()}*`,
+      '━━━━━━━━━━━━━━━━━━━━━',
       '',
-      'Podés consultar los convenios de las siguientes maneras:',
+      'Elegí el rubro que deseas consultar:',
       '',
-      `👉 Escribí el *nombre o rubro* que buscás en ${prov} (ej: _farmacia, gimnasio, hotel, óptica, supermercado_).`,
-      `👉 O enviá *todos* para ver los principales convenios activos en ${prov}.`,
+      '1️⃣ 💊 *Farmacias y Salud*',
+      '2️⃣ 🏋️ *Gimnasios y Deportes*',
+      '3️⃣ 🍽️ *Gastronomía y Bares*',
+      '4️⃣ 🏨 *Hotelería y Turismo*',
+      '5️⃣ 🛍️ *Comercios y Servicios*',
+      '6️⃣ 👓 *Ópticas y Cuidado Personal*',
+      `7️⃣ 📋 *Ver TODOS los convenios en ${prov}*`,
       '',
+      '🔍 _O escribí directamente el nombre de un comercio o rubro._',
       '━━━━━━━━━━━━━━━━━━━━━',
       '💡 _Escribí *menu* o *0* para volver al menú principal._'
     ].join('\n');
     await flowDynamic(text);
   })
   .addAnswer(
-    '🔍 _Escribí tu búsqueda o "todos":_',
+    '✍️ _Respondé con el número del rubro (1 al 7) o nombre buscado:_',
     { capture: true },
     async (ctx: any, { flowDynamic, state }: any) => {
       const input = ctx.body?.trim();
@@ -28,14 +45,33 @@ export const benefitsFlow = addKeyword<any, any>(['1', 'beneficios', 'convenios'
       }
 
       const selectedProvince = state.get('selectedProvince') || 'General';
-      const isAll = input.toLowerCase() === 'todos' || input.toLowerCase() === 'todo' || input === '*';
-      const query = isAll ? '' : input;
+      const lower = input.toLowerCase();
 
-      await flowDynamic(`⏳ *Buscando convenios en ${selectedProvince}...*`);
+      let targetRubro = '';
+      let targetLabel = '';
+
+      if (RUBROS_MAP[lower]) {
+        targetRubro = RUBROS_MAP[lower].query;
+        targetLabel = RUBROS_MAP[lower].label;
+      } else {
+        targetRubro = input;
+        targetLabel = `"${input}"`;
+      }
+
+      await flowDynamic(`⏳ *Buscando ${targetLabel} en ${selectedProvince}...*`);
 
       try {
-        const results = await searchBenefits(query, selectedProvince);
-        const searchContext = isAll ? `Todos los convenios (${selectedProvince})` : `"${input}" en ${selectedProvince}`;
+        let results;
+        if (targetRubro === 'todos') {
+          results = await searchBenefits('', selectedProvince);
+        } else {
+          results = await searchBenefitsByRubro(targetRubro, selectedProvince);
+          if (!results || results.length === 0) {
+            results = await searchBenefits(targetRubro, selectedProvince);
+          }
+        }
+
+        const searchContext = `${targetLabel} en ${selectedProvince}`;
         const text = formatBenefitsForWhatsApp(results, searchContext);
         await flowDynamic(text);
       } catch (err) {

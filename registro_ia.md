@@ -1,5 +1,29 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Navegación Guiada por Provincia y Rubro, Beneficios Gremiales y Asesor Humano Directo
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se refinaron los flujos del Bot de WhatsApp y del simulador del panel administrativo de acuerdo a los requerimientos gremiales:
+1. **Convenios y Comercios:** Flujo guiado en 2 pasos: primero solicita la provincia del afiliado y luego el rubro deseado (Farmacias, Gimnasios, Gastronomía, Hotelería, Comercios, Ópticas o Todos) para filtrar y entregar resultados precisos.
+2. **Beneficios Gremiales:** Módulo especializado (`gremialBenefitsFlow.ts`) con información completa de Predio San Lorenzo, Cabañas Warmi, Hotel Azucena y Subsidios/Ayudas Sociales (Nacimiento, Matrimonio, Adopción, Bodas de Plata, Jubilación) con links directos a trámites y reservas.
+3. **Atención Gremial:** Canal exclusivo para comunicarse directamente con un asesor humano mediante enlace directo a WhatsApp y detalles de delegación según su provincia.
+4. **Simulador de Admin:** Motor del simulador en `WhatsAppBotManager.tsx` sincronizado con la máquina de estados de los flujos reales.
+
+### Cambios realizados:
+1. **Flujo de Convenios por Rubro (`bot/src/flows/benefitsFlow.ts` & `bot/src/services/benefitsService.ts`):**
+   - Menú de selección de rubros numerado del 1 al 7 y soporte para búsquedas libres por texto dentro de la provincia activa.
+2. **Flujo de Beneficios Gremiales (`bot/src/flows/gremialBenefitsFlow.ts`):**
+   - Creación del flujo de establecimientos y subsidios con datos detallados y enlaces.
+3. **Atención Directa con Asesor (`bot/src/flows/humanAgentFlow.ts`):**
+   - Redirección con enlace directo y mensaje prearmado a WhatsApp de guardia/asesor.
+4. **Menú Principal (`bot/src/flows/mainMenuFlow.ts` & `bot/src/flows/index.ts`):**
+   - Renombrado y ordenamiento de las 6 opciones del bot.
+5. **Simulador Web (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Implementación de máquina de estados (`province_select`, `main_menu`, `rubro_select`, `gremial_select`) conectada a Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Navegación Jerárquica en Bot:** Segmentación en 2 niveles (Provincia -> Rubro) para convenios comerciales, módulo gremial unificado (Establecimientos + Subsidios) y derivación directa a asesor.
+
 ## [ÉXITO] - Filtro Previo de Provincias de la Seccional y Respuestas Contextualizadas por Zona
 **Fecha:** 2026-08-20
 **Modo:** Desarrollar

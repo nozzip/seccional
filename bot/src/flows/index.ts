@@ -4,7 +4,7 @@ import { mainMenuFlow } from './mainMenuFlow.js';
 import { benefitsFlow } from './benefitsFlow.js';
 import { newsFlow } from './newsFlow.js';
 import { affiliateFlow } from './affiliateFlow.js';
-import { tourismFlow } from './tourismFlow.js';
+import { gremialBenefitsFlow } from './gremialBenefitsFlow.js';
 import { humanAgentFlow } from './humanAgentFlow.js';
 
 export const flows = createFlow([
@@ -13,6 +13,6 @@ export const flows = createFlow([
   benefitsFlow,
   newsFlow,
   affiliateFlow,
-  tourismFlow,
+  gremialBenefitsFlow,
   humanAgentFlow,
 ]);

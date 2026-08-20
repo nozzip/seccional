@@ -1,7 +1,7 @@
 import { addKeyword } from '@builderbot/bot';
 import { benefitsFlow } from './benefitsFlow.js';
 import { newsFlow } from './newsFlow.js';
-import { tourismFlow } from './tourismFlow.js';
+import { gremialBenefitsFlow } from './gremialBenefitsFlow.js';
 import { affiliateFlow } from './affiliateFlow.js';
 import { humanAgentFlow } from './humanAgentFlow.js';
 
@@ -13,11 +13,11 @@ export const mainMenuFlow = addKeyword<any, any>(['_event_main_menu_'])
       '',
       '¿En qué podemos ayudarte hoy? Elegí una opción respondiendo con el número correspondiente:',
       '',
-      `1️⃣ *Convenios y Beneficios* (Descuentos en ${prov})`,
+      `1️⃣ *Convenios y Comercios* (Descuentos en ${prov})`,
       '2️⃣ *Prensa y Noticias* (Últimas novedades gremiales)',
-      '3️⃣ *Predio y Cabañas* (Turismo y recreación)',
-      '4️⃣ *Consultar Afiliación* (Verificar estado en padrón)',
-      `5️⃣ *Atención Gremial y Sedes* (Contactos en ${prov})`,
+      '3️⃣ *Beneficios Gremiales* (Establecimientos y servicios gremiales)',
+      '4️⃣ *Consultar Afiliación* (Verificar estado en padrón / carnet)',
+      '5️⃣ *Atención Gremial* (Hablar directamente con un asesor)',
       '6️⃣ 🔄 *Cambiar de Provincia*',
       '',
       '━━━━━━━━━━━━━━━━━━━━━',
@@ -36,6 +36,7 @@ export const mainMenuFlow = addKeyword<any, any>(['_event_main_menu_'])
         case 'beneficios':
         case 'convenios':
         case 'descuentos':
+        case 'comercios':
           return gotoFlow(benefitsFlow);
 
         case '2':
@@ -44,12 +45,19 @@ export const mainMenuFlow = addKeyword<any, any>(['_event_main_menu_'])
           return gotoFlow(newsFlow);
 
         case '3':
+        case 'gremiales':
+        case 'servicios':
+        case 'establecimientos':
         case 'turismo':
         case 'cabana':
         case 'cabaña':
         case 'cabañas':
         case 'predio':
-          return gotoFlow(tourismFlow);
+        case 'san lorenzo':
+        case 'warmi':
+        case 'azucena':
+        case 'subsidios':
+          return gotoFlow(gremialBenefitsFlow);
 
         case '4':
         case 'afiliado':
@@ -62,8 +70,9 @@ export const mainMenuFlow = addKeyword<any, any>(['_event_main_menu_'])
         case 'asesor':
         case 'contacto':
         case 'humano':
+        case 'atencion':
+        case 'atención':
         case 'sede':
-        case 'sedes':
           return gotoFlow(humanAgentFlow);
 
         case '6':

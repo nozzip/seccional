@@ -7,18 +7,27 @@ const DELEGATIONS: Record<string, string> = {
   Tucumán: '📍 *Delegación Tucumán:* San Miguel de Tucumán',
   'Santiago del Estero': '📍 *Delegación Santiago del Estero:* Santiago del Estero',
   Catamarca: '📍 *Delegación Catamarca:* San Fernando del Valle de Catamarca',
-  General: '📍 *Sede Central Noroeste:* Jurisdicción Salta, Jujuy, Tucumán, Santiago del Estero y Catamarca',
+  General: '📍 *Sede Central Noroeste:* Salta, Jujuy, Tucumán, Santiago del Estero y Catamarca',
 };
 
-export const humanAgentFlow = addKeyword<any, any>(['5', 'asesor', 'contacto', 'humano', 'representante', 'secretaria', 'sede', 'sedes'])
-  .addAnswer('⏳ *Consultando datos de atención gremial...*', null, async (_ctx: any, { flowDynamic, state }: any) => {
+export const humanAgentFlow = addKeyword<any, any>([
+  '5',
+  'asesor',
+  'contacto',
+  'humano',
+  'representante',
+  'secretaria',
+  'atencion',
+  'atención',
+  'guardia',
+])
+  .addAnswer('⏳ *Conectando con atención gremial...*', null, async (_ctx: any, { flowDynamic, state }: any) => {
     try {
       const selectedProvince = state.get('selectedProvince') || 'General';
       const delegationInfo = DELEGATIONS[selectedProvince] || DELEGATIONS['General'];
 
       let phone = HUMAN_AGENT_PHONE;
       let hours = 'Lunes a Viernes de 08:00 a 16:00 hs.';
-      let address = delegationInfo;
 
       const { data } = await supabase
         .from('system_configs')
@@ -32,18 +41,17 @@ export const humanAgentFlow = addKeyword<any, any>(['5', 'asesor', 'contacto', '
       }
 
       const text = [
-        '👥 *ATENCIÓN GREMIAL Y CONTACTO*',
+        '👨‍💼 *COMUNICACIÓN DIRECTA CON ASESOR GREMIAL*',
         `_AEFIP Seccional Noroeste - ${selectedProvince}_`,
         '━━━━━━━━━━━━━━━━━━━━━',
         '',
-        address,
-        `⏰ *Horarios de Atención:* ${hours}`,
+        'Podés comunicarte directamente con nuestro equipo de atención y guardia para consultas gremiales, legales o administrativas:',
         '',
-        '📞 *Canal Directo de Guardia / Asesor:*',
-        `WhatsApp Directo: https://wa.me/${phone}`,
+        '📲 *Hacé clic para chatear con un Asesor:*',
+        `👉 https://wa.me/${phone}?text=${encodeURIComponent('Hola, me comunico desde el Bot oficial de AEFIP Noroeste para realizar una consulta gremial.')}`,
         '',
-        '🌐 *Portal Web Oficial:*',
-        `👉 ${WEB_URL}`,
+        delegationInfo,
+        `⏰ *Horario de Atención:* ${hours}`,
         '',
         '━━━━━━━━━━━━━━━━━━━━━',
         '💡 _Escribí *menu* o *0* para volver al menú principal._'
@@ -51,6 +59,6 @@ export const humanAgentFlow = addKeyword<any, any>(['5', 'asesor', 'contacto', '
 
       await flowDynamic(text);
     } catch (e) {
-      await flowDynamic(`📞 *Canal Directo de Guardia:* https://wa.me/${HUMAN_AGENT_PHONE}\n🌐 *Web:* ${WEB_URL}`);
+      await flowDynamic(`📞 *Chatear con un Asesor:* https://wa.me/${HUMAN_AGENT_PHONE}`);
     }
   });

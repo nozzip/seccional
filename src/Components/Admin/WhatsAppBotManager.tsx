@@ -90,6 +90,7 @@ export default function WhatsAppBotManager() {
 
   // Simulator state
   const [simProvince, setSimProvince] = useState<string>("Salta");
+  const [simState, setSimState] = useState<"province_select" | "main_menu" | "rubro_select" | "gremial_select">("province_select");
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "1",
@@ -233,37 +234,54 @@ export default function WhatsAppBotManager() {
       const lower = userText.toLowerCase();
 
       try {
-        if (
-          ["hola", "buenas", "buen dia", "inicio", "volver", "0", "empezar", "ayuda", "cambiar", "provincias"].some((k) =>
-            lower === k
-          )
-        ) {
-          replyText = `👋 *${config.welcome_title}*\n\n📍 Por favor seleccioná tu provincia:\n\n1️⃣ *Salta*\n2️⃣ *Jujuy*\n3️⃣ *Tucumán*\n4️⃣ *Santiago del Estero*\n5️⃣ *Catamarca*\n6️⃣ *Toda la Seccional (General)*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
-        } else if (lower === "1" && messages.length <= 2) {
-          setSimProvince("Salta");
-          replyText = `📍 *Provincia seleccionada: Salta*\n\n¿En qué podemos ayudarte hoy?\n\n1️⃣ *Convenios y Beneficios* (Descuentos en Salta)\n2️⃣ *Prensa y Noticias* (Novedades gremiales)\n3️⃣ *Predio y Cabañas* (Turismo y recreación)\n4️⃣ *Consultar Afiliación* (Verificar padrón)\n5️⃣ *Atención Gremial y Sedes* (Contactos en Salta)\n6️⃣ 🔄 *Cambiar de Provincia*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
-        } else if (lower === "2" && messages.length <= 2) {
-          setSimProvince("Jujuy");
-          replyText = `📍 *Provincia seleccionada: Jujuy*\n\n¿En qué podemos ayudarte hoy?\n\n1️⃣ *Convenios y Beneficios* (Descuentos en Jujuy)\n2️⃣ *Prensa y Noticias* (Novedades gremiales)\n3️⃣ *Predio y Cabañas* (Turismo y recreación)\n4️⃣ *Consultar Afiliación* (Verificar padrón)\n5️⃣ *Atención Gremial y Sedes* (Contactos en Jujuy)\n6️⃣ 🔄 *Cambiar de Provincia*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
-        } else if (lower === "3" && messages.length <= 2) {
-          setSimProvince("Tucumán");
-          replyText = `📍 *Provincia seleccionada: Tucumán*\n\n¿En qué podemos ayudarte hoy?\n\n1️⃣ *Convenios y Beneficios* (Descuentos en Tucumán)\n2️⃣ *Prensa y Noticias* (Novedades gremiales)\n3️⃣ *Predio y Cabañas* (Turismo y recreación)\n4️⃣ *Consultar Afiliación* (Verificar padrón)\n5️⃣ *Atención Gremial y Sedes* (Contactos en Tucumán)\n6️⃣ 🔄 *Cambiar de Provincia*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
-        } else if (lower === "4" && messages.length <= 2) {
-          setSimProvince("Santiago del Estero");
-          replyText = `📍 *Provincia seleccionada: Santiago del Estero*\n\n¿En qué podemos ayudarte hoy?\n\n1️⃣ *Convenios y Beneficios* (Descuentos en Santiago del Estero)\n2️⃣ *Prensa y Noticias* (Novedades gremiales)\n3️⃣ *Predio y Cabañas* (Turismo y recreación)\n4️⃣ *Consultar Afiliación* (Verificar padrón)\n5️⃣ *Atención Gremial y Sedes* (Contactos en Santiago)\n6️⃣ 🔄 *Cambiar de Provincia*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
-        } else if (lower === "5" && messages.length <= 2) {
-          setSimProvince("Catamarca");
-          replyText = `📍 *Provincia seleccionada: Catamarca*\n\n¿En qué podemos ayudarte hoy?\n\n1️⃣ *Convenios y Beneficios* (Descuentos en Catamarca)\n2️⃣ *Prensa y Noticias* (Novedades gremiales)\n3️⃣ *Predio y Cabañas* (Turismo y recreación)\n4️⃣ *Consultar Afiliación* (Verificar padrón)\n5️⃣ *Atención Gremial y Sedes* (Contactos en Catamarca)\n6️⃣ 🔄 *Cambiar de Provincia*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
-        } else if (lower === "6") {
-          replyText = `👋 *Selección de Provincia*\n\n1️⃣ *Salta*\n2️⃣ *Jujuy*\n3️⃣ *Tucumán*\n4️⃣ *Santiago del Estero*\n5️⃣ *Catamarca*\n6️⃣ *Toda la Seccional (General)*\n\n✍️ _Respondé con el número (1 al 6)_`;
-        } else if (lower === "1" || lower.includes("beneficio") || lower.includes("convenio") || lower.includes("descuento")) {
+        // Global resets
+        if (["0", "menu", "inicio", "volver", "cancelar"].includes(lower)) {
+          setSimState("main_menu");
+          replyText = `📍 *Provincia seleccionada: ${simProvince}*\n\n¿En qué podemos ayudarte hoy? Elegí una opción:\n\n1️⃣ *Convenios y Comercios* (Descuentos en ${simProvince})\n2️⃣ *Prensa y Noticias* (Últimas novedades gremiales)\n3️⃣ *Beneficios Gremiales* (Establecimientos y servicios gremiales)\n4️⃣ *Consultar Afiliación* (Verificar padrón / carnet)\n5️⃣ *Atención Gremial* (Hablar directamente con un asesor)\n6️⃣ 🔄 *Cambiar de Provincia*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
+        } else if (["cambiar", "provincia", "provincias"].includes(lower)) {
+          setSimState("province_select");
+          replyText = `👋 *Selección de Provincia*\n\n📍 Para brindarte información y convenios específicos de tu área, por favor *seleccioná tu provincia*:\n\n1️⃣ *Salta*\n2️⃣ *Jujuy*\n3️⃣ *Tucumán*\n4️⃣ *Santiago del Estero*\n5️⃣ *Catamarca*\n6️⃣ *Toda la Seccional (General)*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
+        } else if (simState === "province_select") {
+          let selected = "";
+          if (lower === "1" || lower === "salta") selected = "Salta";
+          else if (lower === "2" || lower === "jujuy") selected = "Jujuy";
+          else if (lower === "3" || lower.includes("tucuman") || lower.includes("tucumán")) selected = "Tucumán";
+          else if (lower === "4" || lower.includes("santiago")) selected = "Santiago del Estero";
+          else if (lower === "5" || lower === "catamarca") selected = "Catamarca";
+          else if (lower === "6" || lower === "general" || lower === "todas" || lower === "toda") selected = "General";
+
+          if (selected) {
+            setSimProvince(selected);
+            setSimState("main_menu");
+            replyText = `📍 *Provincia seleccionada: ${selected}*\n\n¿En qué podemos ayudarte hoy? Elegí una opción:\n\n1️⃣ *Convenios y Comercios* (Descuentos en ${selected})\n2️⃣ *Prensa y Noticias* (Últimas novedades gremiales)\n3️⃣ *Beneficios Gremiales* (Establecimientos y servicios gremiales)\n4️⃣ *Consultar Afiliación* (Verificar padrón / carnet)\n5️⃣ *Atención Gremial* (Hablar directamente con un asesor)\n6️⃣ 🔄 *Cambiar de Provincia*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
+          } else {
+            replyText = `⚠️ Opción no válida. Por favor, respondé con un número del *1 al 6* para seleccionar tu provincia:\n\n1️⃣ Salta\n2️⃣ Jujuy\n3️⃣ Tucumán\n4️⃣ Santiago del Estero\n5️⃣ Catamarca\n6️⃣ Toda la Seccional (General)`;
+          }
+        } else if (simState === "rubro_select") {
+          const rubrosMap: Record<string, { label: string; query: string }> = {
+            "1": { label: "Farmacias y Salud", query: "farmacia" },
+            "2": { label: "Gimnasios y Deportes", query: "gimnasio" },
+            "3": { label: "Gastronomía y Bares", query: "gastronomia" },
+            "4": { label: "Hotelería y Turismo", query: "hotel" },
+            "5": { label: "Comercios y Servicios", query: "comercio" },
+            "6": { label: "Ópticas y Cuidado Personal", query: "optica" },
+            "7": { label: "Todos los convenios", query: "todos" },
+          };
+
+          const selectedRubro = rubrosMap[lower]?.query || lower;
+          const label = rubrosMap[lower]?.label || `"${userText}"`;
+
           let q = supabase.from("benefits").select("*");
           if (simProvince && simProvince !== "General") {
             q = q.ilike("category", `%${simProvince}%`);
           }
-          const { data } = await q.limit(5);
+          if (selectedRubro !== "todos") {
+            q = q.or(`rubro.ilike.%${selectedRubro}%,title.ilike.%${selectedRubro}%,description.ilike.%${selectedRubro}%`);
+          }
+
+          const { data } = await q.limit(6);
           if (data && data.length > 0) {
-            replyText = `🏷️ *CONVENIOS Y BENEFICIOS - ${simProvince.toUpperCase()}*:\n━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            replyText = `🏷️ *CONVENIOS Y BENEFICIOS (${label} - ${simProvince.toUpperCase()})*:\n━━━━━━━━━━━━━━━━━━━━━\n\n`;
             data.forEach((b: any, i: number) => {
               replyText += `*${i + 1}. ${b.title || b.name}*\n`;
               if (b.discount) replyText += `   💥 *${b.discount}*\n`;
@@ -271,97 +289,92 @@ export default function WhatsAppBotManager() {
               if (b.address) replyText += `   🏠 ${b.address}\n`;
               replyText += `\n`;
             });
-            replyText += `━━━━━━━━━━━━━━━━━━━━━\n📲 _${config.custom_footer}_\n🌐 Ver todos: https://aefipnoroeste.org.ar/#/convenios`;
+            replyText += `━━━━━━━━━━━━━━━━━━━━━\n📲 _${config.custom_footer}_\n🌐 Ver todos: https://aefipnoroeste.org.ar/#/convenios\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
           } else {
-            replyText = `🔍 *No se encontraron convenios específicos* registrados para ${simProvince}.\n🌐 Consultá el catálogo completo en: https://aefipnoroeste.org.ar/#/convenios`;
+            replyText = `🔍 *No se encontraron convenios* para ${label} en ${simProvince}.\n🌐 Consultá el catálogo completo en: https://aefipnoroeste.org.ar/#/convenios\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
           }
-        } else if (lower === "2" || lower.includes("noticia") || lower.includes("prensa")) {
-          const { data } = await supabase.from("news").select("title, summary, id").order("created_at", { ascending: false }).limit(3);
-          if (data && data.length > 0) {
-            replyText = `📰 *ÚLTIMAS NOVEDADES Y COMUNICADOS*\n_AEFIP Seccional Noroeste_\n━━━━━━━━━━━━━━━━━━━━━\n\n`;
-            data.forEach((n: any, i: number) => {
-              replyText += `*${i + 1}. ${n.title}*\n`;
-              if (n.summary) replyText += `   📄 ${n.summary.slice(0, 90)}...\n`;
-              replyText += `   🔗 https://aefipnoroeste.org.ar/#/prensa/${n.id}\n\n`;
-            });
-            replyText += `━━━━━━━━━━━━━━━━━━━━━\n🌐 Ver todas: https://aefipnoroeste.org.ar/#/prensa`;
+        } else if (simState === "gremial_select") {
+          if (lower === "1" || lower.includes("san lorenzo")) {
+            replyText = `🏡 *PREDIO RECREATIVO SAN LORENZO (SALTA)*\n_AEFIP Seccional Noroeste_\n━━━━━━━━━━━━━━━━━━━━━\n\n📍 *Ubicación:* Quebrada de San Lorenzo, Salta.\n\n🌿 *Instalaciones y Servicios:*\n• Quinchos y asadores familiares totalmente equipados.\n• Pileta de natación olímpica y recreativa.\n• Canchas de fútbol, básquet, tenis y pádel.\n• Salón de usos múltiples.\n\n📲 *Reservas online:* https://aefipnoroeste.org.ar/#/turismo\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "2" || lower.includes("warmi")) {
+            replyText = `🛖 *CABAÑAS WARMI (EL MOLLAR - TUCUMÁN)*\n_Refugio de montaña junto al lago La Angostura_\n━━━━━━━━━━━━━━━━━━━━━\n\n📍 *Ubicación:* El Mollar, Tafí del Valle, Tucumán.\n\n✨ *Comodidades:*\n• Cabañas alpinas equipadas para 4, 6 y 8 personas.\n• Cocina completa, vajilla, microondas y heladera.\n• Calefacción, DirectTV y asador individual.\n\n📅 *Reservas:* https://aefipnoroeste.org.ar/#/turismo\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "3" || lower.includes("azucena")) {
+            replyText = `🏨 *HOTEL AZUCENA (TAFÍ DEL VALLE - TUCUMÁN)*\n_Hospedaje y descanso en los Valles Calchaquíes_\n━━━━━━━━━━━━━━━━━━━━━\n\n📍 *Ubicación:* Tafí del Valle, Tucumán.\n\n✨ *Servicios:*\n• Habitaciones con baño privado y calefacción.\n• Desayuno regional incluido.\n• Estacionamiento propio y Wi-Fi.\n\n📲 *Información y Reservas:* https://aefipnoroeste.org.ar/#/turismo\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "4" || lower.includes("subsidio") || lower.includes("ayuda")) {
+            replyText = `💰 *SUBSIDIOS Y AYUDAS SOCIALES GREMIALES*\n_Beneficios exclusivos AEFIP_\n━━━━━━━━━━━━━━━━━━━━━\n\n💍 *Matrimonio / Luna de Miel:* 7 días de estadía de regalo para la pareja en Bariloche, Mar del Plata, CABA o Necochea.\n🥈 *Bodas de Plata (25 años):* 7 días de estadía de regalo.\n👶 *Kit Nacimiento:* Ajuar completo para el recién nacido.\n🤝 *Adopción:* Ayuda económica o kit de nacimiento.\n🎖️ *Jubilación:* 7 días de estadía de regalo para dos personas.\n\n📩 *Contacto:* sociales@aefip.org.ar\n🌐 *Detalles:* https://aefipnoroeste.org.ar/#/gremio\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "5" || lower.includes("web")) {
+            replyText = `🌐 *PORTAL DE SERVICIOS GREMIALES:*\n👉 https://aefipnoroeste.org.ar/#/turismo\n👉 https://aefipnoroeste.org.ar/#/gremio\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
           } else {
-            replyText = `📰 No hay comunicados recientes cargados en el sistema en este momento.`;
+            replyText = `⚠️ Opción no reconocida. Por favor, respondé con un número del *1 al 5* (o *0* para volver al menú).`;
           }
-        } else if (lower === "3" || lower.includes("turismo") || lower.includes("cabaña") || lower.includes("predio")) {
-          const { data } = await supabase.from("system_configs").select("value").eq("key", "cabin_prices").single();
-          replyText = `🏕️ *PREDIO RECREATIVO Y CABAÑAS*\n_AEFIP Seccional Noroeste_\n━━━━━━━━━━━━━━━━━━━━━\n\n📍 *Instalaciones:* Cabañas equipadas, pileta, canchas y asadores.\n\n💰 *Tarifas de Referencia:*\n`;
-          if (data?.value && typeof data.value === "object") {
-            for (const [k, v] of Object.entries(data.value)) {
-              replyText += `• *${k.toUpperCase()}:* $${v}\n`;
-            }
-          } else {
-            replyText += `• Descuentos para afiliados y familiares directos.\n`;
-          }
-          replyText += `\n📅 *Para solicitar tu reserva online:*\n👉 https://aefipnoroeste.org.ar/#/turismo`;
-        } else if (lower === "4" || lower.includes("afiliado") || lower.includes("padron") || lower.includes("carnet")) {
-          replyText = `🔍 *CONSULTA DE ESTADO DE AFILIACIÓN*\n\nPor favor, ingresá tu número de DNI o Legajo (ej: *34185803*):`;
-        } else if (/^\d{6,9}$/.test(lower)) {
-          // User entered a DNI
-          const { data } = await supabase
-            .from("affiliates")
-            .select("nombre, apellido, legajo, branch, validation_token")
-            .or(`dni.eq.${lower},legajo.ilike.%${lower}%`)
-            .limit(1);
-
-          if (data && data.length > 0) {
-            const aff = data[0];
-            replyText = `✅ *ESTADO DE AFILIACIÓN CONFIRMADO*\n\n👤 *Afiliado/a:* ${aff.apellido?.toUpperCase()}, ${aff.nombre}\n🔖 *Legajo:* ${aff.legajo || "Registrado"}\n🏢 *Seccional:* ${aff.branch?.toUpperCase() || "NOROESTE"}\n🟢 *Condición:* Activo/a\n\n💳 *Carnet Digital:* https://aefipnoroeste.org.ar/#/validar/${aff.validation_token || ""}`;
-          } else {
-            replyText = `❌ *AFILIADO NO ENCONTRADO*\n\nNo se encontró ningún afiliado activo con el identificador *"${lower}"* en el padrón de Seccional Noroeste.\n\n_Para tramitar la afiliación:_ https://aefipnoroeste.org.ar/#/afiliate`;
-          }
-        } else if (lower === "5" || lower.includes("asesor") || lower.includes("contacto") || lower.includes("humano") || lower.includes("sede")) {
-          const delegaciones: Record<string, string> = {
-            Salta: "España 832 / Av. Belgrano, Salta Capital",
-            Jujuy: "San Salvador de Jujuy",
-            Tucumán: "San Miguel de Tucumán",
-            "Santiago del Estero": "Santiago del Estero",
-            Catamarca: "San Fernando del Valle de Catamarca",
-            General: config.headquarters_address || "Salta / Jujuy",
-          };
-          const loc = delegaciones[simProvince] || delegaciones["General"];
-          replyText = `👥 *ATENCIÓN GREMIAL Y SEDES - ${simProvince.toUpperCase()}*\n_AEFIP Seccional Noroeste_\n━━━━━━━━━━━━━━━━━━━━━\n\n📍 *Dirección:* ${loc}\n⏰ *Horarios:* ${config.office_hours}\n\n📞 *WhatsApp Directo:* https://wa.me/${config.human_agent_phone}\n🌐 *Web:* https://aefipnoroeste.org.ar`;
         } else {
-          // Search fallback in benefits
-          const { data } = await supabase
-            .from("benefits")
-            .select("*")
-            .or(`title.ilike.%${lower}%,rubro.ilike.%${lower}%,description.ilike.%${lower}%`)
-            .limit(3);
+          // main_menu processing
+          if (lower === "1" || lower.includes("beneficio") || lower.includes("convenio") || lower.includes("descuento") || lower.includes("comercio")) {
+            setSimState("rubro_select");
+            replyText = `🏷️ *CONVENIOS Y COMERCIOS - ${simProvince.toUpperCase()}*\n━━━━━━━━━━━━━━━━━━━━━\n\nElegí el rubro que deseas consultar:\n\n1️⃣ 💊 *Farmacias y Salud*\n2️⃣ 🏋️ *Gimnasios y Deportes*\n3️⃣ 🍽️ *Gastronomía y Bares*\n4️⃣ 🏨 *Hotelería y Turismo*\n5️⃣ 🛍️ *Comercios y Servicios*\n6️⃣ 👓 *Ópticas y Cuidado Personal*\n7️⃣ 📋 *Ver TODOS los convenios en ${simProvince}*\n\n🔍 _O escribí directamente el nombre de un comercio o rubro._\n━━━━━━━━━━━━━━━━━━━━━\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "2" || lower.includes("noticia") || lower.includes("prensa")) {
+            const { data } = await supabase.from("news").select("title, summary, id").order("created_at", { ascending: false }).limit(3);
+            if (data && data.length > 0) {
+              replyText = `📰 *ÚLTIMAS NOVEDADES Y COMUNICADOS*\n_AEFIP Seccional Noroeste_\n━━━━━━━━━━━━━━━━━━━━━\n\n`;
+              data.forEach((n: any, i: number) => {
+                replyText += `*${i + 1}. ${n.title}*\n`;
+                if (n.summary) replyText += `   📄 ${n.summary.slice(0, 90)}...\n`;
+                replyText += `   🔗 https://aefipnoroeste.org.ar/#/prensa/${n.id}\n\n`;
+              });
+              replyText += `━━━━━━━━━━━━━━━━━━━━━\n🌐 Ver todas: https://aefipnoroeste.org.ar/#/prensa\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+            } else {
+              replyText = `📰 No hay comunicados recientes cargados en el sistema en este momento.\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+            }
+          } else if (lower === "3" || lower.includes("gremial") || lower.includes("servicio") || lower.includes("establecimiento") || lower.includes("turismo") || lower.includes("cabaña") || lower.includes("predio")) {
+            setSimState("gremial_select");
+            replyText = `🏛️ *BENEFICIOS GREMIALES - AEFIP NOROESTE*\n_Establecimientos y Servicios Gremiales_\n━━━━━━━━━━━━━━━━━━━━━\n\nElegí una opción para ver información detallada:\n\n1️⃣ 🏡 *Predio San Lorenzo (Salta)* (Instalaciones, pileta, canchas y asadores)\n2️⃣ 🛖 *Cabañas Warmi (El Mollar, Tucumán)* (Alojamiento de montaña)\n3️⃣ 🏨 *Hotel Azucena (Tafí del Valle, Tucumán)* (Hospedaje y confort)\n4️⃣ 💰 *Subsidios y Ayudas Sociales* (Nacimiento, Matrimonio, Adopción, Jubilación)\n5️⃣ 🌐 *Ver todos los servicios en la Web*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número de tu opción (1 al 5) o *0* para volver al menú_`;
+          } else if (lower === "4" || lower.includes("afiliado") || lower.includes("padron") || lower.includes("carnet")) {
+            replyText = `🔍 *CONSULTA DE ESTADO DE AFILIACIÓN*\n\nPor favor, ingresá tu número de DNI o Legajo (ej: *34185803*):`;
+          } else if (/^\d{6,9}$/.test(lower)) {
+            const { data } = await supabase
+              .from("affiliates")
+              .select("nombre, apellido, legajo, branch, validation_token")
+              .or(`dni.eq.${lower},legajo.ilike.%${lower}%`)
+              .limit(1);
 
-          if (data && data.length > 0) {
-            replyText = `🏷️ *CONVENIOS ENCONTRADOS PARA "${userText}"*:\n━━━━━━━━━━━━━━━━━━━━━\n\n`;
-            data.forEach((b: any, i: number) => {
-              replyText += `*${i + 1}. ${b.title || b.name}*\n`;
-              if (b.discount) replyText += `   💥 *${b.discount}*\n`;
-              if (b.address) replyText += `   🏠 ${b.address}\n`;
-              replyText += `\n`;
-            });
-            replyText += `🌐 Ver todos: https://aefipnoroeste.org.ar/#/convenios`;
+            if (data && data.length > 0) {
+              const aff = data[0];
+              replyText = `✅ *ESTADO DE AFILIACIÓN CONFIRMADO*\n\n👤 *Afiliado/a:* ${aff.apellido?.toUpperCase()}, ${aff.nombre}\n🔖 *Legajo:* ${aff.legajo || "Registrado"}\n🏢 *Seccional:* ${aff.branch?.toUpperCase() || "NOROESTE"}\n🟢 *Condición:* Activo/a\n\n💳 *Carnet Digital:* https://aefipnoroeste.org.ar/#/validar/${aff.validation_token || ""}\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+            } else {
+              replyText = `❌ *AFILIADO NO ENCONTRADO*\n\nNo se encontró ningún afiliado activo con el identificador *"${lower}"* en el padrón de Seccional Noroeste.\n\n_Para tramitar la afiliación:_ https://aefipnoroeste.org.ar/#/afiliate\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+            }
+          } else if (lower === "5" || lower.includes("asesor") || lower.includes("contacto") || lower.includes("humano") || lower.includes("atencion")) {
+            const delegaciones: Record<string, string> = {
+              Salta: "España 832 / Av. Belgrano, Salta Capital",
+              Jujuy: "San Salvador de Jujuy",
+              Tucumán: "San Miguel de Tucumán",
+              "Santiago del Estero": "Santiago del Estero",
+              Catamarca: "San Fernando del Valle de Catamarca",
+              General: "Salta, Jujuy, Tucumán, Santiago del Estero y Catamarca",
+            };
+            const loc = delegaciones[simProvince] || delegaciones["General"];
+            replyText = `👨‍💼 *COMUNICACIÓN DIRECTA CON ASESOR GREMIAL*\n_AEFIP Seccional Noroeste - ${simProvince}_\n━━━━━━━━━━━━━━━━━━━━━\n\nPodés comunicarte directamente con nuestro equipo de atención y guardia:\n\n📲 *WhatsApp Directo:* https://wa.me/${config.human_agent_phone}?text=${encodeURIComponent("Hola, me comunico desde el Bot para realizar una consulta gremial.")}\n\n📍 *Sede / Delegación:* ${loc}\n⏰ *Horario de Atención:* ${config.office_hours}\n\n━━━━━━━━━━━━━━━━━━━━━\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "6") {
+            setSimState("province_select");
+            replyText = `👋 *Selección de Provincia*\n\n📍 Seleccioná tu provincia para adaptar la información:\n\n1️⃣ *Salta*\n2️⃣ *Jujuy*\n3️⃣ *Tucumán*\n4️⃣ *Santiago del Estero*\n5️⃣ *Catamarca*\n6️⃣ *Toda la Seccional (General)*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
           } else {
-            replyText = `⚠️ No comprendí tu mensaje. Escribí *menu* o *0* para ver las opciones disponibles.`;
+            replyText = `⚠️ Opción no reconocida. Por favor, respondé con un número del *1 al 6* para continuar:\n\n1️⃣ Convenios y Comercios\n2️⃣ Prensa y Noticias\n3️⃣ Beneficios Gremiales\n4️⃣ Consultar Afiliación\n5️⃣ Hablar con un Asesor\n6️⃣ Cambiar de Provincia`;
           }
         }
       } catch (err: any) {
-        replyText = `❌ Error en el procesamiento. Escribe *menu* para reiniciar.`;
+        replyText = `⚠️ Error al procesar tu solicitud: ${err.message}. Intentá nuevamente o escribí *0*.`;
       }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          sender: "bot",
-          text: replyText,
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
+      const botMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: "bot",
+        text: replyText,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      setMessages((prev) => [...prev, botMsg]);
       setIsSimulating(false);
-    }, 450);
+    }, 500);
   };
 
   const copyToClipboard = (text: string) => {
