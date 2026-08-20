@@ -1,5 +1,18 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Incorporación de Detección de Estado del Bot y Visualizador Embebido de QR
+**Fecha:** 2026-08-20
+**Modo:** Mejorar
+**Descripción:** Se mejoró la pestaña de vinculación de `WhatsAppBotManager.tsx` agregando sondeo en caliente (`checkServerStatus`) contra el servidor local del bot (`http://localhost:3008`), visualización embebida del código QR con botón de recarga, alertas informativas de diagnóstico cuando el proceso Node.js no está iniciado, y scripts de acceso rápido (`npm run bot`) en el `package.json` raíz.
+
+### Cambios realizados:
+1. **Comprobación de Estado y QR Embebido (`WhatsAppBotManager.tsx`):**
+   - Detección automática de estado `online` / `offline` del bot en el puerto configurado.
+   - Renderizado del código QR directamente dentro del panel con auto-recarga y manejo de errores.
+   - Alerta visual con comandos de inicio guiados (`npm run bot`) cuando el bot no está activo.
+2. **Atajos de Ejecución (`package.json` raíz):**
+   - Agregados `"bot"`, `"bot:build"` y `"bot:start"` para iniciar el microservicio sin cambiar manualmente de directorio.
+
 ## [ÉXITO] - Integración del Panel de Control del Bot de WhatsApp en el Dashboard de Administración
 **Fecha:** 2026-08-20
 **Modo:** Desarrollar

@@ -93,9 +93,27 @@ export default function WhatsAppBotManager() {
   const [isSimulating, setIsSimulating] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
+  // Server Status & Live QR
+  const [serverStatus, setServerStatus] = useState<"checking" | "online" | "offline">("checking");
+  const [qrRefreshKey, setQrRefreshKey] = useState<number>(Date.now());
+
+  const checkServerStatus = async () => {
+    setServerStatus("checking");
+    try {
+      const port = config.local_port || 3008;
+      // Probe localhost server
+      await fetch(`http://localhost:${port}`, { mode: "no-cors" });
+      setServerStatus("online");
+      setQrRefreshKey(Date.now());
+    } catch (e) {
+      setServerStatus("offline");
+    }
+  };
+
   // Load config from Supabase system_configs
   useEffect(() => {
     fetchBotConfig();
+    checkServerStatus();
   }, []);
 
   useEffect(() => {
@@ -756,12 +774,146 @@ export default function WhatsAppBotManager() {
           <Box sx={{ p: 3 }}>
             <Grid container spacing={3}>
               <Grid size={{ xs: 12, md: 7 }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
-                  📱 Vinculación por Código QR (Multi-Dispositivo)
-                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, flexWrap: "wrap", gap: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                    📱 Vinculación por Código QR (Multi-Dispositivo)
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<RefreshIcon />}
+                    onClick={checkServerStatus}
+                    sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}
+                  >
+                    Comprobar Estado
+                  </Button>
+                </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   El bot funciona como un dispositivo vinculado oficial de WhatsApp (igual que cuando abres WhatsApp Web en tu PC). El teléfono principal puede seguir usándose libremente.
                 </Typography>
+
+                {/* Server Status Banner */}
+                {serverStatus === "online" ? (
+                  <Alert
+                    severity="success"
+                    icon={<CheckCircleIcon />}
+                    sx={{ mb: 3, borderRadius: 3, "& .MuiAlert-message": { width: "100%" } }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                          🟢 Servidor Local del Bot Conectado
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Escuchando en http://localhost:{config.local_port || 3008}. El código QR se actualiza en vivo abajo.
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        startIcon={<OpenInNewIcon />}
+                        href={`http://localhost:${config.local_port || 3008}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}
+                      >
+                        Abrir en Pestaña
+                      </Button>
+                    </Box>
+                  </Alert>
+                ) : serverStatus === "offline" ? (
+                  <Alert
+                    severity="warning"
+                    sx={{ mb: 3, borderRadius: 3 }}
+                  >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>
+                      ⚠️ El Servidor Local del Bot aún no está iniciado
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1.5, fontSize: "0.85rem" }}>
+                      Para que la página del QR y el bot funcionen en tu computadora, debes iniciar el proceso del bot en una terminal (igual que tienes iniciado el de la web):
+                    </Typography>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 1.5,
+                        bgcolor: theme.palette.mode === "dark" ? "#0d1117" : "#f6f8fa",
+                        fontFamily: "monospace",
+                        fontSize: "0.85rem",
+                        borderRadius: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        border: `1px solid ${theme.palette.divider}`,
+                      }}
+                    >
+                      <span>npm run bot</span>
+                      <Button
+                        size="small"
+                        startIcon={<ContentCopyIcon fontSize="small" />}
+                        onClick={() => copyToClipboard("npm run bot")}
+                        sx={{ textTransform: "none", fontWeight: 700 }}
+                      >
+                        Copiar
+                      </Button>
+                    </Paper>
+                  </Alert>
+                ) : (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3, p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+                    <CircularProgress size={18} />
+                    <Typography variant="body2" color="text.secondary">
+                      Comprobando conexión con el servidor local del bot...
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Live QR Display Box */}
+                {serverStatus === "online" && (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 3,
+                      borderRadius: 3,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      textAlign: "center",
+                      mb: 3,
+                      bgcolor: theme.palette.mode === "dark" ? "#1e293b" : "#f8fafc",
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
+                      📸 Escaneá este Código QR con WhatsApp
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={`http://localhost:${config.local_port || 3008}?t=${qrRefreshKey}`}
+                      alt="Código QR de WhatsApp"
+                      onError={() => setServerStatus("offline")}
+                      sx={{
+                        width: 260,
+                        height: 260,
+                        borderRadius: 3,
+                        border: `3px solid #25D366`,
+                        boxShadow: "0 8px 24px rgba(37, 211, 102, 0.25)",
+                        bgcolor: "#fff",
+                        p: 1,
+                      }}
+                    />
+                    <Box sx={{ display: "flex", gap: 1.5, mt: 2 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<RefreshIcon />}
+                        onClick={() => setQrRefreshKey(Date.now())}
+                        sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}
+                      >
+                        Refrescar Imagen QR
+                      </Button>
+                    </Box>
+                  </Paper>
+                )}
 
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   <Paper
@@ -771,56 +923,18 @@ export default function WhatsAppBotManager() {
                       borderRadius: 3,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "space-between",
                       gap: 2,
                     }}
                   >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <CheckCircleIcon sx={{ color: "#25D366", fontSize: 32 }} />
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          Persistencia Automática de Sesión
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Las credenciales de acceso se guardan encriptadas en <code>bot/bot_sessions</code> para que no tengas que reescanear el QR cada vez que se reinicie el bot.
-                        </Typography>
-                      </Box>
+                    <CheckCircleIcon sx={{ color: "#25D366", fontSize: 32 }} />
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        Persistencia Automática de Sesión
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Una vez vinculado el teléfono, las credenciales se guardan encriptadas en <code>bot/bot_sessions/</code>. No tendrás que volver a escanear el QR salvo que cierres la sesión manualmente.
+                      </Typography>
                     </Box>
-                  </Paper>
-
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 2.5,
-                      borderRadius: 3,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 2,
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <QrCodeScannerIcon sx={{ color: "primary.main", fontSize: 32 }} />
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          Visor Web de Código QR
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Podés escanear el QR directamente desde tu navegador en <strong>http://localhost:{config.local_port || 3008}</strong> o desde la terminal de comandos.
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<OpenInNewIcon />}
-                      href={`http://localhost:${config.local_port || 3008}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700 }}
-                    >
-                      Abrir Visor QR
-                    </Button>
                   </Paper>
                 </Box>
               </Grid>
@@ -828,23 +942,38 @@ export default function WhatsAppBotManager() {
               <Grid size={{ xs: 12, md: 5 }}>
                 <Card variant="outlined" sx={{ borderRadius: 3, bgcolor: alpha(theme.palette.background.paper, 0.6) }}>
                   <CardContent sx={{ p: 3 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
-                      📋 Pasos para Escanear
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
+                      📋 Pasos para Conectar en Local
                     </Typography>
                     <Box component="ol" sx={{ pl: 2, fontSize: "0.875rem", color: "text.secondary", m: 0 }}>
-                      <li style={{ marginBottom: 8 }}>
-                        Iniciá el microservicio con <code>cd bot && npm run dev</code>.
+                      <li style={{ marginBottom: 10 }}>
+                        Abrí una terminal en la raíz del proyecto y ejecutá:
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 1,
+                            mt: 0.5,
+                            bgcolor: theme.palette.mode === "dark" ? "#0d1117" : "#f1f5f9",
+                            fontFamily: "monospace",
+                            fontSize: "0.8rem",
+                            borderRadius: 1.5,
+                          }}
+                        >
+                          npm run bot
+                        </Paper>
                       </li>
-                      <li style={{ marginBottom: 8 }}>
-                        Abrí <strong>WhatsApp</strong> en el teléfono de la Seccional.
+                      <li style={{ marginBottom: 10 }}>
+                        Abrí <strong>WhatsApp</strong> en el teléfono celular de la Seccional.
                       </li>
-                      <li style={{ marginBottom: 8 }}>
+                      <li style={{ marginBottom: 10 }}>
                         Tocá en <strong>Dispositivos Vinculados</strong> &gt; <strong>Vincular un dispositivo</strong>.
                       </li>
-                      <li style={{ marginBottom: 8 }}>
-                        Apuntá la cámara al código QR que aparece en la consola o en el navegador.
+                      <li style={{ marginBottom: 10 }}>
+                        Apuntá la cámara al código QR que aparece en esta pantalla o en tu terminal.
                       </li>
-                      <li>¡Listo! El bot comenzará a responder automáticamente.</li>
+                      <li>
+                        ¡Listo! El bot responderá automáticamente cuando cualquier usuario le envíe un mensaje.
+                      </li>
                     </Box>
                   </CardContent>
                 </Card>
