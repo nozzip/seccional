@@ -75,7 +75,7 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                             Turismo AEFIP
                         </Typography>
                         <Typography variant="body2" sx={{ mb: 1.5, color: 'text.secondary' }}>
-                            Bariloche, Mar del Plata, Huerta Grande. Tarifas exclusivas.
+                            Bariloche (Hostería Peumayen), Mar del Plata (Hotel Concord), Huerta Grande (Hotel Presidente Peron), CABA (Hotel Davinci). Tarifas exclusivas.
                         </Typography>
                         <Button
                             variant="contained"

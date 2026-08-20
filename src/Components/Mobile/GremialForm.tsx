@@ -127,6 +127,8 @@ export default function GremialForm({ open, onClose, affiliateData, type }: Grem
                         telefono: formData.telefono
                     },
                     data: {
+                        title: `Beneficio / Subsidio: ${type}`,
+                        summary: `Solicitud de subsidio por ${type}`,
                         benefit_type: type,
                         observations: formData.observaciones,
                         attachment_url: fileUrl

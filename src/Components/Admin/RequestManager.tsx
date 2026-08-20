@@ -59,6 +59,8 @@ const REQUEST_TYPES = [
     { value: 'affiliation', label: 'Afiliación', icon: <PeopleIcon /> },
     { value: 'tourism', label: 'Turismo', icon: <BeachAccessIcon /> },
     { value: 'benefit', label: 'Beneficio / Kit', icon: <TaskAltIcon /> },
+    { value: 'profile_update', label: 'Actualización de Perfil', icon: <PeopleIcon /> },
+    { value: 'family_update', label: 'Alta / Modificación Familiar', icon: <PeopleIcon /> },
 ];
 
 export default function RequestManager() {
@@ -392,6 +394,12 @@ export default function RequestManager() {
                             if (request.type === 'cabin_reservation') {
                                 asunto = `Reserva El Mollar: ${request.data?.destino || 'Cabaña'}`;
                             }
+                            if (request.type === 'profile_update') {
+                                asunto = `Actualización de Perfil: ${request.requester_info?.nombre || 'Afiliado'}`;
+                            }
+                            if (request.type === 'family_update') {
+                                asunto = `Grupo Familiar: ${request.data?.summary || 'Familiar'}`;
+                            }
                             return (
                                 <TableRow key={request.id} hover sx={{ opacity: request.status === 'done' ? 0.7 : 1 }}>
                                     <TableCell padding="checkbox">
@@ -509,7 +517,28 @@ export default function RequestManager() {
                                     </Box>
                                 )}
 
-                                {!['affiliation', 'tourism', 'benefit', 'cabin_reservation'].includes(selectedRequest.type) && (
+                                {selectedRequest.type === 'profile_update' && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <Typography variant="body2"><strong>Resumen:</strong> {selectedRequest.data?.summary}</Typography>
+                                        {selectedRequest.data?.telefono && <Typography variant="body2"><strong>Teléfono:</strong> {selectedRequest.data.telefono}</Typography>}
+                                        {selectedRequest.data?.email && <Typography variant="body2"><strong>Email:</strong> {selectedRequest.data.email}</Typography>}
+                                        {selectedRequest.data?.fecha_nacimiento && <Typography variant="body2"><strong>Fecha de Nacimiento:</strong> {selectedRequest.data.fecha_nacimiento}</Typography>}
+                                        {selectedRequest.data?.es_jubilado !== undefined && <Typography variant="body2"><strong>Condición Jubilado:</strong> {selectedRequest.data.es_jubilado ? 'Sí' : 'No'}</Typography>}
+                                    </Box>
+                                )}
+
+                                {selectedRequest.type === 'family_update' && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <Typography variant="body2"><strong>Acción:</strong> {selectedRequest.data?.action || 'Alta de Familiar'}</Typography>
+                                        <Typography variant="body2"><strong>Nombre:</strong> {selectedRequest.data?.nombre} {selectedRequest.data?.apellido}</Typography>
+                                        {selectedRequest.data?.parentesco && <Typography variant="body2"><strong>Parentesco:</strong> {selectedRequest.data.parentesco}</Typography>}
+                                        {selectedRequest.data?.dni && <Typography variant="body2"><strong>DNI:</strong> {selectedRequest.data.dni}</Typography>}
+                                        {selectedRequest.data?.fecha_nacimiento && <Typography variant="body2"><strong>Fecha de Nacimiento:</strong> {selectedRequest.data.fecha_nacimiento}</Typography>}
+                                        {selectedRequest.data?.grado_escolar && <Typography variant="body2"><strong>Grado Escolar:</strong> {selectedRequest.data.grado_escolar}</Typography>}
+                                    </Box>
+                                )}
+
+                                {!['affiliation', 'tourism', 'benefit', 'cabin_reservation', 'profile_update', 'family_update'].includes(selectedRequest.type) && (
                                     <Typography variant="body1" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>
                                         {selectedRequest.data?.description || 'Sin descripción detallada.'}
                                     </Typography>

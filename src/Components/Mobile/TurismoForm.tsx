@@ -48,9 +48,10 @@ interface TurismoFormProps {
 }
 
 const DESTINOS = [
-    { value: 'Bariloche', label: 'Bariloche' },
-    { value: 'Mar del Plata', label: 'Mar del Plata' },
-    { value: 'Huerta Grande', label: 'Huerta Grande' },
+    { value: 'Bariloche - Hostería Peumayen', label: 'Bariloche - Hostería Peumayen' },
+    { value: 'Mar del Plata - Hotel Concord', label: 'Mar del Plata - Hotel Concord' },
+    { value: 'Huerta Grande - Hotel Presidente Peron', label: 'Huerta Grande - Hotel Presidente Peron' },
+    { value: 'CABA - Hotel Davinci', label: 'CABA - Hotel Davinci' },
 ];
 
 const CABIN_TYPES = [
@@ -198,6 +199,11 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
             }
 
             const isMollar = subsidizedType === 'mollar';
+            const requestTitle = isMollar
+                ? `Reserva Cabañas El Mollar: ${formData.destino}`
+                : (isSubsidized
+                    ? `Turismo Subsidiado (${subsidizedType === 'matrimonio' ? 'Luna de Miel' : 'Bodas de Plata'}): ${formData.destino}`
+                    : `Turismo: ${formData.destino}`);
 
             const requestData = {
                 type: isMollar ? 'cabin_reservation' : 'tourism',
@@ -210,6 +216,8 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
                     telefono: formData.telefono
                 },
                 data: {
+                    title: requestTitle,
+                    summary: `${formData.fecha_ingreso} al ${formData.fecha_salida} | ${formData.plazas_req} plazas`,
                     is_subsidized: isSubsidized,
                     subsidized_type: subsidizedType,
                     destino: formData.destino,

@@ -150,7 +150,7 @@ export default function MobileLogin({ onLoginSuccess }: MobileLoginProps) {
                             fontSize: '1rem'
                         }}
                     >
-                        Quiero Afiliarme
+                        Afiliate
                     </Button>
                 </form>
             </Paper>

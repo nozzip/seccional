@@ -21,6 +21,7 @@ const Servicios = lazy(() => import("./Components/Servicios/Servicios"));
 const MobileAppView = lazy(() => import("./Components/MobileApp/MobileAppView"));
 const AffiliateValidator = lazy(() => import("./Components/Public/AffiliateValidator"));
 const AffiliateForm = lazy(() => import("./Pages/AffiliateForm"));
+const Perfil = lazy(() => import("./Pages/Perfil"));
 
 const NoticiaDetalle = lazy(() => import("./Pages/NoticiaDetalle"));
 
@@ -144,6 +145,14 @@ const router = createHashRouter([
       {
         path: "afiliar",
         element: <AffiliateForm />,
+      },
+      {
+        path: "perfil",
+        element: (
+          <ProtectedRoute>
+            <Perfil />
+          </ProtectedRoute>
+        ),
       },
     ],
   },

@@ -51,6 +51,7 @@ function Navbar(props: any) {
     { name: "Beneficios Gremiales", path: "/servicios" },
     { name: "Convenios", path: "/beneficios" },
     { name: "Prensa", path: "/prensa" },
+    ...(currentAffiliate ? [{ name: "Mi Perfil", path: "/perfil" }] : []),
     ...(isAdmin ? [{ name: "Admin", path: "/admin" }] : []),
   ];
 
@@ -71,6 +72,16 @@ function Navbar(props: any) {
 
   const handleLogout = () => {
     localStorage.removeItem("current_affiliate");
+    localStorage.removeItem("mobile_app_legajo");
+    localStorage.removeItem("mobile_app_name");
+    localStorage.removeItem("mobile_app_cuil");
+    localStorage.removeItem("mobile_app_telefono");
+    localStorage.removeItem("mobile_app_email");
+    localStorage.removeItem("mobile_app_jubilado");
+    localStorage.removeItem("mobile_app_validation_token");
+    localStorage.removeItem("mobile_app_fecha_nacimiento");
+    localStorage.removeItem("mobile_app_conyuge_nombre");
+    localStorage.removeItem("mobile_app_conyuge_dni");
     setCurrentAffiliate(null);
     window.dispatchEvent(new Event("affiliate_login"));
   };

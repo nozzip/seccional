@@ -14,7 +14,7 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   AssignmentInd as AssignmentIndIcon,
   Visibility,
@@ -37,10 +37,11 @@ const RAMIRO_LEGAJO = "042418/00";
 const FormLogin = ({
   submitForm,
 }: {
-  submitForm: any;
+  submitForm?: any;
   toggleForm?: () => void;
 }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -82,8 +83,11 @@ const FormLogin = ({
             branch: "noroeste"
           };
           localStorage.setItem("current_affiliate", JSON.stringify(adminUser));
+          localStorage.setItem("mobile_app_legajo", "ADMIN");
+          localStorage.setItem("mobile_app_name", "Administrador Sistema");
           window.dispatchEvent(new Event("affiliate_login"));
-          submitForm();
+          if (submitForm) submitForm();
+          navigate("/admin");
           return;
         } else {
           setError("Contraseña de administrador incorrecta.");
@@ -133,10 +137,29 @@ const FormLogin = ({
           }
         }
 
-        const affiliate = { ...user, role: isUserAdmin({ ...user, legajo: id }) ? "admin" : "user" };
+        const isAdmin = isUserAdmin({ ...user, legajo: id });
+        const affiliate = { ...user, role: isAdmin ? "admin" : "user" };
+        
         localStorage.setItem("current_affiliate", JSON.stringify(affiliate));
+        localStorage.setItem("mobile_app_legajo", affiliate.legajo);
+        localStorage.setItem("mobile_app_name", `${affiliate.nombre} ${affiliate.apellido}`);
+        localStorage.setItem("mobile_app_cuil", affiliate.cuil || "");
+        localStorage.setItem("mobile_app_validation_token", affiliate.validation_token || "");
+        localStorage.setItem("mobile_app_telefono", affiliate.telefono || "");
+        localStorage.setItem("mobile_app_email", affiliate.email || "");
+        localStorage.setItem("mobile_app_jubilado", String(affiliate.es_jubilado || false));
+        localStorage.setItem("mobile_app_fecha_nacimiento", affiliate.fecha_nacimiento || "");
+        localStorage.setItem("mobile_app_conyuge_nombre", affiliate.conyuge_nombre || "");
+        localStorage.setItem("mobile_app_conyuge_dni", affiliate.conyuge_dni || "");
+
         window.dispatchEvent(new Event("affiliate_login"));
-        submitForm();
+        if (submitForm) submitForm();
+
+        if (isAdmin) {
+          navigate("/admin");
+        } else {
+          navigate("/perfil");
+        }
       }
     } catch (err: any) {
       console.error("Login error:", err);

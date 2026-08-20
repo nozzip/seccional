@@ -95,14 +95,22 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
         try {
             const { data, error } = await supabase
                 .from('affiliates')
-                .select('id')
+                .select('id, conyuge_nombre, conyuge_dni, telefono, email, es_jubilado, fecha_nacimiento')
                 .eq('legajo', affiliateData.legajo)
-                .eq('branch', 'noroeste')
                 .limit(1);
 
-            if (data && data.length > 0) {
-                setAffiliateId(data[0].id);
-                fetchFamilyMembers(data[0].id);
+            if (!error && data && data.length > 0) {
+                const aff = data[0];
+                setAffiliateId(aff.id);
+                fetchFamilyMembers(aff.id);
+
+                // Sync spouse data if present in DB
+                if (aff.conyuge_nombre && !affiliateData.conyuge_nombre) {
+                    onUpdate({
+                        conyuge_nombre: aff.conyuge_nombre,
+                        conyuge_dni: aff.conyuge_dni || undefined
+                    });
+                }
             }
         } catch (err) {
             console.error('Error fetching affiliate ID:', err);
@@ -137,18 +145,48 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 ? `${formData.anio.padStart(4, '0')}-${formData.mes.padStart(2, '0')}-${formData.dia.padStart(2, '0')}`
                 : null;
 
-            const { error: updateError } = await supabase
-                .from('affiliates')
-                .update({
+            const updateQuery = affiliateId
+                ? supabase.from('affiliates').update({
                     telefono: formData.telefono,
                     email: formData.email,
                     es_jubilado: formData.es_jubilado,
                     fecha_nacimiento: fechaStr,
-                })
-                .eq('legajo', affiliateData.legajo)
-                .eq('branch', 'noroeste');
+                }).eq('id', affiliateId)
+                : supabase.from('affiliates').update({
+                    telefono: formData.telefono,
+                    email: formData.email,
+                    es_jubilado: formData.es_jubilado,
+                    fecha_nacimiento: fechaStr,
+                }).eq('legajo', affiliateData.legajo);
+
+            const { error: updateError } = await updateQuery;
 
             if (updateError) throw updateError;
+
+            // Notify Admin in Gestión Unificada (workflow_requests)
+            try {
+                await supabase.from('workflow_requests').insert({
+                    type: 'profile_update',
+                    status: 'pending',
+                    requester_info: {
+                        nombre: `${affiliateData.nombre} ${affiliateData.apellido}`,
+                        legajo: affiliateData.legajo,
+                        cuil: affiliateData.cuil,
+                        email: formData.email,
+                        telefono: formData.telefono,
+                    },
+                    data: {
+                        title: `Actualización de Perfil: ${affiliateData.nombre} ${affiliateData.apellido}`,
+                        summary: `Tel: ${formData.telefono || 'Sin cambio'} | Email: ${formData.email || 'Sin cambio'} | Jubilado: ${formData.es_jubilado ? 'Sí' : 'No'}`,
+                        telefono: formData.telefono,
+                        email: formData.email,
+                        es_jubilado: formData.es_jubilado,
+                        fecha_nacimiento: fechaStr,
+                    }
+                });
+            } catch (wfErr) {
+                console.warn("No se pudo registrar solicitud en workflow_requests:", wfErr);
+            }
 
             onUpdate({
                 telefono: formData.telefono,
@@ -185,6 +223,32 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
 
                 if (error) throw error;
 
+                // Notify Admin in Gestión Unificada (workflow_requests)
+                try {
+                    await supabase.from('workflow_requests').insert({
+                        type: 'family_update',
+                        status: 'pending',
+                        requester_info: {
+                            nombre: `${affiliateData?.nombre} ${affiliateData?.apellido}`,
+                            legajo: affiliateData?.legajo,
+                            cuil: affiliateData?.cuil,
+                            email: affiliateData?.email,
+                            telefono: affiliateData?.telefono,
+                        },
+                        data: {
+                            title: `Incorporación de Cónyuge: ${fullName}`,
+                            summary: `Cónyuge: ${fullName}${dni ? ` (DNI: ${dni})` : ''}`,
+                            action: 'Alta de Cónyuge',
+                            nombre: editingMember.nombre.trim(),
+                            apellido: editingMember.apellido.trim(),
+                            parentesco: 'Cónyuge',
+                            dni: dni,
+                        }
+                    });
+                } catch (wfErr) {
+                    console.warn("No se pudo registrar solicitud en workflow_requests:", wfErr);
+                }
+
                 onUpdate({
                     conyuge_nombre: fullName,
                     conyuge_dni: dni ?? undefined
@@ -211,6 +275,35 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     .single();
 
                 if (error) throw error;
+
+                // Notify Admin in Gestión Unificada (workflow_requests)
+                try {
+                    await supabase.from('workflow_requests').insert({
+                        type: 'family_update',
+                        status: 'pending',
+                        requester_info: {
+                            nombre: `${affiliateData?.nombre} ${affiliateData?.apellido}`,
+                            legajo: affiliateData?.legajo,
+                            cuil: affiliateData?.cuil,
+                            email: affiliateData?.email,
+                            telefono: affiliateData?.telefono,
+                        },
+                        data: {
+                            title: `Alta de Familiar: ${memberToInsert.nombre} ${memberToInsert.apellido}`,
+                            summary: `Hijo/a: ${memberToInsert.nombre} ${memberToInsert.apellido}${memberToInsert.edad ? ` (${memberToInsert.edad} años)` : ''}${memberToInsert.grado_escolar ? ` - Grado: ${memberToInsert.grado_escolar}` : ''}`,
+                            action: 'Alta de Hijo/a',
+                            nombre: memberToInsert.nombre,
+                            apellido: memberToInsert.apellido,
+                            parentesco: 'Hijo/a',
+                            dni: memberToInsert.dni,
+                            fecha_nacimiento: memberToInsert.fecha_nacimiento,
+                            edad: memberToInsert.edad,
+                            grado_escolar: memberToInsert.grado_escolar,
+                        }
+                    });
+                } catch (wfErr) {
+                    console.warn("No se pudo registrar solicitud en workflow_requests:", wfErr);
+                }
 
                 setFamilyMembers([...familyMembers, data]);
                 setFamilyDialogOpen(false);
