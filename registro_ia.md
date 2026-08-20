@@ -1,5 +1,14 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Corrección de Tipado de Severidad en Snackbar de WhatsAppBotManager
+**Fecha:** 2026-08-20
+**Modo:** Mejorar
+**Descripción:** Se corrigió el error de tipado TypeScript en `WhatsAppBotManager.tsx` donde la severidad del Snackbar estaba restringida a `"success" | "error"`, ampliándolo a `"success" | "error" | "info" | "warning"` para soportar notificaciones informativas al cambiar el estado del bot.
+
+### Cambios realizados:
+1. **Tipado Snackbar (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Actualización del estado `snackbar` para incluir tipos `"info"` y `"warning"`.
+
 ## [ÉXITO] - Interruptor Global en Tiempo Real para Habilitar y Deshabilitar el Bot desde Administración
 **Fecha:** 2026-08-20
 **Modo:** Desarrollar
