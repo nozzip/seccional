@@ -1,5 +1,23 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Integración del Panel de Control del Bot de WhatsApp en el Dashboard de Administración
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se desarrolló e integró el componente administrativo `WhatsAppBotManager.tsx` dentro de la sección Noroeste del Panel de Administración (`AdminDashboard.tsx`), restringido exclusivamente a administradores autorizados. El módulo proporciona monitoreo de estado en tiempo real, configuración dinámica persistida en Supabase (`system_configs -> whatsapp_bot_config`), simulador interactivo de chat en vivo con respuestas reales contra la base de datos, visor de código QR y guía de despliegue 24/7 en servidores.
+
+### Cambios realizados:
+1. **Componente de Administración (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Panel interactivo con 4 pestañas: *Simulador en Vivo*, *Configuración del Bot*, *Estado y Vinculación QR* y *Guía de Despliegue*.
+   - Simulador de WhatsApp en tiempo real con estilo nativo que ejecuta consultas a `benefits`, `news`, `affiliates` y `system_configs`.
+   - Modificación de parámetros de guardia, horarios, dirección de sede y mensajes personalizados con guardado directo en Supabase.
+2. **Navegación en Dashboard (`src/Pages/Admin/AdminDashboard.tsx`):**
+   - Incorporación de la pestaña *"Bot WhatsApp"* con ícono de WhatsApp dentro de la pestaña Noroeste.
+3. **Flujos Dinámicos del Bot (`bot/src/flows/humanAgentFlow.ts`):**
+   - Actualización del flujo de derivación a operador humano para consultar dinámicamente la configuración activa en Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Administración del Bot de WhatsApp:** Módulo centralizado en `AdminDashboard.tsx` (`WhatsAppBotManager.tsx`) con persistencia en `system_configs -> whatsapp_bot_config` y simulador en vivo.
+
 ## [ÉXITO] - Aislamiento de Configuración TypeScript y Estandarización de Variables de Entorno
 **Fecha:** 2026-08-20
 **Modo:** Mejorar
