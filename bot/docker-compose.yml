@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  whatsapp-bot:
+    build: .
+    container_name: aefip_whatsapp_bot
+    restart: unless-stopped
+    ports:
+      - "3008:3008"
+    volumes:
+      # Persistencia de la sesión de WhatsApp para no reescanear el QR tras reiniciar
+      - ./bot_sessions:/app/bot_sessions
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3008

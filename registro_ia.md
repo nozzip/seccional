@@ -1,5 +1,34 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Creación del Microservicio WhatsApp Bot (BuilderBot + Baileys + Supabase)
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se estructuró e implementó un microservicio independiente en `bot/` para la automatización de atención por WhatsApp Web (Multi-Device) utilizando `@builderbot/bot` y `@builderbot/provider-baileys`. El bot se conecta directamente a la base de datos de Supabase para ofrecer flujos interactivos de consulta de convenios y beneficios, lectura de últimas noticias de prensa, validación de estado de afiliados en el padrón, consulta de tarifas y requisitos de cabañas de turismo, y derivación a atención gremial con operadores humanos. Incluye soporte para ejecución local con código QR en terminal/web y contenedorización mediante Docker y Docker Compose para despliegue 24/7.
+
+### Cambios realizados:
+1. **Estructura del Microservicio (`bot/`):**
+   - Configuración de `package.json` y `tsconfig.json` con soporte completo para TypeScript y módulos ESM modernos.
+   - Plantilla de variables de entorno `.env.example` y `.env` preconfigurado con Supabase URL y anon key de Seccional Noroeste.
+   - Reglas añadidas a `.gitignore` para omitir sesiones de Baileys (`bot_sessions/`), builds y credenciales.
+2. **Servicios de Base de Datos (`bot/src/services/`):**
+   - `benefitsService.ts`: Búsqueda de beneficios y comercios por provincia (Salta, Jujuy, etc.), categoría o palabra clave, con formateo amigable de mensajes.
+   - `newsService.ts`: Consulta de los últimos comunicados institucionales desde la tabla `news`.
+   - `affiliatesService.ts`: Consulta y validación de afiliación por DNI / Legajo / CUIL con entrega de link a credencial digital.
+   - `tourismService.ts`: Consulta de tarifas del predio (`system_configs -> cabin_prices`) y requisitos de reserva.
+3. **Flujos Conversacionales Interactivos (`bot/src/flows/`):**
+   - `welcomeFlow.ts`: Saludo, menú principal con 5 opciones numeradas y router dinámico.
+   - `benefitsFlow.ts`: Búsqueda interactiva de convenios por texto o provincia.
+   - `newsFlow.ts`: Listado de noticias con enlaces directos a la web.
+   - `affiliateFlow.ts`: Verificación de afiliados mediante captura de DNI.
+   - `tourismFlow.ts`: Información de cabañas, canchas y recreación.
+   - `humanAgentFlow.ts`: Información de sede, horarios y enlace directo a WhatsApp del asesor.
+4. **Infraestructura de Despliegue (`bot/Dockerfile`, `bot/docker-compose.yml`, `bot/README.md`):**
+   - Imagen ligera de Node 20 Debian Slim lista para producción en VPS, Railway, Render o Fly.io con persistencia de volumen de sesión en `./bot_sessions`.
+   - Documentación técnica y manual paso a paso de uso y vinculación en `bot/README.md`.
+
+### Arquitecturas Aprobadas (Actualización):
+- **WhatsApp Bot Multi-Device:** Microservicio desacoplado en `bot/` con BuilderBot + Baileys + Supabase JS Client, sin dependencia de Chromium/Puppeteer.
+
 ## [ÉXITO] - Carga y Visualización Zoom de Imágenes Thumbnails en Noticias
 **Fecha:** 2026-08-05
 **Modo:** Desarrollar

@@ -12,6 +12,12 @@
 /build
 /dist
 
+# bot
+/bot/node_modules
+/bot/dist
+/bot/bot_sessions
+/bot/.env
+bot_sessions/
 
 # misc
 .DS_Store
