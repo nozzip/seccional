@@ -1,5 +1,21 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Interruptor Global en Tiempo Real para Habilitar y Deshabilitar el Bot desde Administración
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se implementó un interruptor de activación/desactivación global en el encabezado principal de `WhatsAppBotManager.tsx` que guarda de forma inmediata el estado en Supabase (`system_configs -> whatsapp_bot_config -> is_bot_active`). El backend del bot (`botConfigService.ts`) verifica dinámicamente este estado en tiempo real (con caché en memoria de 3 segundos), permitiendo pausar o reanudar todas las respuestas del bot al instante sin reiniciar el proceso del servidor.
+
+### Cambios realizados:
+1. **Interruptor en Encabezado (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Incorporación de Switch destacado *"BOT HABILITADO / BOT DESHABILITADO"* con guardado en caliente y notificación instantánea.
+2. **Servicio de Verificación Global (`bot/src/services/botConfigService.ts`):**
+   - Función `isBotGloballyActive()` que consulta Supabase con optimización de caché local.
+3. **Flujos Conversacionales (`bot/src/flows/welcomeFlow.ts`):**
+   - Acción middleware que comprueba `isBotGloballyActive()` y finaliza silenciosamente el flujo (`endFlow()`) cuando el bot está deshabilitado.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Interruptor Global del Bot:** Control en caliente mediante `system_configs -> whatsapp_bot_config -> is_bot_active` e intercepción previa en flujos con `botConfigService`.
+
 ## [ÉXITO] - Auto-Pausa Inteligente del Bot de WhatsApp al Responder el Operador Humano
 **Fecha:** 2026-08-20
 **Modo:** Desarrollar

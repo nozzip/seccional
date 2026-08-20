@@ -1,4 +1,5 @@
 import { addKeyword, EVENTS } from '@builderbot/bot';
+import { isBotGloballyActive } from '../services/botConfigService.js';
 import { benefitsFlow } from './benefitsFlow.js';
 import { newsFlow } from './newsFlow.js';
 import { tourismFlow } from './tourismFlow.js';
@@ -22,6 +23,12 @@ export const welcomeFlow = addKeyword<any, any>([
   'seccional',
   EVENTS.WELCOME,
 ])
+  .addAction(async (_ctx: any, { endFlow }: any) => {
+    const active = await isBotGloballyActive();
+    if (!active) {
+      return endFlow();
+    }
+  })
   .addAnswer(
     [
       '👋 *¡Hola! Te damos la bienvenida al canal oficial de AEFIP Seccional Noroeste.*',

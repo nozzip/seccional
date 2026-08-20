@@ -172,6 +172,36 @@ export default function WhatsAppBotManager() {
     }
   };
 
+  const handleToggleBotActive = async (newActive: boolean) => {
+    const updated = { ...config, is_bot_active: newActive };
+    setConfig(updated);
+    try {
+      const { error } = await supabase.from("system_configs").upsert(
+        {
+          key: "whatsapp_bot_config",
+          value: updated,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" }
+      );
+
+      if (error) throw error;
+      setSnackbar({
+        open: true,
+        message: newActive
+          ? "🟢 Bot de WhatsApp HABILITADO exitosamente."
+          : "⏸️ Bot de WhatsApp DESHABILITADO globalmente.",
+        severity: newActive ? "success" : "info",
+      });
+    } catch (err: any) {
+      setSnackbar({
+        open: true,
+        message: "Error al cambiar estado del bot: " + err.message,
+        severity: "error",
+      });
+    }
+  };
+
   // Simulator Response Engine
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isSimulating) return;
@@ -367,7 +397,48 @@ export default function WhatsAppBotManager() {
           </Box>
         </Box>
 
-        <Box sx={{ display: "flex", gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              px: 2,
+              py: 0.5,
+              borderRadius: 3,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              bgcolor: alpha(config.is_bot_active ? "#25D366" : theme.palette.error.main, 0.08),
+              borderColor: alpha(config.is_bot_active ? "#25D366" : theme.palette.error.main, 0.3),
+            }}
+          >
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={config.is_bot_active}
+                  onChange={(e) => handleToggleBotActive(e.target.checked)}
+                  color="success"
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": { color: "#25D366" },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { backgroundColor: "#25D366" },
+                  }}
+                />
+              }
+              label={
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 800,
+                    color: config.is_bot_active ? "#25D366" : theme.palette.text.secondary,
+                    userSelect: "none",
+                  }}
+                >
+                  {config.is_bot_active ? "BOT HABILITADO" : "BOT DESHABILITADO"}
+                </Typography>
+              }
+              sx={{ mr: 0 }}
+            />
+          </Paper>
+
           <Button
             variant="outlined"
             startIcon={<OpenInNewIcon />}
