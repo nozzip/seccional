@@ -18,6 +18,8 @@
 /bot/bot_sessions
 /bot/.env
 bot_sessions/
+*.log
+*.qr.png
 
 # misc
 .DS_Store

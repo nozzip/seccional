@@ -1,5 +1,17 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Sincronización Dinámica de Versión WhatsApp Web (Baileys) y Generación de QR
+**Fecha:** 2026-08-20
+**Modo:** Mejorar
+**Descripción:** Se resolvió el error `ERROR AUTH (Status 405 Connection Failure)` originado por versiones desactualizadas de protocolo en Baileys mediante la integración de `fetchLatestBaileysVersion()`. El bot ahora consulta dinámicamente la última versión de WhatsApp Web soportada por los servidores de Meta al iniciar y genera el archivo `bot.qr.png` de inmediato para su renderizado tanto en consola como en el panel web.
+
+### Cambios realizados:
+1. **Sincronización de Versión (`bot/src/app.ts`):**
+   - Invocación de `fetchLatestBaileysVersion()` con fallback defensivo.
+   - Configuración de `name: 'bot'`, `version` y `browser: ['AEFIP Bot', 'Chrome', '124.0.0']`.
+2. **Git Ignore (`.gitignore`):**
+   - Agregados `*.log` y `*.qr.png` para evitar rastrear archivos transitorios generados por Baileys.
+
 ## [ÉXITO] - Incorporación de Detección de Estado del Bot y Visualizador Embebido de QR
 **Fecha:** 2026-08-20
 **Modo:** Mejorar
