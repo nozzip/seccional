@@ -30,6 +30,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import BeachAccessIcon from '@mui/icons-material/BeachAccess';
+import HouseSidingIcon from '@mui/icons-material/HouseSiding';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { supabase } from '../../supabaseClient';
 import { AffiliateData } from '../../types/mobile';
 
@@ -42,6 +46,14 @@ interface FamilyMember {
     fecha_nacimiento?: string;
     edad?: number;
     grado_escolar?: string;
+}
+
+interface WorkflowRequestItem {
+    id: number;
+    type: string;
+    status: string;
+    created_at: string;
+    data?: any;
 }
 
 interface PerfilViewProps {
@@ -61,6 +73,8 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
     const [editingMember, setEditingMember] = useState<Partial<FamilyMember> | null>(null);
     const [affiliateId, setAffiliateId] = useState<number | null>(null);
     const [memberRelationship, setMemberRelationship] = useState<'hijo' | 'conyuge'>('hijo');
+    const [myRequests, setMyRequests] = useState<WorkflowRequestItem[]>([]);
+    const [loadingRequests, setLoadingRequests] = useState(false);
 
     const theme = useTheme();
 
@@ -86,8 +100,29 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 anio: anio || '',
             });
             fetchAffiliateId();
+            fetchMyRequests();
         }
     }, [affiliateData]);
+
+    const fetchMyRequests = async () => {
+        if (!affiliateData?.legajo) return;
+        setLoadingRequests(true);
+        try {
+            const { data, error } = await supabase
+                .from('workflow_requests')
+                .select('id, type, status, created_at, data')
+                .eq('requester_info->>legajo', affiliateData.legajo)
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                setMyRequests(data);
+            }
+        } catch (err) {
+            console.error('Error fetching affiliate requests:', err);
+        } finally {
+            setLoadingRequests(false);
+        }
+    };
 
     const fetchAffiliateId = async () => {
         if (!affiliateData?.legajo) return;
@@ -636,6 +671,121 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                 {index < familyMembers.length - 1 && <Divider />}
                             </React.Fragment>
                         ))}
+                    </List>
+                )}
+            </Paper>
+
+            {/* SECCIÓN: HISTORIAL DE GESTIONES Y SOLICITUDES */}
+            <Paper 
+                elevation={0}
+                sx={{ 
+                    p: { xs: 2, sm: 3 }, 
+                    mb: 3, 
+                    borderRadius: 3,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    background: alpha(theme.palette.background.paper, 0.8),
+                }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
+                    <AssignmentIcon color="primary" />
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Mis Gestiones y Solicitudes
+                    </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Registro histórico de solicitudes de turismo, trámites gremiales y reservas enviadas desde tu portal.
+                </Typography>
+
+                {loadingRequests ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                        <CircularProgress size={24} />
+                    </Box>
+                ) : myRequests.length === 0 ? (
+                    <Alert severity="info" sx={{ borderRadius: 2 }}>
+                        No registrás solicitudes enviadas recientemente.
+                    </Alert>
+                ) : (
+                    <List disablePadding>
+                        {myRequests.map((req, idx) => {
+                            const dateObj = new Date(req.created_at);
+                            const fechaStr = dateObj.toLocaleDateString('es-AR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            });
+                            const horaStr = dateObj.toLocaleTimeString('es-AR', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+
+                            let title = 'Solicitud';
+                            let icon = <AssignmentIcon color="primary" sx={{ fontSize: 28 }} />;
+                            let details = '';
+
+                            if (req.type === 'tourism') {
+                                title = req.data?.hotel ? `Turismo - ${req.data.hotel}` : 'Solicitud de Turismo';
+                                icon = <BeachAccessIcon sx={{ color: 'primary.main', fontSize: 28 }} />;
+                                if (req.data?.check_in && req.data?.check_out) {
+                                    details = `Fechas: ${req.data.check_in} al ${req.data.check_out} | Pasajeros: ${req.data.passengers || '-'}`;
+                                }
+                            } else if (req.type === 'cabin_reservation') {
+                                title = 'Cabañas El Mollar';
+                                icon = <HouseSidingIcon sx={{ color: 'success.main', fontSize: 28 }} />;
+                                if (req.data?.check_in && req.data?.check_out) {
+                                    details = `Estadía: ${req.data.check_in} al ${req.data.check_out} (${req.data.nights || 1} noches)`;
+                                }
+                            } else if (req.type === 'benefit') {
+                                title = req.data?.benefit_type ? `Trámite Gremial: ${req.data.benefit_type}` : 'Trámite Gremial';
+                                icon = <AssignmentIcon sx={{ color: 'warning.main', fontSize: 28 }} />;
+                                if (req.data?.notes) {
+                                    details = req.data.notes;
+                                }
+                            } else if (req.type === 'profile_update' || req.type === 'family_update') {
+                                title = 'Actualización de Datos';
+                                icon = <FamilyRestroomIcon sx={{ color: 'info.main', fontSize: 28 }} />;
+                            }
+
+                            return (
+                                <React.Fragment key={req.id}>
+                                    <ListItem 
+                                        alignItems="flex-start"
+                                        sx={{ 
+                                            px: 1.5, 
+                                            py: 1.5,
+                                            borderRadius: 2,
+                                            mb: 1,
+                                            bgcolor: alpha(theme.palette.action.hover, 0.4),
+                                            border: '1px solid',
+                                            borderColor: alpha(theme.palette.divider, 0.6),
+                                            flexDirection: 'column',
+                                            alignItems: 'stretch'
+                                        }}
+                                    >
+                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5, gap: 1 }}>
+                                            {icon}
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                                {title}
+                                            </Typography>
+                                        </Box>
+
+                                        {details && (
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', ml: 4.5, mb: 0.5, fontSize: '0.85rem' }}>
+                                                {details}
+                                            </Typography>
+                                        )}
+
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 4.5, mt: 0.5 }}>
+                                            <AccessTimeIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                                Enviado el {fechaStr} a las {horaStr} hs
+                                            </Typography>
+                                        </Box>
+                                    </ListItem>
+                                    {idx < myRequests.length - 1 && <Box sx={{ height: 4 }} />}
+                                </React.Fragment>
+                            );
+                        })}
                     </List>
                 )}
             </Paper>

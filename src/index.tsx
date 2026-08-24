@@ -72,6 +72,24 @@ if (container) {
       }).then(registration => {
         console.log('SW registered: ', registration);
         
+        // If a service worker is already waiting to activate, trigger skipWaiting immediately
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        // Whenever a new service worker update is found
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              // Once installed and waiting, tell it to take control right away
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          }
+        });
+
         // Initial check on load
         registration.update().catch(err => console.log('Error updating SW on load:', err));
 

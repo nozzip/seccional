@@ -35,6 +35,10 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import PersonIcon from "@mui/icons-material/Person";
 import ChildCareIcon from "@mui/icons-material/ChildCare";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import BeachAccessIcon from "@mui/icons-material/BeachAccess";
+import HouseSidingIcon from "@mui/icons-material/HouseSiding";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import SaveIcon from "@mui/icons-material/Save";
 import { supabase } from "../../supabaseClient";
 import { logAction } from "../../utils/auditLogger";
@@ -69,6 +73,8 @@ export default function AffiliateDetailsModal({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
   // Edit State for Affiliate
   const [editData, setEditData] = useState<any>({});
@@ -101,10 +107,36 @@ export default function AffiliateDetailsModal({
     if (open && affiliate) {
       setEditData({ ...affiliate });
       fetchFamilyMembers();
+      fetchAffiliateRequests();
       setActiveTab(0);
       setSuccess(false);
     }
   }, [open, affiliate]);
+
+  const fetchAffiliateRequests = async () => {
+    if (!affiliate) return;
+    setLoadingRequests(true);
+    try {
+      let query = supabase.from("workflow_requests").select("*").order("created_at", { ascending: false });
+
+      if (affiliate.legajo && affiliate.cuil) {
+        query = query.or(`requester_info->>legajo.eq.${affiliate.legajo},requester_info->>cuil.eq.${affiliate.cuil}`);
+      } else if (affiliate.legajo) {
+        query = query.eq("requester_info->>legajo", affiliate.legajo);
+      } else if (affiliate.cuil) {
+        query = query.eq("requester_info->>cuil", affiliate.cuil);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) {
+        setRequests(data);
+      }
+    } catch (err) {
+      console.error("Error fetching affiliate workflow requests:", err);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
 
   const fetchFamilyMembers = async () => {
     if (!affiliate) return;
@@ -280,6 +312,7 @@ export default function AffiliateDetailsModal({
       >
         <Tab label="Datos Personales" icon={<PersonIcon />} iconPosition="start" />
         <Tab label="Grupo Familiar" icon={<ChildCareIcon />} iconPosition="start" />
+        <Tab label="Historial de Gestiones" icon={<AssignmentIcon />} iconPosition="start" />
       </Tabs>
 
       <DialogContent sx={{ minHeight: 400, py: 3 }}>
@@ -434,7 +467,7 @@ export default function AffiliateDetailsModal({
               </Button>
             </Box>
           </Box>
-        ) : (
+        ) : activeTab === 1 ? (
           <Box>
             <Box
               sx={{
@@ -505,6 +538,77 @@ export default function AffiliateDetailsModal({
                         </TableCell>
                       </TableRow>
                     ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        ) : (
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, color: "text.secondary" }}>
+              Registro de trámites, solicitudes de turismo y reservas enviadas por el afiliado
+            </Typography>
+
+            <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: "action.selected" }}>
+                    <TableCell sx={{ fontWeight: 700 }}>Fecha / Hora</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Tipo de Trámite</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Detalle de Solicitud</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loadingRequests ? (
+                    <TableRow><TableCell colSpan={3} align="center" sx={{ py: 4 }}><CircularProgress size={24} /></TableCell></TableRow>
+                  ) : requests.length === 0 ? (
+                    <TableRow><TableCell colSpan={3} align="center" sx={{ py: 4 }}><Typography variant="body2" color="text.secondary">El afiliado no tiene gestiones o solicitudes registradas.</Typography></TableCell></TableRow>
+                  ) : (
+                    requests.map((req: any) => {
+                      const dateObj = new Date(req.created_at);
+                      const fechaStr = dateObj.toLocaleDateString('es-AR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      });
+                      const horaStr = dateObj.toLocaleTimeString('es-AR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+
+                      let title = req.type;
+                      let details = "-";
+
+                      if (req.type === 'tourism') {
+                        title = req.data?.hotel ? `Turismo: ${req.data.hotel}` : 'Turismo';
+                        if (req.data?.check_in && req.data?.check_out) {
+                          details = `Check-in: ${req.data.check_in} | Check-out: ${req.data.check_out} | Pasajeros: ${req.data.passengers || '-'}`;
+                        }
+                      } else if (req.type === 'cabin_reservation') {
+                        title = 'Cabañas El Mollar';
+                        if (req.data?.check_in && req.data?.check_out) {
+                          details = `Estadía: ${req.data.check_in} al ${req.data.check_out} (${req.data.nights || 1} noches)`;
+                        }
+                      } else if (req.type === 'benefit') {
+                        title = req.data?.benefit_type ? `Gremial: ${req.data.benefit_type}` : 'Subsidio Gremial';
+                        if (req.data?.notes) details = req.data.notes;
+                      } else if (req.type === 'profile_update' || req.type === 'family_update') {
+                        title = 'Actualización de Datos';
+                      }
+
+                      return (
+                        <TableRow key={req.id} hover>
+                          <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.85rem' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <AccessTimeIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
+                              <span>{fechaStr} {horaStr} hs</span>
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>{title}</TableCell>
+                          <TableCell sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>{details}</TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
