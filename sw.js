@@ -1,6 +1,6 @@
-// Build Timestamp: 24/8/2026, 09:31:34
-// Unique ID: 1787574694791
-const CACHE_NAME = 'aefip-cache-1787574694791';
+// Build Timestamp: 24/8/2026, 10:30:41
+// Unique ID: 1787578241908
+const CACHE_NAME = 'aefip-cache-1787578241908';
 
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
