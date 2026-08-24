@@ -1,0 +1,1248 @@
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Box,
+  Typography,
+  Paper,
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  Switch,
+  FormControlLabel,
+  Chip,
+  Avatar,
+  Divider,
+  Alert,
+  Snackbar,
+  CircularProgress,
+  IconButton,
+  Tooltip,
+  Tab,
+  Tabs,
+  useTheme,
+  alpha,
+} from "@mui/material";
+import Grid from "@mui/material/Grid2";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import SettingsIcon from "@mui/icons-material/Settings";
+import SendIcon from "@mui/icons-material/Send";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import SaveIcon from "@mui/icons-material/Save";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import CloudDoneIcon from "@mui/icons-material/CloudDone";
+import TerminalIcon from "@mui/icons-material/Terminal";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { supabase } from "../../supabaseClient";
+import { isUserAdmin } from "../../utils/auth";
+
+interface BotConfig {
+  is_bot_active: boolean;
+  human_agent_phone: string;
+  office_hours: string;
+  headquarters_address: string;
+  welcome_title: string;
+  custom_footer: string;
+  local_port: number;
+  pause_duration_minutes: number;
+  auto_pause_on_human_reply: boolean;
+}
+
+const DEFAULT_CONFIG: BotConfig = {
+  is_bot_active: true,
+  human_agent_phone: "5493870000000",
+  office_hours: "Lunes a Viernes de 08:00 a 16:00 hs.",
+  headquarters_address: "Av. Belgrano / Mitre, Salta - Jujuy",
+  welcome_title: "¡Hola! Te damos la bienvenida al canal oficial de AEFIP Seccional Noroeste.",
+  custom_footer: "Presentá tu carnet digital para acceder a los beneficios.",
+  local_port: 3008,
+  pause_duration_minutes: 30,
+  auto_pause_on_human_reply: true,
+};
+
+interface ChatMessage {
+  id: string;
+  sender: "user" | "bot";
+  text: string;
+  time: string;
+}
+
+export default function WhatsAppBotManager() {
+  const theme = useTheme();
+  const [tabValue, setTabValue] = useState(0);
+  const [config, setConfig] = useState<BotConfig>(DEFAULT_CONFIG);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "info" | "warning";
+  }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  // Simulator state
+  const [simProvince, setSimProvince] = useState<string>("Salta");
+  const [simState, setSimState] = useState<"province_select" | "main_menu" | "rubro_select" | "gremial_select">("province_select");
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: "1",
+      sender: "bot",
+      text: `👋 *¡Hola! Te damos la bienvenida al canal oficial de AEFIP Seccional Noroeste.*\n\n📍 Para brindarte información, sedes y convenios específicos de tu área, por favor *seleccioná tu provincia*:\n\n1️⃣ *Salta*\n2️⃣ *Jujuy*\n3️⃣ *Tucumán*\n4️⃣ *Santiago del Estero*\n5️⃣ *Catamarca*\n6️⃣ *Toda la Seccional (General)*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número de tu provincia (1 al 6)_`,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    },
+  ]);
+  const [inputMessage, setInputMessage] = useState("");
+  const [isSimulating, setIsSimulating] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  // Server Status & Live QR
+  const [serverStatus, setServerStatus] = useState<"checking" | "online" | "offline">("checking");
+  const [qrRefreshKey, setQrRefreshKey] = useState<number>(Date.now());
+
+  const checkServerStatus = async () => {
+    setServerStatus("checking");
+    try {
+      const port = config.local_port || 3008;
+      // Probe localhost server
+      await fetch(`http://localhost:${port}`, { mode: "no-cors" });
+      setServerStatus("online");
+      setQrRefreshKey(Date.now());
+    } catch (e) {
+      setServerStatus("offline");
+    }
+  };
+
+  useEffect(() => {
+    checkServerStatus();
+  }, [config.local_port]);
+
+  useEffect(() => {
+    fetchConfig();
+  }, []);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const fetchConfig = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("system_configs")
+        .select("value")
+        .eq("key", "whatsapp_bot_config")
+        .single();
+
+      if (!error && data?.value) {
+        setConfig({ ...DEFAULT_CONFIG, ...data.value });
+      }
+    } catch (err) {
+      console.warn("Using default WhatsApp bot config:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("system_configs").upsert(
+        {
+          key: "whatsapp_bot_config",
+          value: config,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" }
+      );
+
+      if (error) throw error;
+      setSnackbar({
+        open: true,
+        message: "Configuración del Bot guardada exitosamente en la base de datos.",
+        severity: "success",
+      });
+    } catch (err: any) {
+      setSnackbar({
+        open: true,
+        message: "Error al guardar la configuración: " + err.message,
+        severity: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleBotActive = async (newActive: boolean) => {
+    const updated = { ...config, is_bot_active: newActive };
+    setConfig(updated);
+    try {
+      const { error } = await supabase.from("system_configs").upsert(
+        {
+          key: "whatsapp_bot_config",
+          value: updated,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" }
+      );
+
+      if (error) throw error;
+      setSnackbar({
+        open: true,
+        message: newActive
+          ? "🟢 Bot de WhatsApp HABILITADO exitosamente."
+          : "⏸️ Bot de WhatsApp DESHABILITADO globalmente.",
+        severity: newActive ? "success" : "info",
+      });
+    } catch (err: any) {
+      setSnackbar({
+        open: true,
+        message: "Error al cambiar estado del bot: " + err.message,
+        severity: "error",
+      });
+    }
+  };
+
+  // Simulator Response Engine
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isSimulating) return;
+
+    const userText = inputMessage.trim();
+    const timeNow = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      sender: "user",
+      text: userText,
+      time: timeNow,
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setInputMessage("");
+    setIsSimulating(true);
+
+    // Process logic against actual Supabase database in real time
+    setTimeout(async () => {
+      let replyText = "";
+      const lower = userText.toLowerCase();
+
+      try {
+        // Global resets
+        if (["0", "menu", "inicio", "volver", "cancelar"].includes(lower)) {
+          setSimState("main_menu");
+          replyText = `📍 *Provincia seleccionada: ${simProvince}*\n\n¿En qué podemos ayudarte hoy? Elegí una opción:\n\n1️⃣ *Convenios y Comercios* (Descuentos en ${simProvince})\n2️⃣ *Prensa y Noticias* (Últimas novedades gremiales)\n3️⃣ *Beneficios Gremiales* (Establecimientos y servicios gremiales)\n4️⃣ *Consultar Afiliación* (Verificar padrón / carnet)\n5️⃣ *Atención Gremial* (Hablar directamente con un asesor)\n6️⃣ 🔄 *Cambiar de Provincia*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
+        } else if (["cambiar", "provincia", "provincias"].includes(lower)) {
+          setSimState("province_select");
+          replyText = `👋 *Selección de Provincia*\n\n📍 Para brindarte información y convenios específicos de tu área, por favor *seleccioná tu provincia*:\n\n1️⃣ *Salta*\n2️⃣ *Jujuy*\n3️⃣ *Tucumán*\n4️⃣ *Santiago del Estero*\n5️⃣ *Catamarca*\n6️⃣ *Toda la Seccional (General)*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
+        } else if (simState === "province_select") {
+          let selected = "";
+          if (lower === "1" || lower === "salta") selected = "Salta";
+          else if (lower === "2" || lower === "jujuy") selected = "Jujuy";
+          else if (lower === "3" || lower.includes("tucuman") || lower.includes("tucumán")) selected = "Tucumán";
+          else if (lower === "4" || lower.includes("santiago")) selected = "Santiago del Estero";
+          else if (lower === "5" || lower === "catamarca") selected = "Catamarca";
+          else if (lower === "6" || lower === "general" || lower === "todas" || lower === "toda") selected = "General";
+
+          if (selected) {
+            setSimProvince(selected);
+            setSimState("main_menu");
+            replyText = `📍 *Provincia seleccionada: ${selected}*\n\n¿En qué podemos ayudarte hoy? Elegí una opción:\n\n1️⃣ *Convenios y Comercios* (Descuentos en ${selected})\n2️⃣ *Prensa y Noticias* (Últimas novedades gremiales)\n3️⃣ *Beneficios Gremiales* (Establecimientos y servicios gremiales)\n4️⃣ *Consultar Afiliación* (Verificar padrón / carnet)\n5️⃣ *Atención Gremial* (Hablar directamente con un asesor)\n6️⃣ 🔄 *Cambiar de Provincia*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
+          } else {
+            replyText = `⚠️ Opción no válida. Por favor, respondé con un número del *1 al 6* para seleccionar tu provincia:\n\n1️⃣ Salta\n2️⃣ Jujuy\n3️⃣ Tucumán\n4️⃣ Santiago del Estero\n5️⃣ Catamarca\n6️⃣ Toda la Seccional (General)`;
+          }
+        } else if (simState === "rubro_select") {
+          const rubrosMap: Record<string, { label: string; query: string }> = {
+            "1": { label: "Farmacias y Salud", query: "farmacia" },
+            "2": { label: "Gimnasios y Deportes", query: "gimnasio" },
+            "3": { label: "Gastronomía y Bares", query: "gastronomia" },
+            "4": { label: "Hotelería y Turismo", query: "hotel" },
+            "5": { label: "Comercios y Servicios", query: "comercio" },
+            "6": { label: "Ópticas y Cuidado Personal", query: "optica" },
+            "7": { label: "Todos los convenios", query: "todos" },
+          };
+
+          const selectedRubro = rubrosMap[lower]?.query || lower;
+          const label = rubrosMap[lower]?.label || `"${userText}"`;
+
+          let q = supabase.from("benefits").select("*");
+          if (simProvince && simProvince !== "General") {
+            q = q.ilike("category", `%${simProvince}%`);
+          }
+          if (selectedRubro !== "todos") {
+            q = q.or(`rubro.ilike.%${selectedRubro}%,title.ilike.%${selectedRubro}%,description.ilike.%${selectedRubro}%`);
+          }
+
+          const { data } = await q.limit(6);
+          if (data && data.length > 0) {
+            replyText = `🏷️ *CONVENIOS Y BENEFICIOS (${label} - ${simProvince.toUpperCase()})*:\n━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            data.forEach((b: any, i: number) => {
+              replyText += `*${i + 1}. ${b.title || b.name}*\n`;
+              if (b.discount) replyText += `   💥 *${b.discount}*\n`;
+              if (b.rubro) replyText += `   📁 _${b.rubro}_ (${b.category || simProvince})\n`;
+              if (b.address) replyText += `   🏠 ${b.address}\n`;
+              replyText += `\n`;
+            });
+            replyText += `━━━━━━━━━━━━━━━━━━━━━\n📲 _${config.custom_footer}_\n🌐 Ver todos: https://aefipnoroeste.org.ar/#/convenios\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else {
+            replyText = `🔍 *No se encontraron convenios* para ${label} en ${simProvince}.\n🌐 Consultá el catálogo completo en: https://aefipnoroeste.org.ar/#/convenios\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          }
+        } else if (simState === "gremial_select") {
+          if (lower === "1" || lower.includes("san lorenzo")) {
+            replyText = `🏡 *PREDIO RECREATIVO SAN LORENZO (SALTA)*\n_AEFIP Seccional Noroeste_\n━━━━━━━━━━━━━━━━━━━━━\n\n📍 *Ubicación:* Quebrada de San Lorenzo, Salta.\n\n🌿 *Instalaciones y Servicios:*\n• Quinchos y asadores familiares totalmente equipados.\n• Pileta de natación olímpica y recreativa.\n• Canchas de fútbol, básquet, tenis y pádel.\n• Salón de usos múltiples.\n\n📲 *Reservas online:* https://aefipnoroeste.org.ar/#/turismo\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "2" || lower.includes("warmi")) {
+            replyText = `🛖 *CABAÑAS WARMI (EL MOLLAR - TUCUMÁN)*\n_Refugio de montaña junto al lago La Angostura_\n━━━━━━━━━━━━━━━━━━━━━\n\n📍 *Ubicación:* El Mollar, Tafí del Valle, Tucumán.\n\n✨ *Comodidades:*\n• Cabañas alpinas equipadas para 4, 6 y 8 personas.\n• Cocina completa, vajilla, microondas y heladera.\n• Calefacción, DirectTV y asador individual.\n\n📅 *Reservas:* https://aefipnoroeste.org.ar/#/turismo\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "3" || lower.includes("azucena")) {
+            replyText = `🏨 *HOTEL AZUCENA (TAFÍ DEL VALLE - TUCUMÁN)*\n_Hospedaje y descanso en los Valles Calchaquíes_\n━━━━━━━━━━━━━━━━━━━━━\n\n📍 *Ubicación:* Tafí del Valle, Tucumán.\n\n✨ *Servicios:*\n• Habitaciones con baño privado y calefacción.\n• Desayuno regional incluido.\n• Estacionamiento propio y Wi-Fi.\n\n📲 *Información y Reservas:* https://aefipnoroeste.org.ar/#/turismo\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "4" || lower.includes("subsidio") || lower.includes("ayuda")) {
+            replyText = `💰 *SUBSIDIOS Y AYUDAS SOCIALES GREMIALES*\n_Beneficios exclusivos AEFIP_\n━━━━━━━━━━━━━━━━━━━━━\n\n💍 *Matrimonio / Luna de Miel:* 7 días de estadía de regalo para la pareja en Bariloche, Mar del Plata, CABA o Necochea.\n🥈 *Bodas de Plata (25 años):* 7 días de estadía de regalo.\n👶 *Kit Nacimiento:* Ajuar completo para el recién nacido.\n🤝 *Adopción:* Ayuda económica o kit de nacimiento.\n🎖️ *Jubilación:* 7 días de estadía de regalo para dos personas.\n\n📩 *Contacto:* sociales@aefip.org.ar\n🌐 *Detalles:* https://aefipnoroeste.org.ar/#/gremio\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "5" || lower.includes("web")) {
+            replyText = `🌐 *PORTAL DE SERVICIOS GREMIALES:*\n👉 https://aefipnoroeste.org.ar/#/turismo\n👉 https://aefipnoroeste.org.ar/#/gremio\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else {
+            replyText = `⚠️ Opción no reconocida. Por favor, respondé con un número del *1 al 5* (o *0* para volver al menú).`;
+          }
+        } else {
+          // main_menu processing
+          if (lower === "1" || lower.includes("beneficio") || lower.includes("convenio") || lower.includes("descuento") || lower.includes("comercio")) {
+            setSimState("rubro_select");
+            replyText = `🏷️ *CONVENIOS Y COMERCIOS - ${simProvince.toUpperCase()}*\n━━━━━━━━━━━━━━━━━━━━━\n\nElegí el rubro que deseas consultar:\n\n1️⃣ 💊 *Farmacias y Salud*\n2️⃣ 🏋️ *Gimnasios y Deportes*\n3️⃣ 🍽️ *Gastronomía y Bares*\n4️⃣ 🏨 *Hotelería y Turismo*\n5️⃣ 🛍️ *Comercios y Servicios*\n6️⃣ 👓 *Ópticas y Cuidado Personal*\n7️⃣ 📋 *Ver TODOS los convenios en ${simProvince}*\n\n🔍 _O escribí directamente el nombre de un comercio o rubro._\n━━━━━━━━━━━━━━━━━━━━━\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "2" || lower.includes("noticia") || lower.includes("prensa")) {
+            const { data } = await supabase.from("news").select("title, summary, id").order("created_at", { ascending: false }).limit(3);
+            if (data && data.length > 0) {
+              replyText = `📰 *ÚLTIMAS NOVEDADES Y COMUNICADOS*\n_AEFIP Seccional Noroeste_\n━━━━━━━━━━━━━━━━━━━━━\n\n`;
+              data.forEach((n: any, i: number) => {
+                replyText += `*${i + 1}. ${n.title}*\n`;
+                if (n.summary) replyText += `   📄 ${n.summary.slice(0, 90)}...\n`;
+                replyText += `   🔗 https://aefipnoroeste.org.ar/#/prensa/${n.id}\n\n`;
+              });
+              replyText += `━━━━━━━━━━━━━━━━━━━━━\n🌐 Ver todas: https://aefipnoroeste.org.ar/#/prensa\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+            } else {
+              replyText = `📰 No hay comunicados recientes cargados en el sistema en este momento.\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+            }
+          } else if (lower === "3" || lower.includes("gremial") || lower.includes("servicio") || lower.includes("establecimiento") || lower.includes("turismo") || lower.includes("cabaña") || lower.includes("predio")) {
+            setSimState("gremial_select");
+            replyText = `🏛️ *BENEFICIOS GREMIALES - AEFIP NOROESTE*\n_Establecimientos y Servicios Gremiales_\n━━━━━━━━━━━━━━━━━━━━━\n\nElegí una opción para ver información detallada:\n\n1️⃣ 🏡 *Predio San Lorenzo (Salta)* (Instalaciones, pileta, canchas y asadores)\n2️⃣ 🛖 *Cabañas Warmi (El Mollar, Tucumán)* (Alojamiento de montaña)\n3️⃣ 🏨 *Hotel Azucena (Tafí del Valle, Tucumán)* (Hospedaje y confort)\n4️⃣ 💰 *Subsidios y Ayudas Sociales* (Nacimiento, Matrimonio, Adopción, Jubilación)\n5️⃣ 🌐 *Ver todos los servicios en la Web*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número de tu opción (1 al 5) o *0* para volver al menú_`;
+          } else if (lower === "4" || lower.includes("afiliado") || lower.includes("padron") || lower.includes("carnet")) {
+            replyText = `🔍 *CONSULTA DE ESTADO DE AFILIACIÓN*\n\nPor favor, ingresá tu número de DNI o Legajo (ej: *34185803*):`;
+          } else if (/^\d{6,9}$/.test(lower)) {
+            const { data } = await supabase
+              .from("affiliates")
+              .select("nombre, apellido, legajo, branch, validation_token")
+              .or(`dni.eq.${lower},legajo.ilike.%${lower}%`)
+              .limit(1);
+
+            if (data && data.length > 0) {
+              const aff = data[0];
+              replyText = `✅ *ESTADO DE AFILIACIÓN CONFIRMADO*\n\n👤 *Afiliado/a:* ${aff.apellido?.toUpperCase()}, ${aff.nombre}\n🔖 *Legajo:* ${aff.legajo || "Registrado"}\n🏢 *Seccional:* ${aff.branch?.toUpperCase() || "NOROESTE"}\n🟢 *Condición:* Activo/a\n\n💳 *Carnet Digital:* https://aefipnoroeste.org.ar/#/validar/${aff.validation_token || ""}\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+            } else {
+              replyText = `❌ *AFILIADO NO ENCONTRADO*\n\nNo se encontró ningún afiliado activo con el identificador *"${lower}"* en el padrón de Seccional Noroeste.\n\n_Para tramitar la afiliación:_ https://aefipnoroeste.org.ar/#/afiliate\n\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+            }
+          } else if (lower === "5" || lower.includes("asesor") || lower.includes("contacto") || lower.includes("humano") || lower.includes("atencion")) {
+            const delegaciones: Record<string, string> = {
+              Salta: "España 832 / Av. Belgrano, Salta Capital",
+              Jujuy: "San Salvador de Jujuy",
+              Tucumán: "San Miguel de Tucumán",
+              "Santiago del Estero": "Santiago del Estero",
+              Catamarca: "San Fernando del Valle de Catamarca",
+              General: "Salta, Jujuy, Tucumán, Santiago del Estero y Catamarca",
+            };
+            const loc = delegaciones[simProvince] || delegaciones["General"];
+            replyText = `👨‍💼 *COMUNICACIÓN DIRECTA CON ASESOR GREMIAL*\n_AEFIP Seccional Noroeste - ${simProvince}_\n━━━━━━━━━━━━━━━━━━━━━\n\nPodés comunicarte directamente con nuestro equipo de atención y guardia:\n\n📲 *WhatsApp Directo:* https://wa.me/${config.human_agent_phone}?text=${encodeURIComponent("Hola, me comunico desde el Bot para realizar una consulta gremial.")}\n\n📍 *Sede / Delegación:* ${loc}\n⏰ *Horario de Atención:* ${config.office_hours}\n\n━━━━━━━━━━━━━━━━━━━━━\n💡 _Escribí *menu* o *0* para volver al menú principal._`;
+          } else if (lower === "6") {
+            setSimState("province_select");
+            replyText = `👋 *Selección de Provincia*\n\n📍 Seleccioná tu provincia para adaptar la información:\n\n1️⃣ *Salta*\n2️⃣ *Jujuy*\n3️⃣ *Tucumán*\n4️⃣ *Santiago del Estero*\n5️⃣ *Catamarca*\n6️⃣ *Toda la Seccional (General)*\n\n━━━━━━━━━━━━━━━━━━━━━\n✍️ _Respondé con el número (1 al 6)_`;
+          } else {
+            replyText = `⚠️ Opción no reconocida. Por favor, respondé con un número del *1 al 6* para continuar:\n\n1️⃣ Convenios y Comercios\n2️⃣ Prensa y Noticias\n3️⃣ Beneficios Gremiales\n4️⃣ Consultar Afiliación\n5️⃣ Hablar con un Asesor\n6️⃣ Cambiar de Provincia`;
+          }
+        }
+      } catch (err: any) {
+        replyText = `⚠️ Error al procesar tu solicitud: ${err.message}. Intentá nuevamente o escribí *0*.`;
+      }
+
+      const botMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: "bot",
+        text: replyText,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      setMessages((prev) => [...prev, botMsg]);
+      setIsSimulating(false);
+    }, 500);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setSnackbar({
+      open: true,
+      message: "Copiado al portapapeles.",
+      severity: "success",
+    });
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ pb: 6 }}>
+      {/* Header Banner */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          mb: 4,
+          borderRadius: 3,
+          background: `linear-gradient(135deg, ${alpha("#25D366", 0.15)} 0%, ${alpha(
+            theme.palette.primary.main,
+            0.1
+          )} 100%)`,
+          border: `1px solid ${alpha("#25D366", 0.3)}`,
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          alignItems: { xs: "flex-start", md: "center" },
+          justifyContent: "space-between",
+          gap: 2,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Avatar
+            sx={{
+              bgcolor: "#25D366",
+              color: "#fff",
+              width: 56,
+              height: 56,
+              boxShadow: "0 4px 12px rgba(37, 211, 102, 0.4)",
+            }}
+          >
+            <WhatsAppIcon sx={{ fontSize: 36 }} />
+          </Avatar>
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                Bot de WhatsApp - AEFIP Noroeste
+              </Typography>
+              <Chip
+                icon={<SmartToyIcon sx={{ fontSize: 16 }} />}
+                label={config.is_bot_active ? "Servicio Habilitado" : "Servicio En Pausa"}
+                color={config.is_bot_active ? "success" : "default"}
+                size="small"
+                sx={{ fontWeight: 700 }}
+              />
+              <Chip label="Solo Administrador" size="small" variant="outlined" color="primary" />
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Automatización de atención a afiliados, consultas de convenios, novedades, estado de padrón y turismo.
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              px: 2,
+              py: 0.5,
+              borderRadius: 3,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              bgcolor: alpha(config.is_bot_active ? "#25D366" : theme.palette.error.main, 0.08),
+              borderColor: alpha(config.is_bot_active ? "#25D366" : theme.palette.error.main, 0.3),
+            }}
+          >
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={config.is_bot_active}
+                  onChange={(e) => handleToggleBotActive(e.target.checked)}
+                  color="success"
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": { color: "#25D366" },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { backgroundColor: "#25D366" },
+                  }}
+                />
+              }
+              label={
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 800,
+                    color: config.is_bot_active ? "#25D366" : theme.palette.text.secondary,
+                    userSelect: "none",
+                  }}
+                >
+                  {config.is_bot_active ? "BOT HABILITADO" : "BOT DESHABILITADO"}
+                </Typography>
+              }
+              sx={{ mr: 0 }}
+            />
+          </Paper>
+
+          <Button
+            variant="outlined"
+            startIcon={<OpenInNewIcon />}
+            href={`http://localhost:${config.local_port || 3008}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700 }}
+          >
+            Ver QR / Servidor Local
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSaveConfig}
+            disabled={saving}
+            sx={{
+              borderRadius: 2,
+              bgcolor: "#25D366",
+              "&:hover": { bgcolor: "#1ebc59" },
+              textTransform: "none",
+              fontWeight: 700,
+            }}
+          >
+            {saving ? "Guardando..." : "Guardar Cambios"}
+          </Button>
+        </Box>
+      </Paper>
+
+      {/* Tabs */}
+      <Paper elevation={0} sx={{ borderRadius: 3, mb: 3, border: `1px solid ${theme.palette.divider}` }}>
+        <Tabs
+          value={tabValue}
+          onChange={(_e, v) => setTabValue(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            px: 2,
+            borderBottom: `1px solid ${theme.palette.divider}`,
+            "& .MuiTab-root": { textTransform: "none", fontWeight: 700, minHeight: 56 },
+          }}
+        >
+          <Tab icon={<SmartToyIcon />} iconPosition="start" label="Simulador en Vivo" />
+          <Tab icon={<SettingsIcon />} iconPosition="start" label="Configuración del Bot" />
+          <Tab icon={<QrCodeScannerIcon />} iconPosition="start" label="Estado y Vinculación QR" />
+          <Tab icon={<TerminalIcon />} iconPosition="start" label="Guía de Despliegue 24/7" />
+        </Tabs>
+
+        {/* TAB 0: SIMULADOR INTERACTIVO DE CHAT */}
+        {tabValue === 0 && (
+          <Box sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 7 }}>
+                <Box
+                  sx={{
+                    width: "100%",
+                    maxWidth: 550,
+                    mx: "auto",
+                    borderRadius: 4,
+                    overflow: "hidden",
+                    border: `1px solid ${theme.palette.divider}`,
+                    boxShadow: "0 12px 32px rgba(0,0,0,0.1)",
+                    display: "flex",
+                    flexDirection: "column",
+                    height: 600,
+                    bgcolor: theme.palette.mode === "dark" ? "#121b22" : "#efeae2",
+                  }}
+                >
+                  {/* WhatsApp Chat Header */}
+                  <Box
+                    sx={{
+                      p: 2,
+                      bgcolor: theme.palette.mode === "dark" ? "#1f2c34" : "#075e54",
+                      color: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <Avatar sx={{ bgcolor: "#25D366", color: "#fff" }}>
+                        <WhatsAppIcon />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                          AEFIP Noroeste (Bot Oficial)
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.8)" }}>
+                          en línea • cuenta institucional
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Tooltip title="Reiniciar chat de prueba">
+                      <IconButton
+                        size="small"
+                        sx={{ color: "#fff" }}
+                        onClick={() =>
+                          setMessages([
+                            {
+                              id: "1",
+                              sender: "bot",
+                              text: `👋 *${config.welcome_title}*\n\n1️⃣ *Convenios y Beneficios*\n2️⃣ *Prensa y Noticias*\n3️⃣ *Predio y Cabañas*\n4️⃣ *Consultar Afiliación*\n5️⃣ *Atención Gremial*\n\n✍️ _Respondé con el número (1 al 5)_`,
+                              time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                            },
+                          ])
+                        }
+                      >
+                        <RefreshIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+
+                  {/* Messages Area */}
+                  <Box sx={{ flex: 1, p: 2, overflowY: "auto", display: "flex", flexDirection: "column", gap: 1.5 }}>
+                    {messages.map((m) => {
+                      const isBot = m.sender === "bot";
+                      return (
+                        <Box
+                          key={m.id}
+                          sx={{
+                            alignSelf: isBot ? "flex-start" : "flex-end",
+                            maxWidth: "85%",
+                            bgcolor: isBot
+                              ? theme.palette.mode === "dark"
+                                ? "#202c33"
+                                : "#ffffff"
+                              : theme.palette.mode === "dark"
+                              ? "#005c4b"
+                              : "#d9fdd3",
+                            color: theme.palette.mode === "dark" ? "#e9edef" : "#111b21",
+                            p: 1.5,
+                            borderRadius: 2.5,
+                            borderTopLeftRadius: isBot ? 0 : 2.5,
+                            borderTopRightRadius: isBot ? 2.5 : 0,
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+                            position: "relative",
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              whiteSpace: "pre-wrap",
+                              wordBreak: "break-word",
+                              fontSize: "0.875rem",
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            {m.text}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "block",
+                              textAlign: "right",
+                              fontSize: "0.68rem",
+                              color: theme.palette.mode === "dark" ? "#8696a0" : "#667781",
+                              mt: 0.5,
+                            }}
+                          >
+                            {m.time} {isBot ? "" : "✓✓"}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                    {isSimulating && (
+                      <Box
+                        sx={{
+                          alignSelf: "flex-start",
+                          bgcolor: theme.palette.mode === "dark" ? "#202c33" : "#ffffff",
+                          p: 1,
+                          borderRadius: 2,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                        }}
+                      >
+                        <CircularProgress size={14} sx={{ color: "#25D366" }} />
+                        <Typography variant="caption" color="text.secondary">
+                          escribiendo respuesta en vivo...
+                        </Typography>
+                      </Box>
+                    )}
+                    <div ref={chatBottomRef} />
+                  </Box>
+
+                  {/* Input Box */}
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      bgcolor: theme.palette.mode === "dark" ? "#202c33" : "#f0f2f5",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
+                  >
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Escribe un comando (ej: 1, farmacia, 4, 34185803, turismo)..."
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 3,
+                          bgcolor: theme.palette.mode === "dark" ? "#2a3942" : "#ffffff",
+                        },
+                      }}
+                    />
+                    <IconButton
+                      onClick={handleSendMessage}
+                      disabled={!inputMessage.trim() || isSimulating}
+                      sx={{
+                        bgcolor: "#25D366",
+                        color: "#fff",
+                        "&:hover": { bgcolor: "#1ebc59" },
+                        "&:disabled": { bgcolor: alpha("#25D366", 0.3) },
+                      }}
+                    >
+                      <SendIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+              </Grid>
+
+              {/* Guide / Test Shortcuts */}
+              <Grid size={{ xs: 12, md: 5 }}>
+                <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
+                  🧪 Comandos Rápidos de Prueba
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Hacé clic en cualquier opción para enviar el mensaje simulado directamente contra tu base de datos de Supabase:
+                </Typography>
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  {[
+                    { label: "1️⃣ Ver Convenios Generales", text: "1" },
+                    { label: "💊 Buscar Farmacias con Descuento", text: "farmacia" },
+                    { label: "🏨 Buscar Hoteles / Turismo", text: "hotel" },
+                    { label: "📰 Consultar Últimas Noticias", text: "2" },
+                    { label: "🏕️ Tarifas de Cabañas y Predio", text: "3" },
+                    { label: "🔍 Validar Afiliado Activo (DNI Demo)", text: "34185803" },
+                    { label: "📞 Derivación a Asesor Humano", text: "5" },
+                    { label: "🔄 Volver al Menú Principal", text: "menu" },
+                  ].map((btn, idx) => (
+                    <Button
+                      key={idx}
+                      variant="outlined"
+                      size="small"
+                      onClick={() => {
+                        setInputMessage(btn.text);
+                      }}
+                      sx={{
+                        justifyContent: "flex-start",
+                        textAlign: "left",
+                        borderRadius: 2,
+                        textTransform: "none",
+                        fontWeight: 600,
+                        py: 1,
+                      }}
+                    >
+                      {btn.label}
+                    </Button>
+                  ))}
+                </Box>
+
+                <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    💡 El simulador consulta en tiempo real las tablas <strong>benefits</strong>, <strong>news</strong>,{" "}
+                    <strong>affiliates</strong> y <strong>system_configs</strong> exactamente igual que el microservicio en Node.js.
+                  </Typography>
+                </Alert>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+
+        {/* TAB 1: CONFIGURACIÓN GENERAL */}
+        {tabValue === 1 && (
+          <Box sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
+                      ⚙️ Parámetros de Atención Gremial
+                    </Typography>
+
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={config.is_bot_active}
+                            onChange={(e) => setConfig({ ...config, is_bot_active: e.target.checked })}
+                            color="success"
+                          />
+                        }
+                        label={
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              Estado del Bot
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Habilitar o pausar respuestas automáticas.
+                            </Typography>
+                          </Box>
+                        }
+                      />
+
+                      <TextField
+                        label="Teléfono Asesor / Guardia (WhatsApp)"
+                        fullWidth
+                        size="small"
+                        value={config.human_agent_phone}
+                        onChange={(e) => setConfig({ ...config, human_agent_phone: e.target.value })}
+                        helperText="Formato internacional sin signos (ej: 5493870000000)"
+                      />
+
+                      <TextField
+                        label="Horario de Atención de Sede"
+                        fullWidth
+                        size="small"
+                        value={config.office_hours}
+                        onChange={(e) => setConfig({ ...config, office_hours: e.target.value })}
+                      />
+
+                      <Divider sx={{ my: 0.5 }} />
+
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={config.auto_pause_on_human_reply}
+                            onChange={(e) => setConfig({ ...config, auto_pause_on_human_reply: e.target.checked })}
+                            color="success"
+                          />
+                        }
+                        label={
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              Auto-Pausar al responder el operador
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Cuando contestes manualmente un chat, el bot se silenciará en esa conversación para no interrumpir.
+                            </Typography>
+                          </Box>
+                        }
+                      />
+
+                      {config.auto_pause_on_human_reply && (
+                        <TextField
+                          label="Tiempo de Silencio / Pausa (Minutos)"
+                          type="number"
+                          fullWidth
+                          size="small"
+                          value={config.pause_duration_minutes}
+                          onChange={(e) =>
+                            setConfig({ ...config, pause_duration_minutes: Math.max(1, parseInt(e.target.value, 10) || 30) })
+                          }
+                          helperText="Tiempo que el bot permanecerá callado tras tu último mensaje (por defecto 30 min)."
+                        />
+                      )}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
+                      💬 Mensajes y Textos Personalizados
+                    </Typography>
+
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+                      <TextField
+                        label="Título de Bienvenida"
+                        fullWidth
+                        multiline
+                        rows={2}
+                        value={config.welcome_title}
+                        onChange={(e) => setConfig({ ...config, welcome_title: e.target.value })}
+                      />
+
+                      <TextField
+                        label="Pie de Mensaje de Convenios"
+                        fullWidth
+                        multiline
+                        rows={2}
+                        value={config.custom_footer}
+                        onChange={(e) => setConfig({ ...config, custom_footer: e.target.value })}
+                      />
+
+                      <TextField
+                        label="Puerto Local del Servidor Bot"
+                        type="number"
+                        size="small"
+                        value={config.local_port}
+                        onChange={(e) => setConfig({ ...config, local_port: parseInt(e.target.value, 10) || 3008 })}
+                        helperText="Puerto HTTP para visor de QR y Webhooks (por defecto 3008)"
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    startIcon={<SaveIcon />}
+                    onClick={handleSaveConfig}
+                    disabled={saving}
+                    sx={{
+                      borderRadius: 2,
+                      bgcolor: "#25D366",
+                      "&:hover": { bgcolor: "#1ebc59" },
+                      fontWeight: 700,
+                      px: 4,
+                    }}
+                  >
+                    {saving ? "Guardando en Supabase..." : "Guardar Configuración en Supabase"}
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+
+        {/* TAB 2: ESTADO Y VINCULACIÓN QR */}
+        {tabValue === 2 && (
+          <Box sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 7 }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, flexWrap: "wrap", gap: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                    📱 Vinculación por Código QR (Multi-Dispositivo)
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<RefreshIcon />}
+                    onClick={checkServerStatus}
+                    sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}
+                  >
+                    Comprobar Estado
+                  </Button>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  El bot funciona como un dispositivo vinculado oficial de WhatsApp (igual que cuando abres WhatsApp Web en tu PC). El teléfono principal puede seguir usándose libremente.
+                </Typography>
+
+                {/* Server Status Banner */}
+                {serverStatus === "online" ? (
+                  <Alert
+                    severity="success"
+                    icon={<CheckCircleIcon />}
+                    sx={{ mb: 3, borderRadius: 3, "& .MuiAlert-message": { width: "100%" } }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                          🟢 Servidor Local del Bot Conectado
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Escuchando en http://localhost:{config.local_port || 3008}. El código QR se actualiza en vivo abajo.
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        startIcon={<OpenInNewIcon />}
+                        href={`http://localhost:${config.local_port || 3008}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}
+                      >
+                        Abrir en Pestaña
+                      </Button>
+                    </Box>
+                  </Alert>
+                ) : serverStatus === "offline" ? (
+                  <Alert
+                    severity="warning"
+                    sx={{ mb: 3, borderRadius: 3 }}
+                  >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>
+                      ⚠️ El Servidor Local del Bot aún no está iniciado
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1.5, fontSize: "0.85rem" }}>
+                      Para que la página del QR y el bot funcionen en tu computadora, debes iniciar el proceso del bot en una terminal (igual que tienes iniciado el de la web):
+                    </Typography>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 1.5,
+                        bgcolor: theme.palette.mode === "dark" ? "#0d1117" : "#f6f8fa",
+                        fontFamily: "monospace",
+                        fontSize: "0.85rem",
+                        borderRadius: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        border: `1px solid ${theme.palette.divider}`,
+                      }}
+                    >
+                      <span>npm run bot</span>
+                      <Button
+                        size="small"
+                        startIcon={<ContentCopyIcon fontSize="small" />}
+                        onClick={() => copyToClipboard("npm run bot")}
+                        sx={{ textTransform: "none", fontWeight: 700 }}
+                      >
+                        Copiar
+                      </Button>
+                    </Paper>
+                  </Alert>
+                ) : (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3, p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+                    <CircularProgress size={18} />
+                    <Typography variant="body2" color="text.secondary">
+                      Comprobando conexión con el servidor local del bot...
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Live QR Display Box */}
+                {serverStatus === "online" && (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 3,
+                      borderRadius: 3,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      textAlign: "center",
+                      mb: 3,
+                      bgcolor: theme.palette.mode === "dark" ? "#1e293b" : "#f8fafc",
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
+                      📸 Escaneá este Código QR con WhatsApp
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={`http://localhost:${config.local_port || 3008}?t=${qrRefreshKey}`}
+                      alt="Código QR de WhatsApp"
+                      onError={() => setServerStatus("offline")}
+                      sx={{
+                        width: 260,
+                        height: 260,
+                        borderRadius: 3,
+                        border: `3px solid #25D366`,
+                        boxShadow: "0 8px 24px rgba(37, 211, 102, 0.25)",
+                        bgcolor: "#fff",
+                        p: 1,
+                      }}
+                    />
+                    <Box sx={{ display: "flex", gap: 1.5, mt: 2 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<RefreshIcon />}
+                        onClick={() => setQrRefreshKey(Date.now())}
+                        sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}
+                      >
+                        Refrescar Imagen QR
+                      </Button>
+                    </Box>
+                  </Paper>
+                )}
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 3,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                    }}
+                  >
+                    <CheckCircleIcon sx={{ color: "#25D366", fontSize: 32 }} />
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        Persistencia Automática de Sesión
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Una vez vinculado el teléfono, las credenciales se guardan encriptadas en <code>bot/bot_sessions/</code>. No tendrás que volver a escanear el QR salvo que cierres la sesión manualmente.
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 5 }}>
+                <Card variant="outlined" sx={{ borderRadius: 3, bgcolor: alpha(theme.palette.background.paper, 0.6) }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
+                      📋 Pasos para Conectar en Local
+                    </Typography>
+                    <Box component="ol" sx={{ pl: 2, fontSize: "0.875rem", color: "text.secondary", m: 0 }}>
+                      <li style={{ marginBottom: 10 }}>
+                        Abrí una terminal en la raíz del proyecto y ejecutá:
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 1,
+                            mt: 0.5,
+                            bgcolor: theme.palette.mode === "dark" ? "#0d1117" : "#f1f5f9",
+                            fontFamily: "monospace",
+                            fontSize: "0.8rem",
+                            borderRadius: 1.5,
+                          }}
+                        >
+                          npm run bot
+                        </Paper>
+                      </li>
+                      <li style={{ marginBottom: 10 }}>
+                        Abrí <strong>WhatsApp</strong> en el teléfono celular de la Seccional.
+                      </li>
+                      <li style={{ marginBottom: 10 }}>
+                        Tocá en <strong>Dispositivos Vinculados</strong> &gt; <strong>Vincular un dispositivo</strong>.
+                      </li>
+                      <li style={{ marginBottom: 10 }}>
+                        Apuntá la cámara al código QR que aparece en esta pantalla o en tu terminal.
+                      </li>
+                      <li>
+                        ¡Listo! El bot responderá automáticamente cuando cualquier usuario le envíe un mensaje.
+                      </li>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+
+        {/* TAB 3: GUÍA DE DESPLIEGUE */}
+        {tabValue === 3 && (
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
+              🚀 Despliegue en Servidor 24/7 (Docker / VPS / Railway / Render)
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Para que el bot responda las 24 horas sin necesidad de tener tu computadora encendida, se incluye soporte nativo para Docker y PM2.
+            </Typography>
+
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card variant="outlined" sx={{ borderRadius: 3 }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                      <CloudDoneIcon color="primary" /> Opción A: Despliegue con Docker Compose
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+                      Levanta el bot en segundo plano con reinicio automático si el servidor se reinicia.
+                    </Typography>
+
+                    <Paper
+                      sx={{
+                        p: 2,
+                        bgcolor: theme.palette.mode === "dark" ? "#0d1117" : "#f6f8fa",
+                        borderRadius: 2,
+                        fontFamily: "monospace",
+                        fontSize: "0.82rem",
+                        position: "relative",
+                      }}
+                    >
+                      <IconButton
+                        size="small"
+                        sx={{ position: "absolute", right: 8, top: 8 }}
+                        onClick={() => copyToClipboard("cd bot\ndocker compose up -d --build")}
+                      >
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+                      <div># 1. Ingresar a la carpeta del bot</div>
+                      <div>cd bot</div>
+                      <br />
+                      <div># 2. Levantar el contenedor en background</div>
+                      <div>docker compose up -d --build</div>
+                      <br />
+                      <div># 3. Ver logs y código QR</div>
+                      <div>docker compose logs -f whatsapp-bot</div>
+                    </Paper>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card variant="outlined" sx={{ borderRadius: 3 }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                      <TerminalIcon color="primary" /> Opción B: Ejecución en Local / Node.js
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+                      Ideal para desarrollo y pruebas rápidas en tu equipo.
+                    </Typography>
+
+                    <Paper
+                      sx={{
+                        p: 2,
+                        bgcolor: theme.palette.mode === "dark" ? "#0d1117" : "#f6f8fa",
+                        borderRadius: 2,
+                        fontFamily: "monospace",
+                        fontSize: "0.82rem",
+                        position: "relative",
+                      }}
+                    >
+                      <IconButton
+                        size="small"
+                        sx={{ position: "absolute", right: 8, top: 8 }}
+                        onClick={() => copyToClipboard("cd bot\nnpm install\nnpm run dev")}
+                      >
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+                      <div># 1. Instalar dependencias</div>
+                      <div>cd bot</div>
+                      <div>npm install</div>
+                      <br />
+                      <div># 2. Ejecutar con recarga automática</div>
+                      <div>npm run dev</div>
+                    </Paper>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+      </Paper>
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%", borderRadius: 2 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+}

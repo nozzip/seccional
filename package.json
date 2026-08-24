@@ -42,7 +42,10 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "build": "vite build && node postbuild.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "bot": "npm --prefix bot run dev",
+    "bot:build": "npm --prefix bot run build",
+    "bot:start": "npm --prefix bot start"
   },
   "devDependencies": {
     "@types/qrcode": "^1.5.6",

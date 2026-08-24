@@ -43,6 +43,8 @@ import RequestManager from "../../Components/Admin/RequestManager";
 import HelpCenterIcon from "@mui/icons-material/HelpCenter";
 import AuditLogsManager from "../../Components/Admin/AuditLogsManager";
 import HistoryIcon from "@mui/icons-material/History";
+import WhatsAppBotManager from "../../Components/Admin/WhatsAppBotManager";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 
 function AdminDashboard() {
   const [activeBranch, setActiveBranch] = useState<"azucena" | "noroeste">(
@@ -196,6 +198,13 @@ function AdminDashboard() {
           <HistoryIcon sx={{ fontSize: 20, mb: "0 !important", mr: 1 }} />
         ),
         component: <AuditLogsManager />,
+      },
+      {
+        label: "Bot WhatsApp",
+        icon: (
+          <WhatsAppIcon sx={{ fontSize: 20, mb: "0 !important", mr: 1, color: "#25D366" }} />
+        ),
+        component: <WhatsAppBotManager />,
       },
     ],
   };

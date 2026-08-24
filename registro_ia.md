@@ -1,5 +1,192 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Navegación Guiada por Provincia y Rubro, Beneficios Gremiales y Asesor Humano Directo
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se refinaron los flujos del Bot de WhatsApp y del simulador del panel administrativo de acuerdo a los requerimientos gremiales:
+1. **Convenios y Comercios:** Flujo guiado en 2 pasos: primero solicita la provincia del afiliado y luego el rubro deseado (Farmacias, Gimnasios, Gastronomía, Hotelería, Comercios, Ópticas o Todos) para filtrar y entregar resultados precisos.
+2. **Beneficios Gremiales:** Módulo especializado (`gremialBenefitsFlow.ts`) con información completa de Predio San Lorenzo, Cabañas Warmi, Hotel Azucena y Subsidios/Ayudas Sociales (Nacimiento, Matrimonio, Adopción, Bodas de Plata, Jubilación) con links directos a trámites y reservas.
+3. **Atención Gremial:** Canal exclusivo para comunicarse directamente con un asesor humano mediante enlace directo a WhatsApp y detalles de delegación según su provincia.
+4. **Simulador de Admin:** Motor del simulador en `WhatsAppBotManager.tsx` sincronizado con la máquina de estados de los flujos reales.
+
+### Cambios realizados:
+1. **Flujo de Convenios por Rubro (`bot/src/flows/benefitsFlow.ts` & `bot/src/services/benefitsService.ts`):**
+   - Menú de selección de rubros numerado del 1 al 7 y soporte para búsquedas libres por texto dentro de la provincia activa.
+2. **Flujo de Beneficios Gremiales (`bot/src/flows/gremialBenefitsFlow.ts`):**
+   - Creación del flujo de establecimientos y subsidios con datos detallados y enlaces.
+3. **Atención Directa con Asesor (`bot/src/flows/humanAgentFlow.ts`):**
+   - Redirección con enlace directo y mensaje prearmado a WhatsApp de guardia/asesor.
+4. **Menú Principal (`bot/src/flows/mainMenuFlow.ts` & `bot/src/flows/index.ts`):**
+   - Renombrado y ordenamiento de las 6 opciones del bot.
+5. **Simulador Web (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Implementación de máquina de estados (`province_select`, `main_menu`, `rubro_select`, `gremial_select`) conectada a Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Navegación Jerárquica en Bot:** Segmentación en 2 niveles (Provincia -> Rubro) para convenios comerciales, módulo gremial unificado (Establecimientos + Subsidios) y derivación directa a asesor.
+
+## [ÉXITO] - Filtro Previo de Provincias de la Seccional y Respuestas Contextualizadas por Zona
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se rediseñó el flujo de bienvenida e interacción del Bot de WhatsApp para solicitar en primer lugar la provincia desde la que se comunica el afiliado (Salta, Jujuy, Tucumán, Santiago del Estero, Catamarca o General). La selección se almacena en el estado del usuario (`state`) y contextualiza dinámicamente tanto el menú principal como las consultas de convenios/beneficios y las sedes gremiales de atención. Asimismo, se actualizó el motor del Simulador en Vivo del Panel de Administración para replicar con exactitud este comportamiento.
+
+### Cambios realizados:
+1. **Flujo de Bienvenida con Selección de Provincia (`bot/src/flows/welcomeFlow.ts`):**
+   - Pregunta inicial para seleccionar provincia (1: Salta, 2: Jujuy, 3: Tucumán, 4: Santiago del Estero, 5: Catamarca, 6: General).
+   - Guardado en `state.update({ selectedProvince })` y derivación a `mainMenuFlow`.
+2. **Menú Principal Contextualizado (`bot/src/flows/mainMenuFlow.ts`):**
+   - Muestra opciones contextualizadas a la provincia elegida e incorpora la opción 6 para cambiar de provincia en cualquier momento.
+3. **Filtro de Convenios por Provincia (`bot/src/flows/benefitsFlow.ts`):**
+   - Búsqueda y listado automático filtrando por la provincia seleccionada del afiliado.
+4. **Sedes y Delegaciones por Provincia (`bot/src/flows/humanAgentFlow.ts`):**
+   - Detalle de sedes y direcciones correspondientes a la provincia elegida (Salta, Jujuy, Tucumán, Santiago, Catamarca).
+5. **Simulador en Vivo (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Actualización del motor del simulador interactivo para evaluar la selección de provincia y filtrar convenios reales desde Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Segmentación Geográfica en Bot:** Solicitud inicial de provincia persistida en `state`, afectando a convenios, sedes y menús secundarios.
+
+## [ÉXITO] - Corrección de Tipado de Severidad en Snackbar de WhatsAppBotManager
+**Fecha:** 2026-08-20
+**Modo:** Mejorar
+**Descripción:** Se corrigió el error de tipado TypeScript en `WhatsAppBotManager.tsx` donde la severidad del Snackbar estaba restringida a `"success" | "error"`, ampliándolo a `"success" | "error" | "info" | "warning"` para soportar notificaciones informativas al cambiar el estado del bot.
+
+### Cambios realizados:
+1. **Tipado Snackbar (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Actualización del estado `snackbar` para incluir tipos `"info"` y `"warning"`.
+
+## [ÉXITO] - Interruptor Global en Tiempo Real para Habilitar y Deshabilitar el Bot desde Administración
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se implementó un interruptor de activación/desactivación global en el encabezado principal de `WhatsAppBotManager.tsx` que guarda de forma inmediata el estado en Supabase (`system_configs -> whatsapp_bot_config -> is_bot_active`). El backend del bot (`botConfigService.ts`) verifica dinámicamente este estado en tiempo real (con caché en memoria de 3 segundos), permitiendo pausar o reanudar todas las respuestas del bot al instante sin reiniciar el proceso del servidor.
+
+### Cambios realizados:
+1. **Interruptor en Encabezado (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Incorporación de Switch destacado *"BOT HABILITADO / BOT DESHABILITADO"* con guardado en caliente y notificación instantánea.
+2. **Servicio de Verificación Global (`bot/src/services/botConfigService.ts`):**
+   - Función `isBotGloballyActive()` que consulta Supabase con optimización de caché local.
+3. **Flujos Conversacionales (`bot/src/flows/welcomeFlow.ts`):**
+   - Acción middleware que comprueba `isBotGloballyActive()` y finaliza silenciosamente el flujo (`endFlow()`) cuando el bot está deshabilitado.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Interruptor Global del Bot:** Control en caliente mediante `system_configs -> whatsapp_bot_config -> is_bot_active` e intercepción previa en flujos con `botConfigService`.
+
+## [ÉXITO] - Auto-Pausa Inteligente del Bot de WhatsApp al Responder el Operador Humano
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se implementó un gestor de pausas inteligentes (`pauseManager.ts`) que detecta en tiempo real los mensajes salientes enviados manualmente por el operador humano (`key.fromMe === true`). Al responder un administrador, el bot silencia automáticamente las respuestas para ese chat específico durante 30 minutos (tiempo configurable desde el panel de administración), evitando interrupciones mientras dura la conversación humana y reactivándose automáticamente al finalizar el plazo.
+
+### Cambios realizados:
+1. **Gestor de Pausas (`bot/src/services/pauseManager.ts`):**
+   - Manejo dinámico de números silenciados con `setTimeout` y `blacklist.add(phone)`.
+   - Consulta de tiempo y estado en `system_configs -> whatsapp_bot_config` (con fallback de 30 minutos).
+   - Renovación automática de la ventana de silencio cada vez que el operador envía un nuevo mensaje.
+   - Auto-reactivación al expirar el tiempo de inactividad (`blacklist.remove(phone)`).
+2. **Monitoreo de Socket (`bot/src/app.ts`):**
+   - Intercepción de eventos `messages.upsert` de Baileys para capturar `msg.key.fromMe` en chats individuales (excluyendo estados y grupos).
+3. **Panel de Administración (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Interruptor *"Auto-Pausar al responder el operador"* y campo para personalizar los minutos de silencio (por defecto 30 min) persistidos en Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Auto-Pausa Humana en Bot:** Intercepción en Baileys `messages.upsert (fromMe)` ligada a `dynamicBlacklist` y configurable desde `system_configs`.
+
+## [ÉXITO] - Sincronización Dinámica de Versión WhatsApp Web (Baileys) y Generación de QR
+**Fecha:** 2026-08-20
+**Modo:** Mejorar
+**Descripción:** Se resolvió el error `ERROR AUTH (Status 405 Connection Failure)` originado por versiones desactualizadas de protocolo en Baileys mediante la integración de `fetchLatestBaileysVersion()`. El bot ahora consulta dinámicamente la última versión de WhatsApp Web soportada por los servidores de Meta al iniciar y genera el archivo `bot.qr.png` de inmediato para su renderizado tanto en consola como en el panel web.
+
+### Cambios realizados:
+1. **Sincronización de Versión (`bot/src/app.ts`):**
+   - Invocación de `fetchLatestBaileysVersion()` con fallback defensivo.
+   - Configuración de `name: 'bot'`, `version` y `browser: ['AEFIP Bot', 'Chrome', '124.0.0']`.
+2. **Git Ignore (`.gitignore`):**
+   - Agregados `*.log` y `*.qr.png` para evitar rastrear archivos transitorios generados por Baileys.
+
+## [ÉXITO] - Incorporación de Detección de Estado del Bot y Visualizador Embebido de QR
+**Fecha:** 2026-08-20
+**Modo:** Mejorar
+**Descripción:** Se mejoró la pestaña de vinculación de `WhatsAppBotManager.tsx` agregando sondeo en caliente (`checkServerStatus`) contra el servidor local del bot (`http://localhost:3008`), visualización embebida del código QR con botón de recarga, alertas informativas de diagnóstico cuando el proceso Node.js no está iniciado, y scripts de acceso rápido (`npm run bot`) en el `package.json` raíz.
+
+### Cambios realizados:
+1. **Comprobación de Estado y QR Embebido (`WhatsAppBotManager.tsx`):**
+   - Detección automática de estado `online` / `offline` del bot en el puerto configurado.
+   - Renderizado del código QR directamente dentro del panel con auto-recarga y manejo de errores.
+   - Alerta visual con comandos de inicio guiados (`npm run bot`) cuando el bot no está activo.
+2. **Atajos de Ejecución (`package.json` raíz):**
+   - Agregados `"bot"`, `"bot:build"` y `"bot:start"` para iniciar el microservicio sin cambiar manualmente de directorio.
+
+## [ÉXITO] - Integración del Panel de Control del Bot de WhatsApp en el Dashboard de Administración
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se desarrolló e integró el componente administrativo `WhatsAppBotManager.tsx` dentro de la sección Noroeste del Panel de Administración (`AdminDashboard.tsx`), restringido exclusivamente a administradores autorizados. El módulo proporciona monitoreo de estado en tiempo real, configuración dinámica persistida en Supabase (`system_configs -> whatsapp_bot_config`), simulador interactivo de chat en vivo con respuestas reales contra la base de datos, visor de código QR y guía de despliegue 24/7 en servidores.
+
+### Cambios realizados:
+1. **Componente de Administración (`src/Components/Admin/WhatsAppBotManager.tsx`):**
+   - Panel interactivo con 4 pestañas: *Simulador en Vivo*, *Configuración del Bot*, *Estado y Vinculación QR* y *Guía de Despliegue*.
+   - Simulador de WhatsApp en tiempo real con estilo nativo que ejecuta consultas a `benefits`, `news`, `affiliates` y `system_configs`.
+   - Modificación de parámetros de guardia, horarios, dirección de sede y mensajes personalizados con guardado directo en Supabase.
+2. **Navegación en Dashboard (`src/Pages/Admin/AdminDashboard.tsx`):**
+   - Incorporación de la pestaña *"Bot WhatsApp"* con ícono de WhatsApp dentro de la pestaña Noroeste.
+3. **Flujos Dinámicos del Bot (`bot/src/flows/humanAgentFlow.ts`):**
+   - Actualización del flujo de derivación a operador humano para consultar dinámicamente la configuración activa en Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Administración del Bot de WhatsApp:** Módulo centralizado en `AdminDashboard.tsx` (`WhatsAppBotManager.tsx`) con persistencia en `system_configs -> whatsapp_bot_config` y simulador en vivo.
+
+## [ÉXITO] - Aislamiento de Configuración TypeScript y Estandarización de Variables de Entorno
+**Fecha:** 2026-08-20
+**Modo:** Mejorar
+**Descripción:** Se excluyó la carpeta del microservicio `bot/` del `tsconfig.json` raíz de la aplicación web principal para prevenir colisiones en el Language Server del IDE. Asimismo, se unificó la carga de variables de entorno en el bot utilizando la importación directa y estándar de `import 'dotenv/config'`, garantizando compatibilidad total tanto en ejecución local con `tsx` como en entornos productivos.
+
+### Cambios realizados:
+1. **Aislamiento de TS (`tsconfig.json` raíz):**
+   - Inclusión de `"exclude": ["node_modules", "dist", "bot"]` para delimitar el contexto del compilador de React/Vite.
+2. **Estandarización de `dotenv` (`bot/src/config/supabase.ts`, `bot/src/app.ts`):**
+   - Migración a `import 'dotenv/config'` eliminando advertencias de resolución de tipos.
+3. **Validación:**
+   - Compilación independiente de `bot` (`npx tsc --noEmit`) con 0 errores.
+
+## [ÉXITO] - Resolución de Dependencias y Tipado Estricto del Microservicio WhatsApp Bot
+**Fecha:** 2026-08-20
+**Modo:** Mejorar
+**Descripción:** Se instalaron las dependencias del microservicio `bot/` (`@builderbot/bot`, `@builderbot/provider-baileys`, `dotenv`, `@supabase/supabase-js`), se configuró la resolución de módulos TypeScript con `bundler` en `tsconfig.json` y se definieron los tipos explícitos para todos los callbacks de los flujos conversacionales. La compilación estricta de TypeScript (`npx tsc --noEmit`) y el empaquetado de producción (`npm run build`) finalizaron con cero errores.
+
+### Cambios realizados:
+1. **Instalación y Configuración (`bot/tsconfig.json`):**
+   - Configuración de `moduleResolution: "bundler"` y `module: "ES2022"`.
+2. **Tipado de Flujos (`bot/src/flows/`):**
+   - Ajuste de signatura de parámetros `(ctx: any, { ... }: any)` en `welcomeFlow.ts`, `benefitsFlow.ts`, `newsFlow.ts`, `tourismFlow.ts` y `affiliateFlow.ts`.
+3. **Validación:**
+   - `npx tsc --noEmit` completado exitosamente sin advertencias ni errores.
+
+## [ÉXITO] - Creación del Microservicio WhatsApp Bot (BuilderBot + Baileys + Supabase)
+**Fecha:** 2026-08-20
+**Modo:** Desarrollar
+**Descripción:** Se estructuró e implementó un microservicio independiente en `bot/` para la automatización de atención por WhatsApp Web (Multi-Device) utilizando `@builderbot/bot` y `@builderbot/provider-baileys`. El bot se conecta directamente a la base de datos de Supabase para ofrecer flujos interactivos de consulta de convenios y beneficios, lectura de últimas noticias de prensa, validación de estado de afiliados en el padrón, consulta de tarifas y requisitos de cabañas de turismo, y derivación a atención gremial con operadores humanos. Incluye soporte para ejecución local con código QR en terminal/web y contenedorización mediante Docker y Docker Compose para despliegue 24/7.
+
+### Cambios realizados:
+1. **Estructura del Microservicio (`bot/`):**
+   - Configuración de `package.json` y `tsconfig.json` con soporte completo para TypeScript y módulos ESM modernos.
+   - Plantilla de variables de entorno `.env.example` y `.env` preconfigurado con Supabase URL y anon key de Seccional Noroeste.
+   - Reglas añadidas a `.gitignore` para omitir sesiones de Baileys (`bot_sessions/`), builds y credenciales.
+2. **Servicios de Base de Datos (`bot/src/services/`):**
+   - `benefitsService.ts`: Búsqueda de beneficios y comercios por provincia (Salta, Jujuy, etc.), categoría o palabra clave, con formateo amigable de mensajes.
+   - `newsService.ts`: Consulta de los últimos comunicados institucionales desde la tabla `news`.
+   - `affiliatesService.ts`: Consulta y validación de afiliación por DNI / Legajo / CUIL con entrega de link a credencial digital.
+   - `tourismService.ts`: Consulta de tarifas del predio (`system_configs -> cabin_prices`) y requisitos de reserva.
+3. **Flujos Conversacionales Interactivos (`bot/src/flows/`):**
+   - `welcomeFlow.ts`: Saludo, menú principal con 5 opciones numeradas y router dinámico.
+   - `benefitsFlow.ts`: Búsqueda interactiva de convenios por texto o provincia.
+   - `newsFlow.ts`: Listado de noticias con enlaces directos a la web.
+   - `affiliateFlow.ts`: Verificación de afiliados mediante captura de DNI.
+   - `tourismFlow.ts`: Información de cabañas, canchas y recreación.
+   - `humanAgentFlow.ts`: Información de sede, horarios y enlace directo a WhatsApp del asesor.
+4. **Infraestructura de Despliegue (`bot/Dockerfile`, `bot/docker-compose.yml`, `bot/README.md`):**
+   - Imagen ligera de Node 20 Debian Slim lista para producción en VPS, Railway, Render o Fly.io con persistencia de volumen de sesión en `./bot_sessions`.
+   - Documentación técnica y manual paso a paso de uso y vinculación en `bot/README.md`.
+
+### Arquitecturas Aprobadas (Actualización):
+- **WhatsApp Bot Multi-Device:** Microservicio desacoplado en `bot/` con BuilderBot + Baileys + Supabase JS Client, sin dependencia de Chromium/Puppeteer.
+
 ## [ÉXITO] - Carga y Visualización Zoom de Imágenes Thumbnails en Noticias
 **Fecha:** 2026-08-05
 **Modo:** Desarrollar
