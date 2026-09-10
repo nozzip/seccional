@@ -62,10 +62,11 @@ export default function MobileAppView() {
             <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
               Tus Próximos Servicios
             </Typography>
-            <Paper sx={{ p: 2, borderRadius: 2, mb: 2, bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+            {/* Reserva Warmi — TODO: Revisar para eliminar — retirado de vista pública */}
+            {/* <Paper sx={{ p: 2, borderRadius: 2, mb: 2, bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>Reserva en Cabañas - "La Warmi"</Typography>
               <Typography variant="caption" color="text.secondary">Fecha: Próximo Sábado 12:00hs</Typography>
-            </Paper>
+            </Paper> */}
           </Box>
         );
       case 1: // Beneficios

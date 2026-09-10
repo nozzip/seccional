@@ -730,7 +730,7 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                     details = `Fechas: ${req.data.check_in} al ${req.data.check_out} | Pasajeros: ${req.data.passengers || '-'}`;
                                 }
                             } else if (req.type === 'cabin_reservation') {
-                                title = 'Cabañas El Mollar';
+                                title = 'Reserva de Cabaña'; // TODO: Revisar para eliminar referencia a El Mollar
                                 icon = <HouseSidingIcon sx={{ color: 'success.main', fontSize: 28 }} />;
                                 if (req.data?.check_in && req.data?.check_out) {
                                     details = `Estadía: ${req.data.check_in} al ${req.data.check_out} (${req.data.nights || 1} noches)`;

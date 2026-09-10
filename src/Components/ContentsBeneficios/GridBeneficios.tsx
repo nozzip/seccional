@@ -103,6 +103,7 @@ export default function GridBeneficios() {
       const { data, error } = await supabase
         .from("benefits")
         .select("*")
+        .eq("is_active", true)
         .order("display_order", { ascending: true });
 
       if (!error && data && data.length > 0) {

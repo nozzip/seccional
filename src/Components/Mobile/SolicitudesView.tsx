@@ -42,7 +42,8 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
     const [turismoSubsidized, setTurismoSubsidized] = useState(false);
     const [gremialOpen, setGremialOpen] = useState(false);
     const [gremialType, setGremialType] = useState('');
-    const [cabinOpen, setCabinOpen] = useState(false);
+    // TODO: Revisar para eliminar — cabinOpen/mollar retirado de vista pública
+    // const [cabinOpen, setCabinOpen] = useState(false);
     const [myRequests, setMyRequests] = useState<WorkflowRequestItem[]>([]);
     const [loadingRequests, setLoadingRequests] = useState(false);
     
@@ -133,8 +134,8 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                     </Grid>
                 </Grid>
             </Paper>
-
-            {/* SECCIÓN MOLLAR */}
+            {/* SECCIÓN MOLLAR — TODO: Revisar para eliminar — retirado de vista pública */}
+            {/*
             <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary', ml: 1, letterSpacing: 1.5 }}>
                 Cabañas El Mollar
             </Typography>
@@ -157,7 +158,7 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                             Reserva El Mollar
                         </Typography>
                         <Typography variant="body2" sx={{ mb: 1.5, color: 'text.secondary' }}>
-                            Disfrutá de nuestras cabañas en Tafí del Valle.
+                            Disfutá de nuestras cabañas en Tafí del Valle.
                         </Typography>
                         <Button
                             variant="contained"
@@ -172,6 +173,7 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                     </Grid>
                 </Grid>
             </Paper>
+            */}
 
             {/* SECCIÓN 2: TURISMO SUBSIDIADO */}
             <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary', ml: 1, letterSpacing: 1.5 }}>
@@ -394,6 +396,8 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                 type={gremialType}
             />
 
+            {/* TurismoForm para mollar — TODO: Revisar para eliminar — retirado de vista pública */}
+            {/*
             <TurismoForm
                 open={cabinOpen}
                 onClose={() => setCabinOpen(false)}
@@ -401,6 +405,7 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                 isSubsidized={false}
                 subsidizedType="mollar"
             />
+            */}
         </Box>
     );
 }

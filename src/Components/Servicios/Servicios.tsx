@@ -16,7 +16,8 @@ import {
 import Grid from "@mui/material/Grid2";
 import CloseIcon from "@mui/icons-material/Close";
 import Azucena from "./Azucena";
-import Warmi from "./Warmi";
+// TODO: Revisar para eliminar — Warmi retirado de vista pública por solicitud
+// import Warmi from "./Warmi";
 import SanLorenzo from "./SanLorenzo";
 
 const BENEFITS_GREMIALES = [
@@ -159,7 +160,7 @@ function Servicios() {
         {activeTab === "turismo" ? (
           <Stack spacing={6}>
             <Azucena />
-            <Warmi />
+            {/* <Warmi /> */}{/* TODO: Revisar para eliminar — Warmi retirado de vista pública */}
             <SanLorenzo />
           </Stack>
         ) : (
