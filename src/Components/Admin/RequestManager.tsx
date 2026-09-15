@@ -37,6 +37,8 @@ import AddBoxIcon from '@mui/icons-material/AddBox';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
 import HouseSidingIcon from '@mui/icons-material/HouseSiding';
+import NotesIcon from '@mui/icons-material/Notes';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { supabase } from '../../supabaseClient';
 import { logAction } from '../../utils/auditLogger';
 
@@ -56,6 +58,7 @@ const REQUEST_TYPES = [
     { value: 'budget_review', label: 'Revisar Presupuesto', icon: <AssignmentIcon /> },
     { value: 'internal_order', label: 'Orden Interna', icon: <AssignmentIcon /> },
     { value: 'cabin_reservation', label: 'Inquietud de Reserva', icon: <HouseSidingIcon /> },
+    { value: 'salon_reservation', label: 'Reserva de Salón', icon: <HouseSidingIcon /> },
     { value: 'affiliation', label: 'Afiliación', icon: <PeopleIcon /> },
     { value: 'tourism', label: 'Turismo', icon: <BeachAccessIcon /> },
     { value: 'benefit', label: 'Beneficio / Kit', icon: <TaskAltIcon /> },
@@ -488,32 +491,204 @@ export default function RequestManager() {
                                 )}
 
                                 {selectedRequest.type === 'tourism' && (
-                                    <Box sx={{ mt: 2 }}>
-                                        <Typography variant="body2"><strong>Destino:</strong> {selectedRequest.data?.destino}</Typography>
-                                        <Typography variant="body2"><strong>Fechas:</strong> {selectedRequest.data?.fecha_ingreso} al {selectedRequest.data?.fecha_salida}</Typography>
-                                        <Typography variant="body2"><strong>Plazas:</strong> {selectedRequest.data?.plazas_req}</Typography>
-                                        {selectedRequest.data?.is_subsidized && <Chip label="SUBSIDIADO" color="secondary" size="small" sx={{ mt: 1, fontWeight: 800 }} />}
+                                    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        <Box>
+                                            <Typography variant="body2"><strong>Destino:</strong> {selectedRequest.data?.destino || selectedRequest.data?.hotel || '-'}</Typography>
+                                            <Typography variant="body2"><strong>Fechas:</strong> {selectedRequest.data?.fecha_ingreso || selectedRequest.data?.check_in || '-'} al {selectedRequest.data?.fecha_salida || selectedRequest.data?.check_out || '-'}</Typography>
+                                            <Typography variant="body2"><strong>Plazas solicitadas:</strong> {selectedRequest.data?.plazas_req || selectedRequest.data?.passengers || '-'}</Typography>
+                                            {selectedRequest.data?.es_jubilado !== undefined && (
+                                                <Typography variant="body2"><strong>Condición Jubilado:</strong> {selectedRequest.data.es_jubilado ? 'Sí' : 'No'}</Typography>
+                                            )}
+                                            {selectedRequest.data?.is_subsidized && (
+                                                <Box sx={{ mt: 1 }}>
+                                                    <Chip
+                                                        label={selectedRequest.data?.subsidized_type ? `SUBSIDIADO (${selectedRequest.data.subsidized_type.toUpperCase()})` : 'SUBSIDIADO'}
+                                                        color="secondary"
+                                                        size="small"
+                                                        sx={{ fontWeight: 800 }}
+                                                    />
+                                                </Box>
+                                            )}
+                                        </Box>
+
+                                        {/* Observaciones del Afiliado */}
+                                        {(selectedRequest.data?.observaciones || selectedRequest.data?.notes || selectedRequest.data?.observations) && (
+                                            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.05), borderColor: alpha(theme.palette.warning.main, 0.3), borderRadius: 2 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'warning.main', mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                                    <NotesIcon fontSize="small" /> Observaciones del Afiliado:
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.primary', fontWeight: 500 }}>
+                                                    {selectedRequest.data?.observaciones || selectedRequest.data?.notes || selectedRequest.data?.observations}
+                                                </Typography>
+                                            </Paper>
+                                        )}
+
+                                        {/* Lista de Invitados / Acompañantes */}
+                                        {Array.isArray(selectedRequest.data?.guests) && selectedRequest.data.guests.length > 0 && (
+                                            <Box sx={{ mt: 1 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                                    <PeopleIcon fontSize="small" color="primary" /> Invitados / Acompañantes ({selectedRequest.data.guests.length}):
+                                                </Typography>
+                                                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5 }}>
+                                                    <Table size="small">
+                                                        <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.06) }}>
+                                                            <TableRow>
+                                                                <TableCell sx={{ fontWeight: 700 }}>Nombre y Apellido</TableCell>
+                                                                <TableCell sx={{ fontWeight: 700 }}>Parentesco</TableCell>
+                                                                <TableCell sx={{ fontWeight: 700 }}>Edad</TableCell>
+                                                                <TableCell sx={{ fontWeight: 700 }}>DNI</TableCell>
+                                                            </TableRow>
+                                                        </TableHead>
+                                                        <TableBody>
+                                                            {selectedRequest.data.guests.map((guest: any, idx: number) => (
+                                                                <TableRow key={idx}>
+                                                                    <TableCell sx={{ fontWeight: 600 }}>{guest.nombre} {guest.apellido}</TableCell>
+                                                                    <TableCell>{guest.parentesco || '-'}</TableCell>
+                                                                    <TableCell>{guest.edad ? `${guest.edad} años` : '-'}</TableCell>
+                                                                    <TableCell>{guest.dni || '-'}</TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </TableContainer>
+                                            </Box>
+                                        )}
+
                                         {selectedRequest.data?.attachment_url && (
-                                            <Button variant="outlined" size="small" href={selectedRequest.data.attachment_url} target="_blank" sx={{ mt: 1, display: 'block' }}>Ver Adjunto</Button>
+                                            <Button
+                                                variant="outlined"
+                                                size="small"
+                                                startIcon={<AttachFileIcon />}
+                                                href={selectedRequest.data.attachment_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                sx={{ alignSelf: 'flex-start', mt: 0.5 }}
+                                            >
+                                                Ver Certificado / Adjunto
+                                            </Button>
                                         )}
                                     </Box>
                                 )}
 
                                 {selectedRequest.type === 'benefit' && (
-                                    <Box sx={{ mt: 2 }}>
-                                        <Typography variant="body2"><strong>Tipo de Beneficio:</strong> {selectedRequest.data?.benefit_type}</Typography>
-                                        <Typography variant="body2" sx={{ mt: 1 }}><strong>Observaciones:</strong> {selectedRequest.data?.observations || 'Sin observaciones'}</Typography>
+                                    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        <Box>
+                                            <Typography variant="body2"><strong>Tipo de Beneficio:</strong> {selectedRequest.data?.benefit_type || '-'}</Typography>
+                                        </Box>
+                                        {(selectedRequest.data?.observations || selectedRequest.data?.observaciones) && (
+                                            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.05), borderColor: alpha(theme.palette.warning.main, 0.3), borderRadius: 2 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'warning.main', mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                                    <NotesIcon fontSize="small" /> Observaciones:
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.primary', fontWeight: 500 }}>
+                                                    {selectedRequest.data?.observations || selectedRequest.data?.observaciones}
+                                                </Typography>
+                                            </Paper>
+                                        )}
                                         {selectedRequest.data?.attachment_url && (
-                                            <Button variant="outlined" size="small" href={selectedRequest.data.attachment_url} target="_blank" sx={{ mt: 1, display: 'block' }}>Ver Documentación</Button>
+                                            <Button
+                                                variant="outlined"
+                                                size="small"
+                                                startIcon={<AttachFileIcon />}
+                                                href={selectedRequest.data.attachment_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                sx={{ alignSelf: 'flex-start', mt: 0.5 }}
+                                            >
+                                                Ver Documentación
+                                            </Button>
                                         )}
                                     </Box>
                                 )}
 
                                 {selectedRequest.type === 'cabin_reservation' && (
-                                    <Box sx={{ mt: 2 }}>
-                                        <Typography variant="body2"><strong>Destino:</strong> {selectedRequest.data?.destino}</Typography>
-                                        <Typography variant="body2"><strong>Ingreso:</strong> {selectedRequest.data?.fecha_ingreso}</Typography>
-                                        <Typography variant="body2"><strong>Salida:</strong> {selectedRequest.data?.fecha_salida}</Typography>
+                                    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        <Box>
+                                            <Typography variant="body2"><strong>Destino / Cabaña:</strong> {selectedRequest.data?.destino || selectedRequest.data?.cabin_type || 'Cabañas El Mollar'}</Typography>
+                                            <Typography variant="body2"><strong>Fechas:</strong> {selectedRequest.data?.fecha_ingreso || selectedRequest.data?.start_date || '-'} al {selectedRequest.data?.fecha_salida || selectedRequest.data?.end_date || '-'}</Typography>
+                                            {(selectedRequest.data?.plazas_req || typeof selectedRequest.data?.guests === 'number') && (
+                                                <Typography variant="body2"><strong>Plazas / Pasajeros:</strong> {selectedRequest.data?.plazas_req || selectedRequest.data?.guests}</Typography>
+                                            )}
+                                        </Box>
+
+                                        {/* Observaciones / Notas */}
+                                        {(selectedRequest.data?.observaciones || selectedRequest.data?.notes) && (
+                                            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.05), borderColor: alpha(theme.palette.warning.main, 0.3), borderRadius: 2 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'warning.main', mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                                    <NotesIcon fontSize="small" /> Observaciones del Afiliado:
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.primary', fontWeight: 500 }}>
+                                                    {selectedRequest.data?.observaciones || selectedRequest.data?.notes}
+                                                </Typography>
+                                            </Paper>
+                                        )}
+
+                                        {/* Invitados si vienen en array */}
+                                        {Array.isArray(selectedRequest.data?.guests) && selectedRequest.data.guests.length > 0 && (
+                                            <Box sx={{ mt: 1 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                                    <PeopleIcon fontSize="small" color="primary" /> Invitados / Acompañantes ({selectedRequest.data.guests.length}):
+                                                </Typography>
+                                                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5 }}>
+                                                    <Table size="small">
+                                                        <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.06) }}>
+                                                            <TableRow>
+                                                                <TableCell sx={{ fontWeight: 700 }}>Nombre y Apellido</TableCell>
+                                                                <TableCell sx={{ fontWeight: 700 }}>Parentesco</TableCell>
+                                                                <TableCell sx={{ fontWeight: 700 }}>Edad</TableCell>
+                                                                <TableCell sx={{ fontWeight: 700 }}>DNI</TableCell>
+                                                            </TableRow>
+                                                        </TableHead>
+                                                        <TableBody>
+                                                            {selectedRequest.data.guests.map((guest: any, idx: number) => (
+                                                                <TableRow key={idx}>
+                                                                    <TableCell sx={{ fontWeight: 600 }}>{guest.nombre} {guest.apellido}</TableCell>
+                                                                    <TableCell>{guest.parentesco || '-'}</TableCell>
+                                                                    <TableCell>{guest.edad ? `${guest.edad} años` : '-'}</TableCell>
+                                                                    <TableCell>{guest.dni || '-'}</TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </TableContainer>
+                                            </Box>
+                                        )}
+
+                                        {selectedRequest.data?.attachment_url && (
+                                            <Button
+                                                variant="outlined"
+                                                size="small"
+                                                startIcon={<AttachFileIcon />}
+                                                href={selectedRequest.data.attachment_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                sx={{ alignSelf: 'flex-start', mt: 0.5 }}
+                                            >
+                                                Ver Documentación Adjunta
+                                            </Button>
+                                        )}
+                                    </Box>
+                                )}
+
+                                {selectedRequest.type === 'salon_reservation' && (
+                                    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        <Box>
+                                            <Typography variant="body2"><strong>Tipo de Evento:</strong> {selectedRequest.data?.event_type || '-'}</Typography>
+                                            <Typography variant="body2"><strong>Fecha del Evento:</strong> {selectedRequest.data?.start_date || selectedRequest.data?.fecha_ingreso || '-'}</Typography>
+                                            {selectedRequest.data?.guests && (
+                                                <Typography variant="body2"><strong>Invitados Estimados:</strong> {selectedRequest.data.guests}</Typography>
+                                            )}
+                                        </Box>
+                                        {(selectedRequest.data?.observaciones || selectedRequest.data?.notes) && (
+                                            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.05), borderColor: alpha(theme.palette.warning.main, 0.3), borderRadius: 2 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'warning.main', mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                                                    <NotesIcon fontSize="small" /> Observaciones:
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.primary', fontWeight: 500 }}>
+                                                    {selectedRequest.data?.observaciones || selectedRequest.data?.notes}
+                                                </Typography>
+                                            </Paper>
+                                        )}
                                     </Box>
                                 )}
 
@@ -538,7 +713,7 @@ export default function RequestManager() {
                                     </Box>
                                 )}
 
-                                {!['affiliation', 'tourism', 'benefit', 'cabin_reservation', 'profile_update', 'family_update'].includes(selectedRequest.type) && (
+                                {!['affiliation', 'tourism', 'benefit', 'cabin_reservation', 'salon_reservation', 'profile_update', 'family_update'].includes(selectedRequest.type) && (
                                     <Typography variant="body1" sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>
                                         {selectedRequest.data?.description || 'Sin descripción detallada.'}
                                     </Typography>

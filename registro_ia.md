@@ -1,5 +1,26 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Visualización Completa de Reservas (Invitados, Observaciones y Adjuntos) en Gestión Unificada
+**Fecha:** 2026-09-15
+**Modo:** Mejorar
+**Descripción:** Se extendió el modal de detalle de solicitudes en el panel de administración ("Gestión Unificada" - `RequestManager.tsx`) para mostrar todos los datos remitidos por el afiliado en sus pedidos de reservas (Turismo, Cabañas El Mollar y Salón):
+1. **Observaciones del Afiliado:** Visualización destacada de las notas y aclaraciones ingresadas por el solicitante.
+2. **Tabla de Invitados y Acompañantes:** Mapeo estructurado con Nombre, Apellido, Parentesco, Edad y DNI cuando la solicitud contiene acompañantes.
+3. **Condición de Jubilado y Subsidio:** Identificación clara de si el afiliado es jubilado y del tipo de subsidio tramitado (Bodas de Plata, Matrimonio/Luna de Miel).
+4. **Certificados y Adjuntos:** Botón directo para visualizar o descargar la documentación adjunta.
+5. **Persistencia en Formulario Móvil:** Asegurado el guardado del estado de jubilado (`es_jubilado`) en el payload de `TurismoForm.tsx`.
+
+### Cambios realizados:
+1. **Gestor de Solicitudes (`src/Components/Admin/RequestManager.tsx`):**
+   - Incorporación de iconos `NotesIcon` y `AttachFileIcon`.
+   - Soporte tipificado y renderizado para `tourism`, `cabin_reservation` y `salon_reservation`.
+   - Bloque estilizado para observaciones y tabla detallada de invitados.
+2. **Formulario de Turismo (`src/Components/Mobile/TurismoForm.tsx`):**
+   - Agregado del campo `es_jubilado` dentro del objeto `data` insertado en `workflow_requests`.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Detalle Integral de Solicitudes de Reserva:** Visualización completa de metadatos (huéspedes, notas y adjuntos) en el modal de gestión administrativa.
+
 ## [ÉXITO] - Navegación Guiada por Provincia y Rubro, Beneficios Gremiales y Asesor Humano Directo
 **Fecha:** 2026-08-20
 **Modo:** Desarrollar

@@ -225,6 +225,7 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
                     fecha_salida: formData.fecha_salida,
                     plazas_req: formData.plazas_req,
                     observaciones: formData.observaciones,
+                    es_jubilado: formData.es_jubilado,
                     guests: guests,
                     attachment_url: attachmentUrl
                 }
