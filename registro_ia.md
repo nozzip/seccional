@@ -1,5 +1,18 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Ordenamiento Interactivo Multicolumna con Botones en Tablas de Afiliados y Familiares
+**Fecha:** 2026-10-02
+**Modo:** Mejorar
+**Descripción:** Se incorporaron botones interactivos de ordenación en las cabeceras de columnas del gestor de afiliados (`AfiliadosManager.tsx`):
+1. **Botones de Ordenamiento por Columna:** Cada columna de datos (CUIL, Legajo, Apellido, Nombre, Provincia, Estado y Sexo en Titulares; Apellido, Nombre, DNI, Edad, Titular y Provincia en Familiares) cuenta ahora con su botón dedicado de ordenamiento junto al título de la columna.
+2. **Alternancia Bidireccional e Indicadores Visuales:** Al presionar el botón o la cabecera, se alterna entre orden ascendente (A-Z / 0-9) y descendente (Z-A / 9-0). Cuenta con estados visuales con `ArrowUpwardIcon` y `ArrowDownwardIcon` destacados en color primario con fondo translúcido, e icono neutral `SwapVertIcon` para columnas no activas, acompañados de tooltips descriptivos.
+3. **Lógica de Comparación Robusta:** Algoritmo de comparación adaptativo por tipo de dato: ordenamiento numérico natural para CUIL, Legajo y DNI, orden alfabético en español (con `localeCompare`) para Apellidos, Nombres, Provincias y Sexo, y orden categórico para Estado.
+4. **Sincronización Total con Paginación y Exportación:** El ordenamiento se aplica sobre el universo filtrado previo a la paginación, permitiendo que la navegación entre páginas y la descarga a Excel respeten fielmente el orden elegido por el usuario.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Ordenamiento Multicolumna:** Lógica de clasificación desacoplada por campo y sentido (`sortField`, `sortDirection`) con UI de cabecera sincronizada con paginación y exportación de datos.
+
+
 ## [ÉXITO] - Selector Dinámico de Estado y Filtro Específico por Fecha de Desafiliación
 **Fecha:** 2026-10-02
 **Modo:** Mejorar

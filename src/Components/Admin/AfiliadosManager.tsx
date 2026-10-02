@@ -56,6 +56,10 @@ import FemaleIcon from "@mui/icons-material/Female";
 import PersonIcon from "@mui/icons-material/Person";
 import WcIcon from "@mui/icons-material/Wc";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
+
 
 interface Affiliate {
   id: number;
@@ -288,6 +292,52 @@ export default function AfiliadosManager() {
   const [filterDesafiliados, setFilterDesafiliados] = useState(false);
   const [selectedEstado, setSelectedEstado] = useState<string>("todos");
   const [selectedDesafiliacionDate, setSelectedDesafiliacionDate] = useState<string>("todas");
+
+  // Sorting State
+  const [sortField, setSortField] = useState<string>("apellido");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [familySortField, setFamilySortField] = useState<string>("apellido");
+  const [familySortDirection, setFamilySortDirection] = useState<"asc" | "desc">("asc");
+
+  const handleRequestSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+    setPage(0);
+  };
+
+  const handleFamilyRequestSort = (field: string) => {
+    if (familySortField === field) {
+      setFamilySortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setFamilySortField(field);
+      setFamilySortDirection("asc");
+    }
+    setPage(0);
+  };
+
+  const affiliateColumns = [
+    { id: "cuil", label: "CUIL" },
+    { id: "legajo", label: "LEGAJO" },
+    { id: "apellido", label: "APELLIDO" },
+    { id: "nombre", label: "NOMBRE" },
+    { id: "provincia", label: "PROVINCIA" },
+    { id: "estado", label: "ESTADO" },
+    { id: "sexo", label: "SEXO" },
+  ];
+
+  const familyColumns = [
+    { id: "apellido", label: "HIJO/A APELLIDO" },
+    { id: "nombre", label: "HIJO/A NOMBRE" },
+    { id: "dni", label: "DNI" },
+    { id: "edad", label: "EDAD" },
+    { id: "titular", label: "TITULAR" },
+    { id: "provincia", label: "PROVINCIA" },
+  ];
+
 
   const desafiliacionDates = useMemo(() => {
     return Array.from(
@@ -1424,20 +1474,106 @@ export default function AfiliadosManager() {
     maxAge,
   ]);
 
+  // Sorted Data
+  const sortedAffiliates = useMemo(() => {
+    if (!sortField) return filteredAffiliates;
+    return [...filteredAffiliates].sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case "cuil": {
+          const numA = (a.cuil || "").replace(/\D/g, "");
+          const numB = (b.cuil || "").replace(/\D/g, "");
+          comparison = numA.localeCompare(numB, undefined, { numeric: true });
+          break;
+        }
+        case "legajo": {
+          const legA = (a.legajo || "").trim();
+          const legB = (b.legajo || "").trim();
+          comparison = legA.localeCompare(legB, undefined, { numeric: true });
+          break;
+        }
+        case "apellido":
+          comparison = (a.apellido || "").localeCompare(b.apellido || "", "es", { sensitivity: "base" });
+          break;
+        case "nombre":
+          comparison = (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
+          break;
+        case "provincia":
+          comparison = (a.provincia || "").localeCompare(b.provincia || "", "es", { sensitivity: "base" });
+          break;
+        case "estado": {
+          const getEstadoStr = (item: Affiliate) => {
+            if (item.desafiliado || (!item.is_aefip && !item.is_ups && !item.es_jubilado)) return "DESAFILIADO";
+            if (item.is_ups) return "UPS";
+            if (item.es_jubilado) return item.is_aportante ? "JUBILADO AP" : "JUBILADO NO AP";
+            return "ACTIVO";
+          };
+          comparison = getEstadoStr(a).localeCompare(getEstadoStr(b), "es");
+          break;
+        }
+        case "sexo":
+          comparison = (a.sexo || "").localeCompare(b.sexo || "", "es");
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [filteredAffiliates, sortField, sortDirection]);
+
+  const sortedFamilyMembers = useMemo(() => {
+    if (!familySortField) return filteredFamilyMembers;
+    return [...filteredFamilyMembers].sort((a, b) => {
+      let comparison = 0;
+      switch (familySortField) {
+        case "apellido":
+          comparison = (a.apellido || "").localeCompare(b.apellido || "", "es", { sensitivity: "base" });
+          break;
+        case "nombre":
+          comparison = (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
+          break;
+        case "dni": {
+          const numA = (a.dni || "").replace(/\D/g, "");
+          const numB = (b.dni || "").replace(/\D/g, "");
+          comparison = numA.localeCompare(numB, undefined, { numeric: true });
+          break;
+        }
+        case "edad": {
+          const ageA = a.edad ?? calculateAge(a.fecha_nacimiento) ?? 0;
+          const ageB = b.edad ?? calculateAge(b.fecha_nacimiento) ?? 0;
+          comparison = ageA - ageB;
+          break;
+        }
+        case "titular": {
+          const parentA = `${a.parent_apellido || ""} ${a.parent_nombre || ""}`.trim();
+          const parentB = `${b.parent_apellido || ""} ${b.parent_nombre || ""}`.trim();
+          comparison = parentA.localeCompare(parentB, "es", { sensitivity: "base" });
+          break;
+        }
+        case "provincia":
+          comparison = (a.parent_provincia || "").localeCompare(b.parent_provincia || "", "es", { sensitivity: "base" });
+          break;
+        default:
+          comparison = 0;
+      }
+      return familySortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [filteredFamilyMembers, familySortField, familySortDirection]);
+
   // Paginated Data
   const paginatedAffiliates = useMemo(() => {
-    return filteredAffiliates.slice(
+    return sortedAffiliates.slice(
       page * rowsPerPage,
       page * rowsPerPage + rowsPerPage,
     );
-  }, [filteredAffiliates, page, rowsPerPage]);
+  }, [sortedAffiliates, page, rowsPerPage]);
 
   const paginatedFamilyMembers = useMemo(() => {
-    return filteredFamilyMembers.slice(
+    return sortedFamilyMembers.slice(
       page * rowsPerPage,
       page * rowsPerPage + rowsPerPage,
     );
-  }, [filteredFamilyMembers, page, rowsPerPage]);
+  }, [sortedFamilyMembers, page, rowsPerPage]);
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -1463,7 +1599,7 @@ export default function AfiliadosManager() {
   const handleExportFiltrados = () => {
     if (activeTab === 0) {
       // Export Titulares
-      const exportData = filteredAffiliates.map((a) => {
+      const exportData = sortedAffiliates.map((a) => {
         const isDesaf = Boolean(a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado));
         const estadoStr = isDesaf
           ? "Desafiliado"
@@ -1493,7 +1629,7 @@ export default function AfiliadosManager() {
       XLSX.writeFile(wb, "Titulares_Filtrados.xlsx");
     } else {
       // Export Familiares
-      const exportData = filteredFamilyMembers.map((member) => {
+      const exportData = sortedFamilyMembers.map((member) => {
         let ageToUse = member.edad;
         if (ageToUse === null || ageToUse === undefined) {
           ageToUse = calculateAge(member.fecha_nacimiento);
@@ -2082,6 +2218,8 @@ export default function AfiliadosManager() {
               setFilterDesafiliados(false);
               setSelectedEstado("todos");
               setSelectedDesafiliacionDate("todas");
+              setSortField("apellido");
+              setSortDirection("asc");
               setPage(0);
             }}
             sx={{
@@ -2105,34 +2243,97 @@ export default function AfiliadosManager() {
             <>
               <TableHead>
                 <TableRow>
-                  {[
-                    "CUIL",
-                    "LEGAJO",
-                    "APELLIDO",
-                    "NOMBRE",
-                    "PROVINCIA",
-                    "ESTADO",
-                    "SEXO",
-                  ].map((header) => (
-                    <TableCell
-                      key={header}
-                      sx={{
-                        fontWeight: 700,
-                        backgroundColor: "background.paper",
-                        borderBottom: "2px solid",
-                        borderColor: "divider",
-                      }}
-                    >
-                      {header}
-                    </TableCell>
-                  ))}
+                  {affiliateColumns.map((col) => {
+                    const isSorted = sortField === col.id;
+                    return (
+                      <TableCell
+                        key={col.id}
+                        onClick={() => handleRequestSort(col.id)}
+                        sx={{
+                          fontWeight: 700,
+                          backgroundColor: "background.paper",
+                          borderBottom: "2px solid",
+                          borderColor: "divider",
+                          cursor: "pointer",
+                          userSelect: "none",
+                          transition: "background-color 0.15s ease",
+                          "&:hover": {
+                            backgroundColor: (th) => alpha(th.palette.primary.main, 0.08),
+                          },
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+                          <Typography
+                            component="span"
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.8rem",
+                              letterSpacing: "0.02em",
+                              color: isSorted ? "primary.main" : "inherit",
+                              transition: "color 0.15s ease",
+                            }}
+                          >
+                            {col.label}
+                          </Typography>
+                          <Tooltip
+                            title={`Ordenar por ${col.label} (${
+                              isSorted
+                                ? sortDirection === "asc"
+                                  ? "Ascendente A-Z / 0-9 (Clic para Descendente)"
+                                  : "Descendente Z-A / 9-0 (Clic para Ascendente)"
+                                : "Clic para ordenar"
+                            })`}
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRequestSort(col.id);
+                              }}
+                              sx={{
+                                p: 0.35,
+                                borderRadius: 1.5,
+                                color: isSorted ? "primary.main" : "text.secondary",
+                                backgroundColor: isSorted
+                                  ? (th) => alpha(th.palette.primary.main, 0.14)
+                                  : (th) => alpha(th.palette.divider, 0.35),
+                                border: isSorted
+                                  ? (th) => `1px solid ${alpha(th.palette.primary.main, 0.45)}`
+                                  : (th) => `1px solid ${alpha(th.palette.divider, 0.8)}`,
+                                transition: "all 0.2s ease",
+                                "&:hover": {
+                                  backgroundColor: (th) => alpha(th.palette.primary.main, 0.25),
+                                  color: "primary.main",
+                                  borderColor: "primary.main",
+                                },
+                              }}
+                            >
+                              {isSorted ? (
+                                sortDirection === "asc" ? (
+                                  <ArrowUpwardIcon sx={{ fontSize: "0.95rem" }} />
+                                ) : (
+                                  <ArrowDownwardIcon sx={{ fontSize: "0.95rem" }} />
+                                )
+                              ) : (
+                                <SwapVertIcon sx={{ fontSize: "0.95rem" }} />
+                              )}
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    );
+                  })}
                   <TableCell
                     align="center"
                     sx={{
-                      fontWeight: 700,
+                      fontWeight: 800,
+                      fontSize: "0.8rem",
+                      letterSpacing: "0.02em",
                       backgroundColor: "background.paper",
                       borderBottom: "2px solid",
                       borderColor: "divider",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     ACCIONES
@@ -2325,26 +2526,87 @@ export default function AfiliadosManager() {
             <>
               <TableHead>
                 <TableRow>
-                  {[
-                    "HIJO/A APELLIDO",
-                    "HIJO/A NOMBRE",
-                    "DNI",
-                    "EDAD",
-                    "TITULAR",
-                    "PROVINCIA",
-                  ].map((header) => (
-                    <TableCell
-                      key={header}
-                      sx={{
-                        fontWeight: 700,
-                        backgroundColor: "background.paper",
-                        borderBottom: "2px solid",
-                        borderColor: "divider",
-                      }}
-                    >
-                      {header}
-                    </TableCell>
-                  ))}
+                  {familyColumns.map((col) => {
+                    const isSorted = familySortField === col.id;
+                    return (
+                      <TableCell
+                        key={col.id}
+                        onClick={() => handleFamilyRequestSort(col.id)}
+                        sx={{
+                          fontWeight: 700,
+                          backgroundColor: "background.paper",
+                          borderBottom: "2px solid",
+                          borderColor: "divider",
+                          cursor: "pointer",
+                          userSelect: "none",
+                          transition: "background-color 0.15s ease",
+                          "&:hover": {
+                            backgroundColor: (th) => alpha(th.palette.primary.main, 0.08),
+                          },
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+                          <Typography
+                            component="span"
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.8rem",
+                              letterSpacing: "0.02em",
+                              color: isSorted ? "primary.main" : "inherit",
+                              transition: "color 0.15s ease",
+                            }}
+                          >
+                            {col.label}
+                          </Typography>
+                          <Tooltip
+                            title={`Ordenar por ${col.label} (${
+                              isSorted
+                                ? familySortDirection === "asc"
+                                  ? "Ascendente A-Z / 0-9 (Clic para Descendente)"
+                                  : "Descendente Z-A / 9-0 (Clic para Ascendente)"
+                                : "Clic para ordenar"
+                            })`}
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleFamilyRequestSort(col.id);
+                              }}
+                              sx={{
+                                p: 0.35,
+                                borderRadius: 1.5,
+                                color: isSorted ? "primary.main" : "text.secondary",
+                                backgroundColor: isSorted
+                                  ? (th) => alpha(th.palette.primary.main, 0.14)
+                                  : (th) => alpha(th.palette.divider, 0.35),
+                                border: isSorted
+                                  ? (th) => `1px solid ${alpha(th.palette.primary.main, 0.45)}`
+                                  : (th) => `1px solid ${alpha(th.palette.divider, 0.8)}`,
+                                transition: "all 0.2s ease",
+                                "&:hover": {
+                                  backgroundColor: (th) => alpha(th.palette.primary.main, 0.25),
+                                  color: "primary.main",
+                                  borderColor: "primary.main",
+                                },
+                              }}
+                            >
+                              {isSorted ? (
+                                familySortDirection === "asc" ? (
+                                  <ArrowUpwardIcon sx={{ fontSize: "0.95rem" }} />
+                                ) : (
+                                  <ArrowDownwardIcon sx={{ fontSize: "0.95rem" }} />
+                                )
+                              ) : (
+                                <SwapVertIcon sx={{ fontSize: "0.95rem" }} />
+                              )}
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               </TableHead>
               <TableBody>
