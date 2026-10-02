@@ -42,7 +42,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import SaveIcon from "@mui/icons-material/Save";
 import { supabase } from "../../supabaseClient";
 import { logAction } from "../../utils/auditLogger";
-import { cleanLocationName, PROVINCES_LIST } from "./AfiliadosManager";
+import { cleanLocationName, PROVINCES_LIST, formatDateDisplay } from "./AfiliadosManager";
 
 interface FamilyMember {
   id?: number;
@@ -169,10 +169,16 @@ export default function AffiliateDetailsModal({
         ciudad: cleanProv
       };
       
-      const { error } = await supabase
+      let { error } = await supabase
         .from("affiliates")
         .update(dataToSaveWithClean)
         .eq("id", affiliate.id);
+
+      if (error && (error.message?.includes("desafiliado") || error.code === "42703")) {
+        const { desafiliado, fecha_desafiliacion, ...fallbackData } = dataToSaveWithClean;
+        const res = await supabase.from("affiliates").update(fallbackData).eq("id", affiliate.id);
+        error = res.error;
+      }
 
       if (error) throw error;
 
@@ -320,6 +326,19 @@ export default function AffiliateDetailsModal({
           <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {success && <Alert severity="success" sx={{ mb: 2 }}>Datos actualizados con éxito</Alert>}
             
+            {Boolean(editData.desafiliado || (!editData.is_aefip && !editData.is_ups && !editData.es_jubilado)) && (
+              <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                  Condición: DESAFILIADO
+                </Typography>
+                <Typography variant="body2">
+                  {editData.fecha_desafiliacion
+                    ? `Fecha registrada de desafiliación (importación donde dejó de figurar): ${formatDateDisplay(editData.fecha_desafiliacion)}`
+                    : "Afiliado registrado como baja en el padrón activo sin fecha exacta registrada."}
+                </Typography>
+              </Alert>
+            )}
+            
             <Stack direction="row" spacing={2}>
               <TextField
                 fullWidth label="Apellido" value={editData.apellido || ""}
@@ -406,11 +425,49 @@ export default function AffiliateDetailsModal({
                 control={
                   <Switch
                     checked={editData.is_aefip || false}
-                    onChange={(e) => setEditData({...editData, is_aefip: e.target.checked})}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEditData({
+                        ...editData,
+                        is_aefip: checked,
+                        desafiliado: !checked,
+                        fecha_desafiliacion: !checked ? (editData.fecha_desafiliacion || new Date().toISOString().split('T')[0]) : null
+                      });
+                    }}
                   />
                 }
-                label="Afiliado AEFIP"
+                label="Afiliado AEFIP Activo"
               />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editData.desafiliado || false}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEditData({
+                        ...editData,
+                        desafiliado: checked,
+                        is_aefip: !checked,
+                        fecha_desafiliacion: checked ? (editData.fecha_desafiliacion || new Date().toISOString().split('T')[0]) : null
+                      });
+                    }}
+                    color="error"
+                  />
+                }
+                label="Desafiliado"
+                sx={{ color: editData.desafiliado ? 'error.main' : 'inherit', '& .MuiTypography-root': { fontWeight: editData.desafiliado ? 800 : 400 } }}
+              />
+              {Boolean(editData.desafiliado) && (
+                <TextField
+                  label="Fecha Desafiliación"
+                  type="date"
+                  size="small"
+                  value={editData.fecha_desafiliacion ? editData.fecha_desafiliacion.split('T')[0] : ''}
+                  onChange={(e) => setEditData({ ...editData, fecha_desafiliacion: e.target.value })}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ minWidth: 180 }}
+                />
+              )}
               <FormControlLabel
                 control={
                   <Switch

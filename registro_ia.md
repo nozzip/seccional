@@ -1,5 +1,23 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Prevención de Duplicados en Importación de Activos y Registro Histórico de Desafiliaciones con Fecha
+**Fecha:** 2026-10-02
+**Modo:** Mejorar
+**Descripción:** Se revisó y mejoró de forma integral el proceso de carga/importación de afiliados activos desde planillas Excel (`handleImportExcel`), implementando:
+1. **Detección y No Duplicación:** Verificación exhaustiva de registros ya existentes en base de datos mediante CUIL normalizado, Legajo, DNI o Nombre Completo. Si el afiliado ya existe en la base de datos, no se inserta como duplicado; se reactiva en caso de haber estado dado de baja y se actualizan sus datos.
+2. **Condición de Desafiliación con Registro de Fecha:** Si un afiliado activo en el padrón de la Seccional no figura en la lista importada, se le asigna la condición de "Desafiliado" (`desafiliado: true`, `is_aefip: false`) y se almacena la fecha exacta de la importación en la que dejó de figurar (`fecha_desafiliacion`). Se preserva la fecha original si el afiliado ya venía desafiliado en importaciones anteriores.
+3. **Métricas y Filtros en Panel de Administración:**
+   - Incorporación de la 4ª tarjeta `InfoCard` dedicada a "Desafiliados" con contador dinámico y color `error.main`.
+   - Filtro avanzado por casilla de verificación "Desafiliados" para aislar rápidamente el historial de bajas.
+   - Columna `ESTADO` en la tabla de titulares con chips visuales distintivos (`ACTIVO`, `DESAFILIADO` con subtítulo `Baja: DD/MM/AAAA`, `UPS`, `JUBILADO`).
+   - Inclusión del estado y fecha de desafiliación en la exportación a Excel y en el modal de ficha del afiliado con guardado defensivo contra Supabase.
+4. **Migración SQL y Resiliencia Defensiva:**
+   - Script `sql/add_desafiliados_to_affiliates.sql` para incorporar las columnas `desafiliado` e `fecha_desafiliacion` en Supabase.
+   - Manejo defensivo en frontend con auto-recuperación y avisos si las columnas aún no han sido añadidas en Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Gestión y Registro de Desafiliados:** Normalización de identificadores en importación Excel, condición `desafiliado`, persistencia histórica en `fecha_desafiliacion`, métrica en `InfoCard` y fallback defensivo ante esquemas de base de datos.
+
 ## [ÉXITO] - Navegación Guiada por Provincia y Rubro, Beneficios Gremiales y Asesor Humano Directo
 **Fecha:** 2026-08-20
 **Modo:** Desarrollar

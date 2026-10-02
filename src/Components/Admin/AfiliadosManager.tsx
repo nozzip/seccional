@@ -55,6 +55,7 @@ import MaleIcon from "@mui/icons-material/Male";
 import FemaleIcon from "@mui/icons-material/Female";
 import PersonIcon from "@mui/icons-material/Person";
 import WcIcon from "@mui/icons-material/Wc";
+import PersonOffIcon from "@mui/icons-material/PersonOff";
 
 interface Affiliate {
   id: number;
@@ -76,6 +77,8 @@ interface Affiliate {
   is_aportante?: boolean;
   tipo_jubilado?: string;
   is_aefip?: boolean;
+  desafiliado?: boolean;
+  fecha_desafiliacion?: string | null;
 }
 
 export interface FamilyMemberDetail {
@@ -224,6 +227,24 @@ const fixLocation = (prov: string, city: string) => {
   return { provincia: cleaned, ciudad: cleaned };
 };
 
+export const formatDateDisplay = (dateStr?: string | null): string => {
+  if (!dateStr) return "";
+  try {
+    const cleanDate = String(dateStr).split("T")[0];
+    const parts = cleanDate.split(/[-/]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        return `${parts[2].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[0]}`;
+      } else if (parts[2].length === 4) {
+        return `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[2]}`;
+      }
+    }
+    return cleanDate;
+  } catch {
+    return String(dateStr || "");
+  }
+};
+
 export default function AfiliadosManager() {
   const theme = useTheme();
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
@@ -264,6 +285,7 @@ export default function AfiliadosManager() {
   const [filterActive, setFilterActive] = useState(false);
   const [filterUPS, setFilterUPS] = useState(false);
   const [filterJubiladosAP, setFilterJubiladosAP] = useState(false);
+  const [filterDesafiliados, setFilterDesafiliados] = useState(false);
 
   // Debounce search input - Reduced to 150ms for snappier feel
   useEffect(() => {
@@ -303,7 +325,7 @@ export default function AfiliadosManager() {
           ciudad: cleanedProv,
           family_count: countMap[a.id] || 0,
           _searchStr:
-            `${a.nombre} ${a.apellido} ${a.cuil} ${a.legajo} ${a.dni}`.toLowerCase(),
+            `${a.nombre} ${a.apellido} ${a.cuil} ${a.legajo} ${a.dni} ${a.desafiliado ? "desafiliado baja" : "activo"} ${a.fecha_desafiliacion || ""}`.toLowerCase(),
         };
       });
 
@@ -367,82 +389,203 @@ export default function AfiliadosManager() {
           return;
         }
 
-        // Fresh fetch for matching
-        const { data: currentAffs } = await supabase.from("affiliates").select("*");
-        if (!currentAffs) throw new Error("No se pudo obtener la lista de afiliados.");
+        // Fresh fetch for matching against current database records
+        const { data: currentAffs, error: fetchErr } = await supabase.from("affiliates").select("*");
+        if (fetchErr || !currentAffs) throw new Error("No se pudo obtener la lista de afiliados.");
 
-        const updates = [];
-        const inserts = [];
+        const cleanDigits = (val: any) => String(val || "").replace(/\D/g, "");
+
+        const getRowVal = (row: any, possibleKeys: string[]) => {
+          for (const k of Object.keys(row)) {
+            const cleanK = k.trim().toLowerCase();
+            if (possibleKeys.some((p) => p.toLowerCase() === cleanK)) {
+              return row[k];
+            }
+          }
+          return undefined;
+        };
+
+        const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+        const todayFormatted = todayStr.split("-").reverse().join("/");
+
+        const updates: any[] = [];
+        const inserts: any[] = [];
+        const matchedIds = new Set<number>();
 
         for (const row of data as any[]) {
-          const nombre = String(row.NOMBRE || row.nombre || "");
-          const cuil = String(row.CUIL || row.cuil || "").trim();
-          const legajo = String(row.LEGAJO || row.legajo || "").trim();
-          const apellido = String(row.APELLIDO || row.apellido || "").trim();
-          const rawProv = String(row.PROVINCIA || row.provincia || "").trim();
-          const rawCity = String(row.CIUDAD || row.ciudad || "").trim();
+          let nombre = String(getRowVal(row, ["nombre", "nombres"]) || "").trim();
+          let apellido = String(getRowVal(row, ["apellido", "apellidos"]) || "").trim();
+
+          const fullNameRaw = String(getRowVal(row, ["apellido y nombre", "nombre y apellido", "afiliado", "titular"]) || "").trim();
+          if ((!apellido || !nombre) && fullNameRaw) {
+            const parsed = parseFullName(fullNameRaw);
+            apellido = parsed.apellido;
+            nombre = parsed.nombre;
+          }
+
+          const rawCuil = getRowVal(row, ["cuil", "c.u.i.l.", "c.u.i.l", "cuil titular", "nro cuil", "nro. cuil"]);
+          const cuil = String(rawCuil || "").trim();
+          const cleanCuil = cleanDigits(cuil);
+
+          const rawLegajo = getRowVal(row, ["legajo", "nro legajo", "nro. legajo", "leg"]);
+          const legajo = String(rawLegajo || "").trim();
+          const cleanLegajo = cleanDigits(legajo);
+
+          const rawDni = getRowVal(row, ["dni", "documento", "doc", "doc.", "doc nro", "doc. nro.", "nro documento"]);
+          const cleanDni = cleanDigits(rawDni);
+
+          const rawProv = String(getRowVal(row, ["provincia", "prov"]) || "").trim();
+          const rawCity = String(getRowVal(row, ["ciudad", "localidad", "agencia", "distrito"]) || "").trim();
           const { provincia, ciudad } = fixLocation(rawProv, rawCity);
-          const sexoExcel = row.SEXO || row.sexo;
+          const sexoExcel = getRowVal(row, ["sexo", "genero"]);
 
-          if (!cuil && !legajo && !apellido) continue;
+          if (!cleanCuil && !cleanLegajo && !cleanDni && !apellido && !nombre) continue;
 
-          // Match by CUIL or Legajo
-          let match = null;
-          if (cuil) match = currentAffs.find(a => a.cuil === cuil);
-          if (!match && legajo) match = currentAffs.find(a => a.legajo === legajo);
+          // Matching against database:
+          // 1. Match by clean CUIL
+          let match: any = null;
+          if (cleanCuil && cleanCuil.length >= 7) {
+            match = currentAffs.find((a: any) => cleanDigits(a.cuil) === cleanCuil);
+          }
 
-          const affData = {
-            cuil,
-            legajo,
-            apellido,
-            nombre,
-            provincia,
-            ciudad,
-            sexo: sexoExcel ? String(sexoExcel) : inferGender(nombre, cuil),
+          // 2. Match by clean Legajo
+          if (!match && cleanLegajo && cleanLegajo.length >= 3) {
+            match = currentAffs.find((a: any) => {
+              if (a.legajo?.trim().toLowerCase() === legajo.toLowerCase()) return true;
+              return cleanDigits(a.legajo) === cleanLegajo;
+            });
+          }
+
+          // 3. Match by DNI
+          if (!match && cleanDni && cleanDni.length >= 6) {
+            match = currentAffs.find((a: any) => {
+              const aDni = cleanDigits(a.dni);
+              if (aDni === cleanDni) return true;
+              const aCuil = cleanDigits(a.cuil);
+              return aCuil.length >= 10 && aCuil.substring(2, aCuil.length - 1) === cleanDni;
+            });
+          }
+
+          // 4. Fallback match by normalized Name
+          if (!match && apellido && nombre) {
+            const normRowName = normalizeName(`${apellido} ${nombre}`);
+            match = currentAffs.find(
+              (a: any) => normalizeName(`${a.apellido} ${a.nombre}`) === normRowName
+            );
+          }
+
+          const affData: any = {
+            cuil: cleanCuil || cuil || (match?.cuil || ""),
+            legajo: legajo || match?.legajo || "",
+            apellido: apellido || match?.apellido || "",
+            nombre: nombre || match?.nombre || "",
+            provincia: provincia || match?.provincia || "SALTA",
+            ciudad: ciudad || match?.ciudad || provincia || "SALTA",
+            sexo: sexoExcel ? String(sexoExcel) : (match?.sexo || inferGender(nombre, cuil)),
             is_aefip: true,
-            branch: "noroeste"
+            desafiliado: false,
+            fecha_desafiliacion: null, // Reactivación: se quita la desafiliación al volver a figurar en el padrón activo
+            branch: "noroeste",
           };
 
           if (match) {
+            // "si ya existe en la base de datos, no se agrega" -> NO se agrega a 'inserts', se actualiza / reactiva
+            matchedIds.add(match.id);
             updates.push({ id: match.id, ...affData });
           } else {
+            // Nuevo afiliado que no existía en el padrón
             inserts.push(affData);
           }
         }
 
-        // 1. Execute batch updates for existing records
+        // 1. Batch updates for existing records (no duplicados)
+        let hasColumnError = false;
         if (updates.length > 0) {
           for (const upd of updates) {
             const { id, ...rest } = upd;
-            await supabase.from("affiliates").update(rest).eq("id", id);
+            const { error: updErr } = await supabase.from("affiliates").update(rest).eq("id", id);
+            if (updErr && (updErr.message?.includes("desafiliado") || updErr.code === "42703")) {
+              hasColumnError = true;
+              const { desafiliado, fecha_desafiliacion, ...fallbackRest } = rest;
+              await supabase.from("affiliates").update(fallbackRest).eq("id", id);
+            } else if (updErr) {
+              console.error("Error updating affiliate id", id, updErr);
+            }
           }
         }
 
-        // 2. Execute batch inserts for new records
+        // 2. Batch inserts for new records
         if (inserts.length > 0) {
-          const { error } = await supabase.from("affiliates").insert(inserts);
-          if (error) throw error;
+          const { error: insErr } = await supabase.from("affiliates").insert(inserts);
+          if (insErr && (insErr.message?.includes("desafiliado") || insErr.code === "42703")) {
+            hasColumnError = true;
+            const fallbackInserts = inserts.map(({ desafiliado, fecha_desafiliacion, ...rest }: any) => rest);
+            const { error: insFallbackErr } = await supabase.from("affiliates").insert(fallbackInserts);
+            if (insFallbackErr) throw insFallbackErr;
+          } else if (insErr) {
+            throw insErr;
+          }
         }
 
-        // 3. Logic for disaffiliations:
-        // Find records currently is_aefip = true that were NOT in the Excel (not in 'updates')
-        const updatedIds = updates.map(u => u.id);
-        const disaffiliateIds = currentAffs
-          .filter(a => a.is_aefip && !updatedIds.includes(a.id))
-          .map(a => a.id);
+        // 3. Logic for disaffiliations ("si no esta en la lista, agregar un condicional mas que diga 'Desafiliado' y tenga los datos de que fecha se desafilió, es decir, en que importación ya no apareció más el mismo, para ir teniendo un registro de quienes se desafiliaron"):
+        const disaffiliatedCandidates = currentAffs.filter((a: any) => {
+          // Ignorar afiliados exclusivos de UPS o jubilados externos que no eran AEFIP
+          const isExternalOnly = (a.is_ups && !a.is_aefip) || (a.es_jubilado && !a.is_aefip);
+          if (isExternalOnly) return false;
 
-        if (disaffiliateIds.length > 0) {
-          await supabase
+          // No estuvo presente en la lista del archivo importado
+          return !matchedIds.has(a.id);
+        });
+
+        let newlyDisaffiliatedCount = 0;
+        let previouslyDisaffiliatedCount = 0;
+
+        for (const aff of disaffiliatedCandidates) {
+          const wasAlreadyDisaffiliated = aff.desafiliado === true && aff.fecha_desafiliacion;
+          if (wasAlreadyDisaffiliated) {
+            previouslyDisaffiliatedCount++;
+            // Ya tenía su fecha de desafiliación original registrada, conservamos el registro histórico
+            continue;
+          }
+
+          newlyDisaffiliatedCount++;
+          const disaffDate = aff.fecha_desafiliacion || todayStr;
+          const disaffPayload: any = {
+            is_aefip: false,
+            desafiliado: true,
+            fecha_desafiliacion: disaffDate,
+          };
+
+          const { error: disaffErr } = await supabase
             .from("affiliates")
-            .update({ is_aefip: false })
-            .in("id", disaffiliateIds);
+            .update(disaffPayload)
+            .eq("id", aff.id);
+
+          if (disaffErr && (disaffErr.message?.includes("desafiliado") || disaffErr.code === "42703")) {
+            hasColumnError = true;
+            await supabase.from("affiliates").update({ is_aefip: false }).eq("id", aff.id);
+          }
         }
 
-        alert(`Importación finalizada:\n- ${updates.length} Afiliados actualizados.\n- ${inserts.length} Nuevos afiliados agregados.\n- ${disaffiliateIds.length} Afiliados marcados como "Baja" (no estaban en la lista).`);
+        let alertMsg = `Importación de Activos finalizada:\n\n` +
+          `• ${updates.length} Afiliados existentes verificados (ya estaban en la base de datos, no se duplicaron).\n` +
+          `• ${inserts.length} Nuevos afiliados incorporados al padrón.\n` +
+          `• ${newlyDisaffiliatedCount} Afiliados no aparecieron en la lista y fueron marcados como "Desafiliado" (Fecha de baja: ${todayFormatted}).`;
+
+        if (previouslyDisaffiliatedCount > 0) {
+          alertMsg += `\n• ${previouslyDisaffiliatedCount} Afiliados continúan desafiliados de importaciones previas (conservando su fecha original).`;
+        }
+
+        if (hasColumnError) {
+          alertMsg += `\n\n⚠️ AVISO DE BASE DE DATOS:\n` +
+            `Para registrar permanentemente las columnas 'desafiliado' y 'fecha_desafiliacion' en Supabase, ejecuta el script: sql/add_desafiliados_to_affiliates.sql en el Editor SQL de tu proyecto Supabase.`;
+        }
+
+        alert(alertMsg);
 
         await logAction(
           "IMPORTAR_EXCEL",
-          `Importación de Titulares AEFIP: ${updates.length} actualizados, ${inserts.length} nuevos, ${disaffiliateIds.length} dados de baja`
+          `Importación de Titulares AEFIP: ${updates.length} verificados (no duplicados), ${inserts.length} nuevos, ${newlyDisaffiliatedCount} dados de baja/desafiliados el ${todayFormatted}`
         );
 
         setShowSuccess(true);
@@ -1015,29 +1158,27 @@ export default function AfiliadosManager() {
     }
   };
 
-  // Base list of affiliates that meet the current status toggles (Active, UPS, Jubilados)
+  // Base list of affiliates that meet the current status toggles (Active, UPS, Jubilados, Desafiliados)
   const baseAffiliates = useMemo(() => {
-    const hasAnyFilter = filterActive || filterUPS || filterJubiladosAP;
+    const hasAnyFilter = filterActive || filterUPS || filterJubiladosAP || filterDesafiliados;
     
     return affiliates.filter((a: any) => {
-      // Base validation: Only show Active AEFIP, UPS, or AP Retirees
-      const isActivo = a.is_aefip && !a.is_ups && !a.es_jubilado;
-      const isUps = a.is_ups;
-      const isJubiladoAp = a.es_jubilado && a.is_aportante;
-      const isJubiladoNoAp = a.es_jubilado && !a.is_aportante;
-      
-      const isValidMember = isActivo || isUps || isJubiladoAp || isJubiladoNoAp;
-      if (!isValidMember) return false;
+      const isDesafiliado = Boolean(a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado));
+      const isActivo = Boolean(a.is_aefip && !a.is_ups && !a.es_jubilado && !isDesafiliado);
+      const isUps = Boolean(a.is_ups);
+      const isJubiladoAp = Boolean(a.es_jubilado && a.is_aportante);
+      const isJubiladoNoAp = Boolean(a.es_jubilado && !a.is_aportante);
 
       if (!hasAnyFilter) return true;
 
       return (
         (filterActive && isActivo) ||
         (filterUPS && isUps) ||
-        (filterJubiladosAP && (isJubiladoAp || isJubiladoNoAp))
+        (filterJubiladosAP && (isJubiladoAp || isJubiladoNoAp)) ||
+        (filterDesafiliados && isDesafiliado)
       );
     });
-  }, [affiliates, filterActive, filterUPS, filterJubiladosAP]);
+  }, [affiliates, filterActive, filterUPS, filterJubiladosAP, filterDesafiliados]);
 
   // Derive filter options based on the base list
   const provinces = useMemo(
@@ -1149,10 +1290,11 @@ export default function AfiliadosManager() {
   };
 
   const stats = useMemo(() => {
-    const totalActivos = affiliates.filter(a => a.is_aefip && !a.is_ups && !a.es_jubilado).length;
+    const totalActivos = affiliates.filter(a => a.is_aefip && !a.is_ups && !a.es_jubilado && !a.desafiliado).length;
     const totalUPS = affiliates.filter(a => a.is_ups).length;
     const totalJubiladosAP = affiliates.filter(a => a.es_jubilado && a.is_aportante).length;
-    return { totalActivos, totalUPS, totalJubiladosAP };
+    const totalDesafiliados = affiliates.filter(a => a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado)).length;
+    return { totalActivos, totalUPS, totalJubiladosAP, totalDesafiliados };
   }, [affiliates]);
 
   const potentialMatches = useMemo(() => {
@@ -1272,15 +1414,30 @@ export default function AfiliadosManager() {
   const handleExportFiltrados = () => {
     if (activeTab === 0) {
       // Export Titulares
-      const exportData = filteredAffiliates.map((a) => ({
-        CUIL: a.cuil,
-        LEGAJO: a.legajo,
-        APELLIDO: a.apellido,
-        NOMBRE: a.nombre,
-        PROVINCIA: a.provincia,
-        SEXO: a.sexo,
-        CANT_HIJOS: a.family_count || 0,
-      }));
+      const exportData = filteredAffiliates.map((a) => {
+        const isDesaf = Boolean(a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado));
+        const estadoStr = isDesaf
+          ? "Desafiliado"
+          : a.is_ups
+          ? "UPS"
+          : a.es_jubilado
+          ? a.is_aportante
+            ? "Jubilado AP"
+            : "Jubilado No AP"
+          : "Activo";
+
+        return {
+          CUIL: a.cuil,
+          LEGAJO: a.legajo,
+          APELLIDO: a.apellido,
+          NOMBRE: a.nombre,
+          PROVINCIA: a.provincia,
+          ESTADO: estadoStr,
+          FECHA_DESAFILIACION: a.fecha_desafiliacion ? formatDateDisplay(a.fecha_desafiliacion) : "",
+          SEXO: a.sexo,
+          CANT_HIJOS: a.family_count || 0,
+        };
+      });
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Titulares Filtrados");
@@ -1317,7 +1474,7 @@ export default function AfiliadosManager() {
   return (
     <Box sx={{ p: { xs: 1, md: 2 }, pb: 4 }}>
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <InfoCard
             title="Afiliados Activos"
             value={stats.totalActivos}
@@ -1327,10 +1484,11 @@ export default function AfiliadosManager() {
               setFilterActive(!filterActive);
               setFilterUPS(false);
               setFilterJubiladosAP(false);
+              setFilterDesafiliados(false);
             }}
           />
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <InfoCard
             title="UPS / Doble Afiliación"
             value={stats.totalUPS}
@@ -1341,10 +1499,11 @@ export default function AfiliadosManager() {
               setFilterUPS(!filterUPS);
               setFilterActive(false);
               setFilterJubiladosAP(false);
+              setFilterDesafiliados(false);
             }}
           />
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <InfoCard
             title="Jubilados Aportantes"
             value={stats.totalJubiladosAP}
@@ -1355,6 +1514,22 @@ export default function AfiliadosManager() {
               setFilterJubiladosAP(!filterJubiladosAP);
               setFilterActive(false);
               setFilterUPS(false);
+              setFilterDesafiliados(false);
+            }}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <InfoCard
+            title="Desafiliados"
+            value={stats.totalDesafiliados}
+            icon={PersonOffIcon}
+            color="error.main"
+            selected={filterDesafiliados}
+            onClick={() => {
+              setFilterDesafiliados(!filterDesafiliados);
+              setFilterActive(false);
+              setFilterUPS(false);
+              setFilterJubiladosAP(false);
             }}
           />
         </Grid>
@@ -1615,18 +1790,45 @@ export default function AfiliadosManager() {
             </Typography>
           </Stack>
 
-          <Stack direction="row" spacing={3} alignItems="center">
+          <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Checkbox checked={filterActive} onChange={(e) => setFilterActive(e.target.checked)} size="small" />
+              <Checkbox checked={filterActive} onChange={(e) => {
+                setFilterActive(e.target.checked);
+                if (e.target.checked) setFilterDesafiliados(false);
+              }} size="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Afiliados Activos</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Checkbox checked={filterUPS} onChange={(e) => setFilterUPS(e.target.checked)} size="small" />
+              <Checkbox checked={filterUPS} onChange={(e) => {
+                setFilterUPS(e.target.checked);
+                if (e.target.checked) setFilterDesafiliados(false);
+              }} size="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Afiliados UPS</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Checkbox checked={filterJubiladosAP} onChange={(e) => setFilterJubiladosAP(e.target.checked)} size="small" />
+              <Checkbox checked={filterJubiladosAP} onChange={(e) => {
+                setFilterJubiladosAP(e.target.checked);
+                if (e.target.checked) setFilterDesafiliados(false);
+              }} size="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Jubilados Aportantes</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Checkbox
+                checked={filterDesafiliados}
+                onChange={(e) => {
+                  setFilterDesafiliados(e.target.checked);
+                  if (e.target.checked) {
+                    setFilterActive(false);
+                    setFilterUPS(false);
+                    setFilterJubiladosAP(false);
+                  }
+                }}
+                size="small"
+                color="error"
+              />
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "error.main" }}>
+                Desafiliados
+              </Typography>
             </Box>
           </Stack>
         </Box>
@@ -1766,6 +1968,7 @@ export default function AfiliadosManager() {
                     "APELLIDO",
                     "NOMBRE",
                     "PROVINCIA",
+                    "ESTADO",
                     "SEXO",
                   ].map((header) => (
                     <TableCell
@@ -1796,7 +1999,7 @@ export default function AfiliadosManager() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
                       <CircularProgress />
                       <Typography variant="body2" sx={{ mt: 2 }}>
                         Cargando titulares...
@@ -1805,70 +2008,125 @@ export default function AfiliadosManager() {
                   </TableRow>
                 ) : filteredAffiliates.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
                       <Typography variant="body1" color="text.secondary">
                         No se encontraron titulares.
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedAffiliates.map((affiliate) => (
-                    <TableRow hover key={affiliate.id}>
-                      <TableCell>{affiliate.cuil}</TableCell>
-                      <TableCell>{affiliate.legajo}</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          {affiliate.apellido}
-                          {affiliate.is_ups && (
+                  paginatedAffiliates.map((affiliate) => {
+                    const isDesaf = Boolean(affiliate.desafiliado || (!affiliate.is_aefip && !affiliate.is_ups && !affiliate.es_jubilado));
+
+                    return (
+                      <TableRow hover key={affiliate.id}>
+                        <TableCell>{affiliate.cuil}</TableCell>
+                        <TableCell>{affiliate.legajo}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            {affiliate.apellido}
+                            {isDesaf && (
+                              <Chip 
+                                label="BAJA" 
+                                size="small" 
+                                color="error" 
+                                sx={{ height: 16, fontSize: "0.6rem", fontWeight: 800, borderRadius: 1 }} 
+                              />
+                            )}
+                            {affiliate.is_ups && (
+                              <Chip 
+                                label="UPS" 
+                                size="small" 
+                                color="warning" 
+                                sx={{ height: 16, fontSize: "0.6rem", fontWeight: 800, borderRadius: 1 }} 
+                              />
+                            )}
+                            {affiliate.es_jubilado && (
+                              <Chip 
+                                label={affiliate.is_aportante ? "JUB. AP" : "JUB. NO AP"} 
+                                size="small" 
+                                color={affiliate.is_aportante ? "secondary" : "default"}
+                                variant={affiliate.is_aportante ? "filled" : "outlined"}
+                                sx={{ height: 16, fontSize: "0.6rem", fontWeight: 800, borderRadius: 1 }} 
+                              />
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>{affiliate.nombre}</TableCell>
+                        <TableCell>{affiliate.provincia}</TableCell>
+                        <TableCell>
+                          {isDesaf ? (
+                            <Box>
+                              <Chip 
+                                label="DESAFILIADO" 
+                                size="small" 
+                                color="error" 
+                                sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, borderRadius: 1.5 }} 
+                              />
+                              {affiliate.fecha_desafiliacion && (
+                                <Typography 
+                                  variant="caption" 
+                                  display="block" 
+                                  sx={{ color: "error.main", fontSize: "0.68rem", fontWeight: 700, mt: 0.5 }}
+                                >
+                                  Baja: {formatDateDisplay(affiliate.fecha_desafiliacion)}
+                                </Typography>
+                              )}
+                            </Box>
+                          ) : affiliate.is_ups ? (
                             <Chip 
                               label="UPS" 
                               size="small" 
                               color="warning" 
-                              sx={{ height: 16, fontSize: "0.6rem", fontWeight: 800, borderRadius: 1 }} 
+                              sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, borderRadius: 1.5 }} 
                             />
-                          )}
-                          {affiliate.es_jubilado && (
+                          ) : affiliate.es_jubilado ? (
                             <Chip 
                               label={affiliate.is_aportante ? "JUB. AP" : "JUB. NO AP"} 
                               size="small" 
                               color={affiliate.is_aportante ? "secondary" : "default"}
                               variant={affiliate.is_aportante ? "filled" : "outlined"}
-                              sx={{ height: 16, fontSize: "0.6rem", fontWeight: 800, borderRadius: 1 }} 
+                              sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, borderRadius: 1.5 }} 
+                            />
+                          ) : (
+                            <Chip 
+                              label="ACTIVO" 
+                              size="small" 
+                              color="success"
+                              variant="outlined" 
+                              sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, borderRadius: 1.5 }} 
                             />
                           )}
-                        </Box>
-                      </TableCell>
-                      <TableCell>{affiliate.nombre}</TableCell>
-                      <TableCell>{affiliate.provincia}</TableCell>
-                      <TableCell>
-                        <Chip
-                          icon={
-                            affiliate.sexo === "Hombre" ? (
-                              <MaleIcon style={{ fontSize: "1rem" }} />
-                            ) : affiliate.sexo === "Mujer" ? (
-                              <FemaleIcon style={{ fontSize: "1rem" }} />
-                            ) : (
-                              <PersonIcon style={{ fontSize: "1rem" }} />
-                            )
-                          }
-                          label={affiliate.sexo}
-                          size="small"
-                          color={
-                            affiliate.sexo === "Hombre"
-                              ? "primary"
-                              : affiliate.sexo === "Mujer"
-                                ? "secondary"
-                                : "default"
-                          }
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: "0.7rem",
-                            height: 22,
-                            borderRadius: 1.5,
-                            "& .MuiChip-icon": { color: "inherit" }
-                          }}
-                        />
-                      </TableCell>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            icon={
+                              affiliate.sexo === "Hombre" ? (
+                                <MaleIcon style={{ fontSize: "1rem" }} />
+                              ) : affiliate.sexo === "Mujer" ? (
+                                <FemaleIcon style={{ fontSize: "1rem" }} />
+                              ) : (
+                                <PersonIcon style={{ fontSize: "1rem" }} />
+                              )
+                            }
+                            label={affiliate.sexo}
+                            size="small"
+                            color={
+                              affiliate.sexo === "Hombre"
+                                ? "primary"
+                                : affiliate.sexo === "Mujer"
+                                  ? "secondary"
+                                  : "default"
+                            }
+                            sx={{
+                              fontWeight: 700,
+                              fontSize: "0.7rem",
+                              height: 22,
+                              borderRadius: 1.5,
+                              "& .MuiChip-icon": { color: "inherit" }
+                            }}
+                          />
+                        </TableCell>
                       <TableCell align="center">
                         <Stack
                           direction="row"
@@ -1915,8 +2173,9 @@ export default function AfiliadosManager() {
                         </Stack>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  );
+                })
+              )}
               </TableBody>
             </>
           ) : (
