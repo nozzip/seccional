@@ -286,6 +286,51 @@ export default function AfiliadosManager() {
   const [filterUPS, setFilterUPS] = useState(false);
   const [filterJubiladosAP, setFilterJubiladosAP] = useState(false);
   const [filterDesafiliados, setFilterDesafiliados] = useState(false);
+  const [selectedEstado, setSelectedEstado] = useState<string>("todos");
+  const [selectedDesafiliacionDate, setSelectedDesafiliacionDate] = useState<string>("todas");
+
+  const desafiliacionDates = useMemo(() => {
+    return Array.from(
+      new Set(
+        affiliates
+          .filter(a => a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado))
+          .map(a => a.fecha_desafiliacion)
+          .filter(Boolean)
+      )
+    ).sort().reverse() as string[];
+  }, [affiliates]);
+
+  const handleEstadoChange = (val: string) => {
+    setSelectedEstado(val);
+    setSelectedDesafiliacionDate("todas");
+    if (val === "activos") {
+      setFilterActive(true);
+      setFilterUPS(false);
+      setFilterJubiladosAP(false);
+      setFilterDesafiliados(false);
+    } else if (val === "desafiliados") {
+      setFilterDesafiliados(true);
+      setFilterActive(false);
+      setFilterUPS(false);
+      setFilterJubiladosAP(false);
+    } else if (val === "ups") {
+      setFilterUPS(true);
+      setFilterActive(false);
+      setFilterJubiladosAP(false);
+      setFilterDesafiliados(false);
+    } else if (val === "jubilados") {
+      setFilterJubiladosAP(true);
+      setFilterActive(false);
+      setFilterUPS(false);
+      setFilterDesafiliados(false);
+    } else {
+      setFilterActive(false);
+      setFilterUPS(false);
+      setFilterJubiladosAP(false);
+      setFilterDesafiliados(false);
+    }
+    setPage(0);
+  };
 
   // Debounce search input - Reduced to 150ms for snappier feel
   useEffect(() => {
@@ -1160,7 +1205,7 @@ export default function AfiliadosManager() {
 
   // Base list of affiliates that meet the current status toggles (Active, UPS, Jubilados, Desafiliados)
   const baseAffiliates = useMemo(() => {
-    const hasAnyFilter = filterActive || filterUPS || filterJubiladosAP || filterDesafiliados;
+    const hasAnyFilter = filterActive || filterUPS || filterJubiladosAP || filterDesafiliados || selectedEstado !== "todos";
     
     return affiliates.filter((a: any) => {
       const isDesafiliado = Boolean(a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado));
@@ -1168,6 +1213,10 @@ export default function AfiliadosManager() {
       const isUps = Boolean(a.is_ups);
       const isJubiladoAp = Boolean(a.es_jubilado && a.is_aportante);
       const isJubiladoNoAp = Boolean(a.es_jubilado && !a.is_aportante);
+
+      if (filterDesafiliados && selectedDesafiliacionDate !== "todas") {
+        if (a.fecha_desafiliacion !== selectedDesafiliacionDate) return false;
+      }
 
       if (!hasAnyFilter) return true;
 
@@ -1178,7 +1227,7 @@ export default function AfiliadosManager() {
         (filterDesafiliados && isDesafiliado)
       );
     });
-  }, [affiliates, filterActive, filterUPS, filterJubiladosAP, filterDesafiliados]);
+  }, [affiliates, filterActive, filterUPS, filterJubiladosAP, filterDesafiliados, selectedEstado, selectedDesafiliacionDate]);
 
   // Derive filter options based on the base list
   const provinces = useMemo(
@@ -1481,10 +1530,12 @@ export default function AfiliadosManager() {
             icon={PeopleIcon}
             selected={filterActive}
             onClick={() => {
-              setFilterActive(!filterActive);
+              const next = !filterActive;
+              setFilterActive(next);
               setFilterUPS(false);
               setFilterJubiladosAP(false);
               setFilterDesafiliados(false);
+              setSelectedEstado(next ? "activos" : "todos");
             }}
           />
         </Grid>
@@ -1496,10 +1547,12 @@ export default function AfiliadosManager() {
             color="warning.main"
             selected={filterUPS}
             onClick={() => {
-              setFilterUPS(!filterUPS);
+              const next = !filterUPS;
+              setFilterUPS(next);
               setFilterActive(false);
               setFilterJubiladosAP(false);
               setFilterDesafiliados(false);
+              setSelectedEstado(next ? "ups" : "todos");
             }}
           />
         </Grid>
@@ -1511,10 +1564,12 @@ export default function AfiliadosManager() {
             color="secondary.main"
             selected={filterJubiladosAP}
             onClick={() => {
-              setFilterJubiladosAP(!filterJubiladosAP);
+              const next = !filterJubiladosAP;
+              setFilterJubiladosAP(next);
               setFilterActive(false);
               setFilterUPS(false);
               setFilterDesafiliados(false);
+              setSelectedEstado(next ? "jubilados" : "todos");
             }}
           />
         </Grid>
@@ -1526,10 +1581,12 @@ export default function AfiliadosManager() {
             color="error.main"
             selected={filterDesafiliados}
             onClick={() => {
-              setFilterDesafiliados(!filterDesafiliados);
+              const next = !filterDesafiliados;
+              setFilterDesafiliados(next);
               setFilterActive(false);
               setFilterUPS(false);
               setFilterJubiladosAP(false);
+              setSelectedEstado(next ? "desafiliados" : "todos");
             }}
           />
         </Grid>
@@ -1793,22 +1850,46 @@ export default function AfiliadosManager() {
           <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Checkbox checked={filterActive} onChange={(e) => {
-                setFilterActive(e.target.checked);
-                if (e.target.checked) setFilterDesafiliados(false);
+                const checked = e.target.checked;
+                setFilterActive(checked);
+                if (checked) {
+                  setFilterDesafiliados(false);
+                  setFilterUPS(false);
+                  setFilterJubiladosAP(false);
+                  setSelectedEstado("activos");
+                } else {
+                  setSelectedEstado("todos");
+                }
               }} size="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Afiliados Activos</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Checkbox checked={filterUPS} onChange={(e) => {
-                setFilterUPS(e.target.checked);
-                if (e.target.checked) setFilterDesafiliados(false);
+                const checked = e.target.checked;
+                setFilterUPS(checked);
+                if (checked) {
+                  setFilterActive(false);
+                  setFilterDesafiliados(false);
+                  setFilterJubiladosAP(false);
+                  setSelectedEstado("ups");
+                } else {
+                  setSelectedEstado("todos");
+                }
               }} size="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Afiliados UPS</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Checkbox checked={filterJubiladosAP} onChange={(e) => {
-                setFilterJubiladosAP(e.target.checked);
-                if (e.target.checked) setFilterDesafiliados(false);
+                const checked = e.target.checked;
+                setFilterJubiladosAP(checked);
+                if (checked) {
+                  setFilterActive(false);
+                  setFilterUPS(false);
+                  setFilterDesafiliados(false);
+                  setSelectedEstado("jubilados");
+                } else {
+                  setSelectedEstado("todos");
+                }
               }} size="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Jubilados Aportantes</Typography>
             </Box>
@@ -1816,17 +1897,21 @@ export default function AfiliadosManager() {
               <Checkbox
                 checked={filterDesafiliados}
                 onChange={(e) => {
-                  setFilterDesafiliados(e.target.checked);
-                  if (e.target.checked) {
+                  const checked = e.target.checked;
+                  setFilterDesafiliados(checked);
+                  if (checked) {
                     setFilterActive(false);
                     setFilterUPS(false);
                     setFilterJubiladosAP(false);
+                    setSelectedEstado("desafiliados");
+                  } else {
+                    setSelectedEstado("todos");
                   }
                 }}
                 size="small"
                 color="error"
               />
-              <Typography variant="body2" sx={{ fontWeight: 600, color: "error.main" }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: "error.main" }}>
                 Desafiliados
               </Typography>
             </Box>
@@ -1836,7 +1921,11 @@ export default function AfiliadosManager() {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr 1fr" },
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr 1fr",
+              md: filterDesafiliados && desafiliacionDates.length > 0 ? "2fr 1.2fr 1.2fr 1fr 1fr" : "2fr 1.2fr 1fr 1fr",
+            },
             gap: 2,
           }}
         >
@@ -1844,7 +1933,7 @@ export default function AfiliadosManager() {
             fullWidth
             size="small"
             variant="outlined"
-            placeholder="Buscar por nombre, apellido, CUIL o legajo..."
+            placeholder="Buscar por nombre, apellido, CUIL, legajo o fecha de baja..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             InputProps={{
@@ -1860,6 +1949,48 @@ export default function AfiliadosManager() {
               },
             }}
           />
+
+          {activeTab === 0 && (
+            <FormControl fullWidth size="small">
+              <InputLabel>Estado / Condición</InputLabel>
+              <Select
+                value={selectedEstado}
+                label="Estado / Condición"
+                onChange={(e) => handleEstadoChange(e.target.value)}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="todos">Todos los Estados</MenuItem>
+                <MenuItem value="activos">Solo Activos</MenuItem>
+                <MenuItem value="desafiliados" sx={{ color: "error.main", fontWeight: 700 }}>
+                  Solo Desafiliados (Bajas)
+                </MenuItem>
+                <MenuItem value="ups">Solo UPS</MenuItem>
+                <MenuItem value="jubilados">Solo Jubilados</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+
+          {activeTab === 0 && filterDesafiliados && desafiliacionDates.length > 0 && (
+            <FormControl fullWidth size="small">
+              <InputLabel>Fecha de Baja</InputLabel>
+              <Select
+                value={selectedDesafiliacionDate}
+                label="Fecha de Baja"
+                onChange={(e) => {
+                  setSelectedDesafiliacionDate(e.target.value);
+                  setPage(0);
+                }}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="todas">Todas las fechas de baja</MenuItem>
+                {desafiliacionDates.map((dateStr) => (
+                  <MenuItem key={dateStr} value={dateStr}>
+                    {formatDateDisplay(dateStr)} ({affiliates.filter(a => a.fecha_desafiliacion === dateStr).length} desafiliados)
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           {activeTab === 1 && (
             <>
@@ -1932,13 +2063,25 @@ export default function AfiliadosManager() {
         </Box>
 
         {(selectedProvinces.length > 0 ||
-          selectedGenders.length > 0) && (
+          selectedGenders.length > 0 ||
+          filterActive ||
+          filterUPS ||
+          filterJubiladosAP ||
+          filterDesafiliados ||
+          selectedEstado !== "todos" ||
+          selectedDesafiliacionDate !== "todas") && (
           <Button
             size="small"
             variant="text"
             onClick={() => {
               setSelectedProvinces([]);
               setSelectedGenders([]);
+              setFilterActive(false);
+              setFilterUPS(false);
+              setFilterJubiladosAP(false);
+              setFilterDesafiliados(false);
+              setSelectedEstado("todos");
+              setSelectedDesafiliacionDate("todas");
               setPage(0);
             }}
             sx={{

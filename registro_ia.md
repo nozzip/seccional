@@ -1,5 +1,17 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Selector Dinámico de Estado y Filtro Específico por Fecha de Desafiliación
+**Fecha:** 2026-10-02
+**Modo:** Mejorar
+**Descripción:** Se enriqueció la barra de Filtros Avanzados en `AfiliadosManager.tsx` agregando:
+1. **Selector Desplegable de Estado / Condición:** Ubicado en la grilla principal de filtros junto a Provincia y Sexo, permitiendo alternar de forma inmediata entre *"Todos los Estados"*, *"Solo Activos"*, *"Solo Desafiliados (Bajas)"*, *"Solo UPS"* y *"Solo Jubilados"*.
+2. **Sincronización Bidireccional Total:** El selector se sincroniza en tiempo real con las 4 tarjetas `InfoCard` superiores y las casillas de verificación de roles.
+3. **Filtro Específico por Fecha de Baja:** Al seleccionar "Desafiliados", se despliega automáticamente un selector contextual con las fechas exactas de las importaciones en las que ocurrieron las bajas y la cantidad de afiliados correspondientes a cada fecha, permitiendo auditar importaciones específicas.
+4. **Limpieza Unificada:** El botón "Limpiar filtros" reinicia todos los selectores y casillas a su estado inicial.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Filtrado Avanzado de Afiliados:** Doble control de filtrado (Checkbox + Selector Dropdown de Estado) y drill-down temporal por fecha de importación para desafiliados.
+
 ## [ÉXITO] - Prevención de Duplicados en Importación de Activos y Registro Histórico de Desafiliaciones con Fecha
 **Fecha:** 2026-10-02
 **Modo:** Mejorar
