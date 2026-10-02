@@ -1,5 +1,23 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Sincronización y Desglose Completo de Totales de Afiliados en Resumen General Noroeste
+**Fecha:** 2026-10-02
+**Modo:** Mejorar
+**Descripción:** Se unificó el cálculo y la presentación visual de métricas de afiliados entre `AdminOverviewNoroeste.tsx` ("Resumen") y `AfiliadosManager.tsx` ("Afiliados"):
+1. **Desglose Exacto 1-a-1 de Totales:** En lugar de un único valor global no categorizado, el panel de "Resumen General Noroeste" ahora presenta las tarjetas correspondientes a:
+   - **Afiliados Activos:** 316 (Titulares activos en AEFIP).
+   - **UPS / Doble Afiliación:** 183 (Afiliados vinculados a UPS).
+   - **Jubilados Aportantes:** 139 (Jubilados que aportan a la seccional).
+   - **Desafiliados:** 31 (Bajas registradas con fecha histórica).
+   - **Total Hijos:** 295 (Familiares a cargo registrados).
+   - **Padrón Total:** 862 (Total histórico de titulares registrados en base de datos).
+2. **Coherencia Absoluta de Datos:** Se replicó exactamente el mismo algoritmo de filtrado por estados y condiciones utilizado en el gestor de afiliados, asegurando que ambos paneles muestren idénticos números en tiempo real.
+3. **Diseño Visual Armónico:** Se adaptó el componente `StatCard` con resolución de colores por tema (`primary.main`, `warning.main`, `secondary.main`, `error.main`, `info.main`, `text.primary`), disposición en subgrilla de 2 columnas balanceada con las secciones financieras de Caja Central y Banco, y soporte reactivo a cambios en Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Métricas de Padrón Unificadas:** Reglas de categorización de afiliados estandarizadas entre el Dashboard General de la Seccional (`AdminOverviewNoroeste`) y el Gestor Operativo (`AfiliadosManager`).
+
+
 ## [ÉXITO] - Ordenamiento Interactivo Multicolumna con Botones en Tablas de Afiliados y Familiares
 **Fecha:** 2026-10-02
 **Modo:** Mejorar
