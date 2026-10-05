@@ -1,0 +1,1 @@
+const s=t=>{if(!t||t==="-")return"-";if(t instanceof Date)return t.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"});const i=String(t).trim();if(/^\d{4}-\d{2}-\d{2}/.test(i)){const[n,r,e]=i.split("T")[0].split("-");return`${e}/${r}/${n}`}return i};export{s as f};
