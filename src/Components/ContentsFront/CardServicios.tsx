@@ -8,9 +8,9 @@ const MotionPaper = motion.create(Paper);
 
 export default function CardServicios() {
   return (
-    <Grid container spacing={4}>
+    <Grid container spacing={4} justifyContent="center">
       {dataServicios.map((item, i) => (
-        <Grid key={i} size={{ xs: 12, md: 4 }}>
+        <Grid key={i} size={{ xs: 12, md: 6 }}>
           <ServicioItem item={item} index={i} />
         </Grid>
       ))}

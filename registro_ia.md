@@ -832,6 +832,16 @@
 
 ### Verificación:
 - Compilación exitosa (`npm run build`, código 0).
+## [ÉXITO] - Retiro de Cabañas Warmi de Inicio y Ajuste de Layout en Servicios
+**Fecha:** 2026-10-05
+**Modo:** Mejorar
+**Pilar:** Visual
+**Descripción:** Se retiró la tarjeta de "Cabañas Warmi" de la sección "Turismo y Servicios" en la página principal (`Inicio.tsx`), manteniendo únicamente los servicios activos (Club Azucena y Salón San Lorenzo). Se adaptó la grilla en `CardServicios.tsx` para una distribución centrada y armónica en 2 columnas (`size={{ xs: 12, md: 6 }}`).
 
-
-
+### Cambios realizados:
+1. **Actualización de `mockData.ts`:**
+   - Se removió el elemento "CABAÑAS WARMI" de `dataServicios`.
+2. **Ajuste de Grilla en `CardServicios.tsx`:**
+   - Configuración a 2 columnas con `justifyContent="center"` y `size={{ xs: 12, md: 6 }}`.
+3. **Verificación:**
+   - Compilación exitosa (`npm run build`, código 0).

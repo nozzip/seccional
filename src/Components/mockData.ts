@@ -890,7 +890,7 @@ export const dataBeneficios: Beneficio[] = [
   },
   {
     id: 87,
-    title: "Cabañas Warmi (El Mollar)",
+    title: "Cabañas El Mollar",
     category: "Tucumán",
     thumbnail: "https://bsougkolkltztytxdbna.supabase.co/storage/v1/object/public/benefits/servicios/CFrente.jfif",
     short_description: "Cabañas totalmente equipadas en El Mollar, Tucumán. Vista al Cerro Ñuñorco y Dique La Angostura.",
@@ -927,12 +927,6 @@ export const dataBeneficios: Beneficio[] = [
 ];
 
 export const dataServicios: DataItem[] = [
-  {
-    id: 1,
-    title: "CABAÑAS WARMI",
-    thumbnail: "https://bsougkolkltztytxdbna.supabase.co/storage/v1/object/public/benefits/servicios/CFrente.jfif",
-    short_description: "El Mollar, Tafí del Valle, Tucumán",
-  },
   {
     id: 2,
     title: "CLUB AZUCENA",
