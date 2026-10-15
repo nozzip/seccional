@@ -1,5 +1,10 @@
 import { supabase } from "../supabaseClient";
 
+export interface PdfDoc {
+  url: string;
+  name: string;
+}
+
 export interface NewsItem {
   id?: string;
   title: string;
@@ -13,6 +18,7 @@ export interface NewsItem {
   gallery_urls?: string[];
   pdf_url?: string;
   pdf_name?: string;
+  pdf_docs?: PdfDoc[];
 }
 
 async function fetchRssNews(): Promise<NewsItem[]> {
@@ -129,16 +135,41 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
 
       let pdfUrl: string = item.pdf_url || item.file_url || "";
       let pdfName: string = item.pdf_name || item.file_name || "";
+      let pdfDocs: PdfDoc[] = Array.isArray(item.pdf_docs) ? item.pdf_docs : [];
 
-      if (!pdfUrl && item.content) {
-        const pdfMatch = item.content.match(/<!--PDF:(.*?)-->/);
-        if (pdfMatch && pdfMatch[1]) {
+      if (item.content) {
+        // Intentar parsear array de PDFs
+        const pdfsMatch = item.content.match(/<!--PDFS:(.*?)-->/);
+        if (pdfsMatch && pdfsMatch[1]) {
           try {
-            const parsedPdf = JSON.parse(pdfMatch[1]);
-            pdfUrl = parsedPdf.url || "";
-            pdfName = parsedPdf.name || "";
+            const parsedDocs = JSON.parse(pdfsMatch[1]);
+            if (Array.isArray(parsedDocs) && parsedDocs.length > 0) {
+              pdfDocs = parsedDocs;
+            }
           } catch (e) {}
         }
+
+        // Fallback a PDF singular si no había array
+        if (pdfDocs.length === 0) {
+          const pdfMatch = item.content.match(/<!--PDF:(.*?)-->/);
+          if (pdfMatch && pdfMatch[1]) {
+            try {
+              const parsedPdf = JSON.parse(pdfMatch[1]);
+              if (parsedPdf.url) {
+                pdfUrl = parsedPdf.url;
+                pdfName = parsedPdf.name || "";
+                pdfDocs = [{ url: parsedPdf.url, name: parsedPdf.name || "Documento.pdf" }];
+              }
+            } catch (e) {}
+          }
+        }
+      }
+
+      if (pdfDocs.length > 0 && !pdfUrl) {
+        pdfUrl = pdfDocs[0].url;
+        pdfName = pdfDocs[0].name;
+      } else if (pdfUrl && pdfDocs.length === 0) {
+        pdfDocs = [{ url: pdfUrl, name: pdfName || "Documento.pdf" }];
       }
 
       return {
@@ -158,6 +189,7 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
         gallery_urls: galleryUrls,
         pdf_url: pdfUrl,
         pdf_name: pdfName,
+        pdf_docs: pdfDocs,
       };
     });
 

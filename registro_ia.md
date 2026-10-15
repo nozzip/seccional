@@ -1,5 +1,29 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Múltiples PDFs por Noticia y Eliminación en Cascada de Archivos en Supabase Storage
+**Fecha:** 2026-10-15
+**Modo:** Desarrollar
+**Descripción:** Se ampliaron las capacidades de gestión documental y ciclo de vida de archivos en la sección de prensa:
+1. **Múltiples Documentos PDF por Noticia:**
+   - Se adaptó `AddNewsDialog.tsx` para admitir selección múltiple (`multiple`) e incremental de archivos PDF (hasta 20 MB por archivo).
+   - Lista interactiva en el modal administrativo que permite visualizar, previsualizar y remover individualmente archivos PDF existentes o recién agregados.
+   - Guardado híbrido en `rawContent` como `<!--PDFS:[...]-->` junto con compatibilidad directa con el esquema anterior (`pdf_url` / `pdf_name`).
+   - Visualización estructurada en `NoticiaDetalle.tsx` con listado de todos los documentos oficiales y botón individual de descarga para cada uno.
+   - Indicador dinámico en `PrensaCard.tsx` ("X PDFs Adjuntos" / "X PDFs").
+2. **Eliminación en Cascada de Storage (`PrensaCard.tsx`):**
+   - Se implementó la extracción automática de rutas relativas para todos los archivos propios alojados en el bucket `benefits` de Supabase Storage.
+   - Al eliminar una noticia, se eliminan previamente del bucket la imagen de portada (`imgUrl`), todas las fotos de la galería (`gallery_urls`) y todos los documentos PDF adjuntos (`pdf_docs`), evitando que queden archivos huérfanos o duplicados.
+   - Posteriormente se elimina el registro en la base de datos (`news`).
+
+### Cambios realizados:
+1. `src/utils/newsFetcher.ts`: Interfaz `PdfDoc`, soporte de array `pdf_docs` y resolución jerárquica de metadatos múltiples.
+2. `src/Components/PrensaContents/AddNewsDialog.tsx`: Carga por lotes, subida en bucle a Storage, control individual de PDFs.
+3. `src/Pages/NoticiaDetalle.tsx`: Listado de descargas múltiples con diseño temático y nombres reales de cada documento.
+4. `src/Components/PrensaContents/PrensaCard.tsx`: Función `extractStoragePath` y eliminación en cascada (`storage.from("benefits").remove(...)`) antes del borrado SQL; chips con conteo dinámico.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Ciclo de Vida Completo de Multimedia y Documentos:** Toda entidad eliminada en el VTT/Portal limpia previamente sus archivos huérfanos asociados en Supabase Storage antes de dar de baja el registro en la base de datos.
+
 ## [ÉXITO] - Soporte Integral para Carga y Descarga de Documentos PDF en Noticias de Prensa
 **Fecha:** 2026-10-15
 **Modo:** Desarrollar

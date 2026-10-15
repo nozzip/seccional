@@ -37,7 +37,24 @@ export default function PrensaCard({ isAdmin, onRefresh, onEdit }: PrensaCardPro
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
 
-  const handleDelete = async (id: string, title: string) => {
+  const extractStoragePath = (url?: string): string | null => {
+    if (!url) return null;
+    const marker = "/storage/v1/object/public/benefits/";
+    const idx = url.indexOf(marker);
+    if (idx !== -1) {
+      return decodeURIComponent(url.substring(idx + marker.length));
+    }
+    const altMarker = "/benefits/";
+    const altIdx = url.indexOf(altMarker);
+    if (altIdx !== -1 && url.includes("supabase")) {
+      return decodeURIComponent(url.substring(altIdx + altMarker.length));
+    }
+    return null;
+  };
+
+  const handleDelete = async (item: NewsItem) => {
+    if (!item.id) return;
+
     const userStr = localStorage.getItem("current_affiliate");
     const user = userStr ? JSON.parse(userStr) : null;
     if (!isUserAdmin(user)) {
@@ -45,10 +62,45 @@ export default function PrensaCard({ isAdmin, onRefresh, onEdit }: PrensaCardPro
       return;
     }
 
-    if (window.confirm(`¿Estás seguro de que deseas eliminar la noticia "${title}"?`)) {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar la noticia "${item.title}"? Esta acción borrará también sus imágenes y documentos adjuntos.`)) {
       try {
-        const { error } = await supabase.from("news").delete().eq("id", id);
-        if (error) throw error;
+        // 1. Recopilar archivos a eliminar de Storage
+        const pathsToDelete: string[] = [];
+
+        const mainPath = extractStoragePath(item.imgUrl);
+        if (mainPath) pathsToDelete.push(mainPath);
+
+        if (item.gallery_urls && Array.isArray(item.gallery_urls)) {
+          item.gallery_urls.forEach((url) => {
+            const p = extractStoragePath(url);
+            if (p && !pathsToDelete.includes(p)) pathsToDelete.push(p);
+          });
+        }
+
+        if (item.pdf_docs && Array.isArray(item.pdf_docs)) {
+          item.pdf_docs.forEach((doc) => {
+            const p = extractStoragePath(doc.url);
+            if (p && !pathsToDelete.includes(p)) pathsToDelete.push(p);
+          });
+        } else if (item.pdf_url) {
+          const p = extractStoragePath(item.pdf_url);
+          if (p && !pathsToDelete.includes(p)) pathsToDelete.push(p);
+        }
+
+        // 2. Eliminar del Storage si hay archivos propios
+        if (pathsToDelete.length > 0) {
+          const { error: storageError } = await supabase.storage
+            .from("benefits")
+            .remove(pathsToDelete);
+          if (storageError) {
+            console.warn("Aviso al remover archivos en Storage:", storageError);
+          }
+        }
+
+        // 3. Eliminar de la base de datos
+        const { error: dbError } = await supabase.from("news").delete().eq("id", item.id);
+        if (dbError) throw dbError;
+
         if (onRefresh) onRefresh();
       } catch (err) {
         console.error("Error al eliminar noticia:", err);
@@ -121,7 +173,7 @@ export default function PrensaCard({ isAdmin, onRefresh, onEdit }: PrensaCardPro
       <HeroNewsItem
         item={hero}
         isAdmin={isAdmin}
-        onDelete={() => hero.id && handleDelete(hero.id, hero.title)}
+        onDelete={() => handleDelete(hero)}
         onEdit={onEdit}
       />
       <Grid container spacing={4}>
@@ -130,7 +182,7 @@ export default function PrensaCard({ isAdmin, onRefresh, onEdit }: PrensaCardPro
             <StandardNewsItem
               item={item}
               isAdmin={isAdmin}
-              onDelete={() => item.id && handleDelete(item.id, item.title)}
+              onDelete={() => handleDelete(item)}
               onEdit={onEdit}
             />
           </Grid>
@@ -306,11 +358,15 @@ function HeroNewsItem({
             >
               {item.date}
             </Typography>
-            {item.pdf_url && (
+            {((item.pdf_docs && item.pdf_docs.length > 0) || item.pdf_url) && (
               <Chip
                 size="small"
                 icon={<PictureAsPdfIcon sx={{ fontSize: "1rem !important" }} />}
-                label="PDF Adjunto"
+                label={
+                  item.pdf_docs && item.pdf_docs.length > 1
+                    ? `${item.pdf_docs.length} PDFs Adjuntos`
+                    : "PDF Adjunto"
+                }
                 color="error"
                 variant="outlined"
                 sx={{
@@ -519,11 +575,15 @@ function StandardNewsItem({
           >
             {item.date}
           </Typography>
-          {item.pdf_url && (
+          {((item.pdf_docs && item.pdf_docs.length > 0) || item.pdf_url) && (
             <Chip
               size="small"
               icon={<PictureAsPdfIcon sx={{ fontSize: "0.9rem !important" }} />}
-              label="PDF"
+              label={
+                item.pdf_docs && item.pdf_docs.length > 1
+                  ? `${item.pdf_docs.length} PDFs`
+                  : "PDF"
+              }
               color="error"
               variant="outlined"
               sx={{

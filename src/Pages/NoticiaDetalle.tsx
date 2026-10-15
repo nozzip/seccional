@@ -108,23 +108,43 @@ export default function NoticiaDetalle() {
     }
   }
 
-  let pdfUrl: string = news.pdf_url || news.file_url || "";
-  let pdfName: string = news.pdf_name || news.file_name || "";
+  let pdfDocs: Array<{ url: string; name: string }> = Array.isArray(news.pdf_docs) ? [...news.pdf_docs] : [];
 
-  if (!pdfUrl && news.content) {
-    const pdfMatch = news.content.match(/<!--PDF:(.*?)-->/);
-    if (pdfMatch && pdfMatch[1]) {
+  if (news.content) {
+    const pdfsMatch = news.content.match(/<!--PDFS:(.*?)-->/);
+    if (pdfsMatch && pdfsMatch[1]) {
       try {
-        const parsedPdf = JSON.parse(pdfMatch[1]);
-        pdfUrl = parsedPdf.url || "";
-        pdfName = parsedPdf.name || "";
+        const parsed = JSON.parse(pdfsMatch[1]);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          pdfDocs = parsed;
+        }
       } catch (e) {}
     }
+
+    if (pdfDocs.length === 0) {
+      const pdfMatch = news.content.match(/<!--PDF:(.*?)-->/);
+      if (pdfMatch && pdfMatch[1]) {
+        try {
+          const parsedPdf = JSON.parse(pdfMatch[1]);
+          if (parsedPdf.url) {
+            pdfDocs = [{ url: parsedPdf.url, name: parsedPdf.name || "Documento oficial adjunto" }];
+          }
+        } catch (e) {}
+      }
+    }
+  }
+
+  if (pdfDocs.length === 0 && (news.pdf_url || news.file_url)) {
+    pdfDocs = [{
+      url: news.pdf_url || news.file_url,
+      name: news.pdf_name || news.file_name || "Documento oficial adjunto",
+    }];
   }
 
   if (displayContent) {
     displayContent = displayContent
       .replace(/<!--GALLERY:.*?-->/g, "")
+      .replace(/<!--PDFS:.*?-->/g, "")
       .replace(/<!--PDF:.*?-->/g, "")
       .trim();
   }
@@ -228,80 +248,108 @@ export default function NoticiaDetalle() {
             {displayContent || "Sin contenido adicional disponible."}
           </Box>
 
-          {/* Documento PDF adjunto si existe */}
-          {pdfUrl && (
-            <Box
-              sx={{
-                mt: 6,
-                p: { xs: 2.5, sm: 3.5 },
-                borderRadius: 4,
-                bgcolor: alpha(theme.palette.error.main, 0.04),
-                border: "1px solid",
-                borderColor: alpha(theme.palette.error.main, 0.25),
-                boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
-                display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                alignItems: { xs: "flex-start", sm: "center" },
-                justifyContent: "space-between",
-                gap: 2.5,
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0 }}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 3,
-                    bgcolor: alpha(theme.palette.error.main, 0.12),
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <PictureAsPdfIcon sx={{ color: "error.main", fontSize: { xs: 32, sm: 38 } }} />
-                </Box>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      fontWeight: 800,
-                      color: "text.primary",
-                      lineHeight: 1.3,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {pdfName || "Documento Oficial Adjunto"}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-                    Documento PDF • Consulta o descarga el archivo original
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Button
-                variant="contained"
-                color="error"
-                component="a"
-                href={pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download={pdfName || "documento.pdf"}
-                startIcon={<DownloadIcon />}
+          {/* Documentos PDF adjuntos si existen */}
+          {pdfDocs.length > 0 && (
+            <Box sx={{ mt: 6 }}>
+              <Typography
+                variant="h5"
                 sx={{
-                  borderRadius: 8,
-                  px: 3.5,
-                  py: 1.2,
                   fontWeight: 800,
-                  textTransform: "none",
-                  boxShadow: `0 8px 20px ${alpha(theme.palette.error.main, 0.35)}`,
-                  whiteSpace: "nowrap",
-                  width: { xs: "100%", sm: "auto" },
+                  color: "text.primary",
+                  mb: 2.5,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
                 }}
               >
-                Descargar PDF
-              </Button>
+                <PictureAsPdfIcon color="error" />
+                {pdfDocs.length === 1
+                  ? "Documento Oficial Adjunto"
+                  : `Documentos Oficiales Adjuntos (${pdfDocs.length})`}
+              </Typography>
+
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {pdfDocs.map((doc, idx) => (
+                  <Box
+                    key={idx}
+                    sx={{
+                      p: { xs: 2.5, sm: 3 },
+                      borderRadius: 4,
+                      bgcolor: alpha(theme.palette.error.main, 0.04),
+                      border: "1px solid",
+                      borderColor: alpha(theme.palette.error.main, 0.25),
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.03)",
+                      display: "flex",
+                      flexDirection: { xs: "column", sm: "row" },
+                      alignItems: { xs: "flex-start", sm: "center" },
+                      justifyContent: "space-between",
+                      gap: 2,
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        borderColor: alpha(theme.palette.error.main, 0.5),
+                        boxShadow: `0 8px 24px ${alpha(theme.palette.error.main, 0.1)}`,
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0 }}>
+                      <Box
+                        sx={{
+                          p: 1.2,
+                          borderRadius: 3,
+                          bgcolor: alpha(theme.palette.error.main, 0.12),
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <PictureAsPdfIcon sx={{ color: "error.main", fontSize: 30 }} />
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            fontWeight: 800,
+                            color: "text.primary",
+                            lineHeight: 1.3,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {doc.name || `Documento ${idx + 1}.pdf`}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+                          Documento PDF • Consulta o descarga el archivo original
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Button
+                      variant="contained"
+                      color="error"
+                      component="a"
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={doc.name || "documento.pdf"}
+                      startIcon={<DownloadIcon />}
+                      sx={{
+                        borderRadius: 8,
+                        px: 3,
+                        py: 1.1,
+                        fontWeight: 800,
+                        textTransform: "none",
+                        boxShadow: `0 8px 20px ${alpha(theme.palette.error.main, 0.35)}`,
+                        whiteSpace: "nowrap",
+                        width: { xs: "100%", sm: "auto" },
+                      }}
+                    >
+                      Descargar PDF
+                    </Button>
+                  </Box>
+                ))}
+              </Box>
             </Box>
           )}
 

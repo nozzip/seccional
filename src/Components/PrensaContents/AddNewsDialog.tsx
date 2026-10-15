@@ -50,9 +50,8 @@ export default function AddNewsDialog({
   const [existingThumbnails, setExistingThumbnails] = useState<string[]>([]);
   const [thumbnailFiles, setThumbnailFiles] = useState<File[]>([]);
   const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [existingPdfUrl, setExistingPdfUrl] = useState<string>("");
-  const [existingPdfName, setExistingPdfName] = useState<string>("");
+  const [existingPdfs, setExistingPdfs] = useState<Array<{ url: string; name: string }>>([]);
+  const [pdfFiles, setPdfFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -69,19 +68,41 @@ export default function AddNewsDialog({
         }
         rawContent = rawContent.replace(/<!--GALLERY:.*?-->/g, "").trim();
 
-        let currentPdfUrl = newsToEdit.pdf_url || "";
-        let currentPdfName = newsToEdit.pdf_name || "";
-        const pdfMatch = rawContent.match(/<!--PDF:(.*?)-->/);
-        if (pdfMatch && pdfMatch[1]) {
-          if (!currentPdfUrl) {
+        let initialPdfs: Array<{ url: string; name: string }> = [];
+        if (newsToEdit.pdf_docs && Array.isArray(newsToEdit.pdf_docs) && newsToEdit.pdf_docs.length > 0) {
+          initialPdfs = [...newsToEdit.pdf_docs];
+        }
+
+        const pdfsMatch = rawContent.match(/<!--PDFS:(.*?)-->/);
+        if (pdfsMatch && pdfsMatch[1]) {
+          if (initialPdfs.length === 0) {
             try {
-              const parsed = JSON.parse(pdfMatch[1]);
-              currentPdfUrl = parsed.url || "";
-              currentPdfName = parsed.name || "";
+              const parsed = JSON.parse(pdfsMatch[1]);
+              if (Array.isArray(parsed)) initialPdfs = parsed;
             } catch (e) {}
           }
         }
-        rawContent = rawContent.replace(/<!--PDF:.*?-->/g, "").trim();
+
+        if (initialPdfs.length === 0) {
+          let currentPdfUrl = newsToEdit.pdf_url || "";
+          let currentPdfName = newsToEdit.pdf_name || "";
+          const pdfMatch = rawContent.match(/<!--PDF:(.*?)-->/);
+          if (pdfMatch && pdfMatch[1]) {
+            try {
+              const parsed = JSON.parse(pdfMatch[1]);
+              currentPdfUrl = parsed.url || currentPdfUrl;
+              currentPdfName = parsed.name || currentPdfName;
+            } catch (e) {}
+          }
+          if (currentPdfUrl) {
+            initialPdfs = [{ url: currentPdfUrl, name: currentPdfName || "Documento adjunto.pdf" }];
+          }
+        }
+
+        rawContent = rawContent
+          .replace(/<!--PDFS:.*?-->/g, "")
+          .replace(/<!--PDF:.*?-->/g, "")
+          .trim();
 
         const linkVal =
           newsToEdit.link && !newsToEdit.link.startsWith("/prensa/")
@@ -100,9 +121,8 @@ export default function AddNewsDialog({
         setExistingThumbnails(gallery || []);
         setThumbnailFiles([]);
         setThumbnailPreviews([]);
-        setExistingPdfUrl(currentPdfUrl);
-        setExistingPdfName(currentPdfName);
-        setPdfFile(null);
+        setExistingPdfs(initialPdfs);
+        setPdfFiles([]);
       } else {
         setFormData({ title: "", summary: "", content: "", link: "", imgUrl: "" });
         setImageFile(null);
@@ -110,9 +130,8 @@ export default function AddNewsDialog({
         setExistingThumbnails([]);
         setThumbnailFiles([]);
         setThumbnailPreviews([]);
-        setExistingPdfUrl("");
-        setExistingPdfName("");
-        setPdfFile(null);
+        setExistingPdfs([]);
+        setPdfFiles([]);
       }
     }
   }, [open, newsToEdit]);
@@ -152,26 +171,33 @@ export default function AddNewsDialog({
   };
 
   const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-        alert("Por favor selecciona un archivo PDF válido.");
-        return;
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
+      const validFiles: File[] = [];
+      for (const file of selectedFiles) {
+        if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+          alert(`El archivo "${file.name}" no es un PDF válido.`);
+          continue;
+        }
+        if (file.size > 20 * 1024 * 1024) {
+          alert(`El archivo "${file.name}" supera el límite de 20 MB.`);
+          continue;
+        }
+        validFiles.push(file);
       }
-      if (file.size > 20 * 1024 * 1024) {
-        alert("El archivo PDF no debe superar los 20 MB.");
-        return;
+      if (validFiles.length > 0) {
+        setPdfFiles((prev) => [...prev, ...validFiles]);
       }
-      setPdfFile(file);
-      setExistingPdfUrl("");
-      setExistingPdfName(file.name);
     }
+    e.target.value = "";
   };
 
-  const handleRemovePdf = () => {
-    setPdfFile(null);
-    setExistingPdfUrl("");
-    setExistingPdfName("");
+  const handleRemoveExistingPdf = (index: number) => {
+    setExistingPdfs((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveNewPdf = (index: number) => {
+    setPdfFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -238,18 +264,16 @@ export default function AddNewsDialog({
 
       const allThumbnails = [...existingThumbnails, ...newUploadedThumbnails];
 
-      // 3. Upload PDF if a new one was selected
-      let finalPdfUrl = existingPdfUrl;
-      let finalPdfName = existingPdfName;
-
-      if (pdfFile) {
-        const cleanName = pdfFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      // 3. Upload new PDF files
+      const newUploadedPdfs: Array<{ url: string; name: string }> = [];
+      for (const file of pdfFiles) {
+        const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const pdfFileName = `${Date.now()}_${cleanName}`;
         const pdfFilePath = `news/documents/${pdfFileName}`;
 
         const { error: uploadPdfErr } = await supabase.storage
           .from("benefits")
-          .upload(pdfFilePath, pdfFile);
+          .upload(pdfFilePath, file);
 
         if (uploadPdfErr) throw uploadPdfErr;
 
@@ -258,14 +282,19 @@ export default function AddNewsDialog({
           .getPublicUrl(pdfFilePath);
 
         if (pubPdfData?.publicUrl) {
-          finalPdfUrl = pubPdfData.publicUrl;
-          finalPdfName = pdfFile.name;
+          newUploadedPdfs.push({
+            url: pubPdfData.publicUrl,
+            name: file.name,
+          });
         }
       }
+
+      const allPdfs = [...existingPdfs, ...newUploadedPdfs];
 
       // 4. Prepare payload for news table
       let rawContent = formData.content
         .replace(/<!--GALLERY:.*?-->/g, "")
+        .replace(/<!--PDFS:.*?-->/g, "")
         .replace(/<!--PDF:.*?-->/g, "")
         .trim();
 
@@ -273,8 +302,8 @@ export default function AddNewsDialog({
         rawContent = `${rawContent}\n\n<!--GALLERY:${JSON.stringify(allThumbnails)}-->`;
       }
 
-      if (finalPdfUrl) {
-        rawContent = `${rawContent}\n\n<!--PDF:${JSON.stringify({ url: finalPdfUrl, name: finalPdfName })}-->`;
+      if (allPdfs.length > 0) {
+        rawContent = `${rawContent}\n\n<!--PDFS:${JSON.stringify(allPdfs)}-->\n<!--PDF:${JSON.stringify(allPdfs[0])}-->`;
       }
 
       const payload: any = {
@@ -289,9 +318,9 @@ export default function AddNewsDialog({
         payload.gallery_urls = allThumbnails;
       }
 
-      if (finalPdfUrl) {
-        payload.pdf_url = finalPdfUrl;
-        payload.pdf_name = finalPdfName;
+      if (allPdfs.length > 0) {
+        payload.pdf_url = allPdfs[0].url;
+        payload.pdf_name = allPdfs[0].name;
       }
 
       if (newsToEdit && newsToEdit.id) {
@@ -355,9 +384,8 @@ export default function AddNewsDialog({
     setExistingThumbnails([]);
     setThumbnailFiles([]);
     setThumbnailPreviews([]);
-    setPdfFile(null);
-    setExistingPdfUrl("");
-    setExistingPdfName("");
+    setExistingPdfs([]);
+    setPdfFiles([]);
     onClose();
   };
 
@@ -720,76 +748,145 @@ export default function AddNewsDialog({
             )}
           </Box>
 
-          {/* Adjuntar Documento PDF */}
+          {/* Adjuntar Documentos PDF Múltiples */}
           <Box>
-            <Typography
-              variant="subtitle2"
-              sx={{ mb: 1.5, fontWeight: 800, color: "text.primary", ml: 0.5 }}
-            >
-              Documento PDF Adjunto (Opcional)
-            </Typography>
-
-            {pdfFile || existingPdfUrl ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  p: 2,
-                  borderRadius: 3,
-                  border: "1px solid",
-                  borderColor: alpha(theme.palette.error.main, 0.4),
-                  bgcolor: alpha(theme.palette.error.main, 0.04),
-                  gap: 2,
-                }}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: 800, color: "text.primary", ml: 0.5 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
-                  <PictureAsPdfIcon sx={{ color: "error.main", fontSize: 32, flexShrink: 0 }} />
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography
-                      variant="body2"
-                      fontWeight={700}
-                      sx={{
-                        color: "text.primary",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {pdfFile ? pdfFile.name : existingPdfName || "Documento adjunto.pdf"}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                      {pdfFile
-                        ? `${(pdfFile.size / (1024 * 1024)).toFixed(2)} MB - Listo para subir`
-                        : "PDF cargado actualmente"}
-                    </Typography>
-                  </Box>
-                </Box>
+                Documentos PDF Adjuntos (Opcional)
+              </Typography>
+              {(existingPdfs.length > 0 || pdfFiles.length > 0) && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  component="label"
+                  startIcon={<PictureAsPdfIcon sx={{ fontSize: 16 }} />}
+                  sx={{ textTransform: "none", borderRadius: 2, fontWeight: 700 }}
+                >
+                  Agregar otro PDF
+                  <input
+                    type="file"
+                    hidden
+                    multiple
+                    accept="application/pdf,.pdf"
+                    onChange={handlePdfChange}
+                  />
+                </Button>
+              )}
+            </Box>
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
-                  {existingPdfUrl && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="inherit"
-                      component="a"
-                      href={existingPdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ textTransform: "none", fontSize: "0.8rem", borderRadius: 2 }}
-                    >
-                      Ver PDF
-                    </Button>
-                  )}
-                  <IconButton
-                    size="small"
-                    onClick={handleRemovePdf}
-                    color="error"
-                    title="Eliminar PDF adjunto"
+            {existingPdfs.length > 0 || pdfFiles.length > 0 ? (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                {existingPdfs.map((doc, index) => (
+                  <Box
+                    key={`exist-pdf-${index}`}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      p: 1.8,
+                      borderRadius: 3,
+                      border: "1px solid",
+                      borderColor: alpha(theme.palette.error.main, 0.35),
+                      bgcolor: alpha(theme.palette.error.main, 0.04),
+                      gap: 2,
+                    }}
                   >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+                      <PictureAsPdfIcon sx={{ color: "error.main", fontSize: 28, flexShrink: 0 }} />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          sx={{
+                            color: "text.primary",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {doc.name || `Documento ${index + 1}.pdf`}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                          PDF cargado actualmente
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="inherit"
+                        component="a"
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ textTransform: "none", fontSize: "0.78rem", borderRadius: 2 }}
+                      >
+                        Ver
+                      </Button>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveExistingPdf(index)}
+                        color="error"
+                        title="Eliminar este PDF"
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                ))}
+
+                {pdfFiles.map((file, index) => (
+                  <Box
+                    key={`new-pdf-${index}`}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      p: 1.8,
+                      borderRadius: 3,
+                      border: "1px dashed",
+                      borderColor: alpha(theme.palette.error.main, 0.5),
+                      bgcolor: alpha(theme.palette.error.main, 0.06),
+                      gap: 2,
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+                      <PictureAsPdfIcon sx={{ color: "error.main", fontSize: 28, flexShrink: 0 }} />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          sx={{
+                            color: "text.primary",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {file.name}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                          {(file.size / (1024 * 1024)).toFixed(2)} MB • Listo para subir
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <IconButton
+                      size="small"
+                      onClick={() => handleRemoveNewPdf(index)}
+                      color="error"
+                      title="Quitar este PDF"
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                ))}
               </Box>
             ) : (
               <Box
@@ -814,6 +911,7 @@ export default function AddNewsDialog({
                 <input
                   type="file"
                   hidden
+                  multiple
                   accept="application/pdf,.pdf"
                   onChange={handlePdfChange}
                 />
@@ -836,13 +934,13 @@ export default function AddNewsDialog({
                     variant="body2"
                     sx={{ fontWeight: 700, color: "text.secondary" }}
                   >
-                    Haz clic para adjuntar un documento PDF
+                    Haz clic para adjuntar uno o varios documentos PDF
                   </Typography>
                   <Typography
                     variant="caption"
                     sx={{ color: "text.disabled", mt: 0.5 }}
                   >
-                    Ideal para actas, boletines o resoluciones oficiales (máx. 20 MB)
+                    Ideal para actas, boletines o resoluciones oficiales (máx. 20 MB por archivo)
                   </Typography>
                 </Box>
               </Box>
