@@ -200,13 +200,35 @@ export default function NoticiaDetalle() {
           <Box
             sx={{
               width: "100%",
-              height: { xs: 250, md: 450 },
               borderRadius: 4,
               overflow: "hidden",
               mb: 6,
               boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-              bgcolor: alpha(theme.palette.primary.main, 0.03),
+              bgcolor: alpha(theme.palette.background.paper, 0.4),
+              border: "1px solid",
+              borderColor: alpha(theme.palette.divider, 0.4),
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
               position: "relative",
+              minHeight: { xs: 260, md: 380 },
+              ...(news.img_url && {
+                "&::before": {
+                  content: '""',
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundImage: `url(${news.img_url})`,
+                  backgroundPosition: "center",
+                  backgroundSize: "cover",
+                  filter: "blur(30px) brightness(0.65)",
+                  transform: "scale(1.15)",
+                  opacity: 0.35,
+                  zIndex: 0,
+                },
+              }),
             }}
           >
             <Box
@@ -214,10 +236,16 @@ export default function NoticiaDetalle() {
               src={news.img_url || seccionalLogo}
               alt={news.title}
               sx={{
-                width: "100%",
-                height: "100%",
-                objectFit: news.img_url ? "cover" : "contain",
-                p: news.img_url ? 0 : 8,
+                width: "auto",
+                maxWidth: "100%",
+                maxHeight: { xs: 500, sm: 650, md: 800 },
+                height: "auto",
+                objectFit: "contain",
+                display: "block",
+                position: "relative",
+                zIndex: 1,
+                borderRadius: 2,
+                p: news.img_url ? { xs: 1, sm: 2 } : 6,
               }}
             />
           </Box>

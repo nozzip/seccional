@@ -1,5 +1,23 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Visualización Completa de Imágenes Verticales y Panorámicas en Portada de Prensa
+**Fecha:** 2026-10-15
+**Modo:** Mejorar
+**Descripción:** Se resolvió el recorte forzado que sufrían las imágenes verticales (flyers, afiches e infografías) en el detalle de las noticias:
+1. **Contenedor Responsivo y Efecto de Fondo Editorial (`src/Pages/NoticiaDetalle.tsx`):**
+   - Se removió la altura fija con recorte (`objectFit: cover`).
+   - Se implementó un layout centrado con `objectFit: contain` y altura máxima flexible (`maxHeight: { xs: 500, sm: 650, md: 800 }`), permitiendo que cualquier imagen (vertical, cuadrada o panorámica) se visualice al 100% sin recortar texto ni cabeceras.
+   - Se integró un fondo con desenfoque dinámico (`blur(30px)`) derivado de la propia imagen de portada para brindar una terminación estética profesional y moderna en los laterales.
+2. **Previsualización en Diálogo Administrativo (`src/Components/PrensaContents/AddNewsDialog.tsx`):**
+   - Ajuste de la vista previa de la portada a `objectFit: contain` para que los administradores puedan validar la imagen completa antes de publicarla.
+
+### Cambios realizados:
+1. `src/Pages/NoticiaDetalle.tsx`: Contenedor flexible con desenfoque de fondo y renderizado `contain`.
+2. `src/Components/PrensaContents/AddNewsDialog.tsx`: Corrección de escala y recorte en la vista previa del formulario.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Display Universal de Portadas:** Toda portada en el detalle de noticias se adapta dinámicamente a la relación de aspecto del contenido (horizontal o vertical) garantizando visibilidad completa de la información gráfica.
+
 ## [ÉXITO] - Múltiples PDFs por Noticia y Eliminación en Cascada de Archivos en Supabase Storage
 **Fecha:** 2026-10-15
 **Modo:** Desarrollar

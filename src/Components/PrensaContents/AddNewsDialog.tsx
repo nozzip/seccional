@@ -524,10 +524,10 @@ export default function AddNewsDialog({
                     src={imagePreview}
                     sx={{
                       width: "100%",
-                      maxHeight: 250,
-                      objectFit: "cover",
+                      maxHeight: 320,
+                      objectFit: "contain",
                       borderRadius: 3,
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+                      bgcolor: "rgba(0,0,0,0.2)",
                     }}
                   />
                   <IconButton
