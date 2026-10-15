@@ -11,6 +11,8 @@ export interface NewsItem {
   content?: string;
   timestamp?: number;
   gallery_urls?: string[];
+  pdf_url?: string;
+  pdf_name?: string;
 }
 
 async function fetchRssNews(): Promise<NewsItem[]> {
@@ -125,6 +127,20 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
         }
       }
 
+      let pdfUrl: string = item.pdf_url || item.file_url || "";
+      let pdfName: string = item.pdf_name || item.file_name || "";
+
+      if (!pdfUrl && item.content) {
+        const pdfMatch = item.content.match(/<!--PDF:(.*?)-->/);
+        if (pdfMatch && pdfMatch[1]) {
+          try {
+            const parsedPdf = JSON.parse(pdfMatch[1]);
+            pdfUrl = parsedPdf.url || "";
+            pdfName = parsedPdf.name || "";
+          } catch (e) {}
+        }
+      }
+
       return {
         id: item.id,
         title: item.title,
@@ -140,6 +156,8 @@ export async function fetchLatestNews(): Promise<NewsItem[]> {
         isLocal: true,
         timestamp: dateObj.getTime(),
         gallery_urls: galleryUrls,
+        pdf_url: pdfUrl,
+        pdf_name: pdfName,
       };
     });
 

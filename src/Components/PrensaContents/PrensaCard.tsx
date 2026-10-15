@@ -11,12 +11,14 @@ import {
   useTheme,
   IconButton,
   Tooltip,
+  Chip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import LinearProgress from "@mui/material/LinearProgress";
 import { fetchLatestNews, NewsItem } from "../../utils/newsFetcher";
 import { Link } from "react-router-dom";
@@ -304,6 +306,22 @@ function HeroNewsItem({
             >
               {item.date}
             </Typography>
+            {item.pdf_url && (
+              <Chip
+                size="small"
+                icon={<PictureAsPdfIcon sx={{ fontSize: "1rem !important" }} />}
+                label="PDF Adjunto"
+                color="error"
+                variant="outlined"
+                sx={{
+                  fontWeight: 800,
+                  height: 24,
+                  fontSize: "0.75rem",
+                  borderColor: alpha(theme.palette.error.main, 0.4),
+                  bgcolor: alpha(theme.palette.error.main, 0.05),
+                }}
+              />
+            )}
           </Box>
 
           <Typography
@@ -501,6 +519,23 @@ function StandardNewsItem({
           >
             {item.date}
           </Typography>
+          {item.pdf_url && (
+            <Chip
+              size="small"
+              icon={<PictureAsPdfIcon sx={{ fontSize: "0.9rem !important" }} />}
+              label="PDF"
+              color="error"
+              variant="outlined"
+              sx={{
+                fontWeight: 800,
+                height: 20,
+                fontSize: "0.7rem",
+                ml: "auto",
+                borderColor: alpha(theme.palette.error.main, 0.4),
+                bgcolor: alpha(theme.palette.error.main, 0.05),
+              }}
+            />
+          )}
         </Box>
 
         <Typography

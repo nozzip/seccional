@@ -1,5 +1,26 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Soporte Integral para Carga y Descarga de Documentos PDF en Noticias de Prensa
+**Fecha:** 2026-10-15
+**Modo:** Desarrollar
+**Descripción:** Se implementó la capacidad de adjuntar y descargar documentos PDF oficiales (resoluciones, actas paritarias, comunicados) en la sección de prensa:
+1. **Modelo y Fetcher (`src/utils/newsFetcher.ts`):** Extensión del tipo `NewsItem` con `pdf_url` y `pdf_name`. Extracción con soporte tanto para columnas de Supabase como para metadatos retrocompatibles (`<!--PDF:...-->`) en el contenido.
+2. **Diálogo de Administración (`src/Components/PrensaContents/AddNewsDialog.tsx`):**
+   - Selector dedicado de archivos PDF con validación de tipo MIME y límite de 20 MB.
+   - Subida a Supabase Storage (`benefits/news/documents/`).
+   - Tarjeta estilizada con nombre del PDF, tamaño, previsualización y botón de eliminación.
+   - Manejo seguro de inserción/actualización con fallback ante variaciones de esquema SQL.
+3. **Página de Detalle (`src/Pages/NoticiaDetalle.tsx`):** Tarjeta destacada con diseño temático para visualización y descarga directa del PDF original.
+4. **Tarjetas de Listado (`src/Components/PrensaContents/PrensaCard.tsx`):** Chip distintivo "PDF" / "PDF Adjunto" en publicaciones destacadas y estándar.
+
+### Cambios realizados:
+1. `src/utils/newsFetcher.ts`: Tipado y resolución híbrida de URLs de PDF.
+2. `src/Components/PrensaContents/AddNewsDialog.tsx`: Carga, guardado, edición y remoción de PDFs en Storage y BD.
+3. `src/Pages/NoticiaDetalle.tsx`: Tarjeta de descarga y consumo de archivo adjunto.
+4. `src/Components/PrensaContents/PrensaCard.tsx`: Indicadores visuales en el feed de noticias.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Documentos Oficiales Adjuntos en Prensa:** Almacenamiento en `benefits/news/documents/` con persistencia dual (columna SQL + metadato `<!--PDF:...-->`) para garantizar cero rupturas y compatibilidad total con cualquier versión de base de datos.
 ## [ÉXITO] - Visualización Completa de Reservas (Invitados, Observaciones y Adjuntos) en Gestión Unificada
 **Fecha:** 2026-09-15
 **Modo:** Mejorar
