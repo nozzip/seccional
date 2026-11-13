@@ -37,6 +37,7 @@ import HouseSidingIcon from '@mui/icons-material/HouseSiding';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { supabase } from '../../supabaseClient';
 import { AffiliateData } from '../../types/mobile';
+import { isUserAdmin } from '../../utils/auth';
 
 interface FamilyMember {
     id?: number;
@@ -769,14 +770,16 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                         }
                                     />
                                     <ListItemSecondaryAction>
-                                        <IconButton
-                                            color="primary"
-                                            size="small"
-                                            onClick={handleEditConyuge}
-                                            sx={{ mr: 0.5 }}
-                                        >
-                                            <EditIcon fontSize="small" />
-                                        </IconButton>
+                                        {isUserAdmin(affiliateData) && (
+                                            <IconButton
+                                                color="primary"
+                                                size="small"
+                                                onClick={handleEditConyuge}
+                                                sx={{ mr: 0.5 }}
+                                            >
+                                                <EditIcon fontSize="small" />
+                                            </IconButton>
+                                        )}
                                         <IconButton
                                             edge="end"
                                             color="error"
@@ -813,14 +816,16 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                         }
                                     />
                                     <ListItemSecondaryAction>
-                                        <IconButton
-                                            color="primary"
-                                            size="small"
-                                            onClick={() => handleEditFamilyMember(member)}
-                                            sx={{ mr: 0.5 }}
-                                        >
-                                            <EditIcon fontSize="small" />
-                                        </IconButton>
+                                        {isUserAdmin(affiliateData) && (
+                                            <IconButton
+                                                color="primary"
+                                                size="small"
+                                                onClick={() => handleEditFamilyMember(member)}
+                                                sx={{ mr: 0.5 }}
+                                            >
+                                                <EditIcon fontSize="small" />
+                                            </IconButton>
+                                        )}
                                         <IconButton
                                             edge="end"
                                             color="error"

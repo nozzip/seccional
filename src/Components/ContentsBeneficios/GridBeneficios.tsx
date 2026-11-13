@@ -225,12 +225,7 @@ export default function GridBeneficios() {
   const [currentAffiliate, setCurrentAffiliate] = useState<any>(null);
   const isAdmin = useMemo(() => {
     if (!currentAffiliate) return false;
-    return (
-      isUserAdmin(currentAffiliate) ||
-      currentAffiliate.role === 'admin' ||
-      ['34185803', '042418/00', '23276817159'].includes(currentAffiliate.legajo) ||
-      ['34185803', '23276817159'].includes(currentAffiliate.cuil)
-    );
+    return isUserAdmin(currentAffiliate);
   }, [currentAffiliate]);
 
   useEffect(() => {
@@ -484,14 +479,21 @@ function BenefitItemComponent({
   }, []);
   const handleClose = useCallback(() => setOpen(false), []);
 
+  const getSafeBenefitImg = useCallback((url?: string) => {
+    const fallback = `${import.meta.env.BASE_URL}seccionalLogo.png`;
+    if (!url || url.includes("fbcdn.net")) return fallback;
+    return url;
+  }, []);
+
   const gallery = useMemo(() => {
-    const list = [];
-    if (item.thumbnail) list.push(item.thumbnail);
+    const list: string[] = [];
+    if (item.thumbnail) list.push(getSafeBenefitImg(item.thumbnail));
     if (item.images && Array.isArray(item.images)) {
-      list.push(...item.images);
+      list.push(...item.images.map((img) => getSafeBenefitImg(img)));
     }
+    if (list.length === 0) list.push(getSafeBenefitImg());
     return list;
-  }, [item]);
+  }, [item, getSafeBenefitImg]);
 
   const handleNextImg = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -637,7 +639,7 @@ function BenefitItemComponent({
             sx={{
               width: "100%",
               height: "100%",
-              backgroundImage: `url(${item.thumbnail})`,
+              backgroundImage: `url(${getSafeBenefitImg(item.thumbnail)})`,
               backgroundSize: "contain",
               backgroundRepeat: "no-repeat",
               backgroundPosition: "center",

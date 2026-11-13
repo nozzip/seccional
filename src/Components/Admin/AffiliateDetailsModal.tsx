@@ -32,6 +32,7 @@ import {
   Chip,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import PersonIcon from "@mui/icons-material/Person";
 import ChildCareIcon from "@mui/icons-material/ChildCare";
@@ -211,20 +212,35 @@ export default function AffiliateDetailsModal({
         grado_escolar: newMember.grado_escolar?.trim() || null,
       };
 
-      const { error } = await supabase
-        .from("affiliate_family_members")
-        .insert([memberToInsert]);
+      if (newMember.id) {
+        const { error } = await supabase
+          .from("affiliate_family_members")
+          .update(memberToInsert)
+          .eq("id", newMember.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      await logAction(
-        "AGREGAR_FAMILIAR",
-        `Familiar agregado: ${newMember.apellido || ''}, ${newMember.nombre || ''} al afiliado ${affiliate?.apellido || ''}, ${affiliate?.nombre || ''} (ID: ${affiliate?.id})`
-      );
+        await logAction(
+          "EDITAR_FAMILIAR",
+          `Familiar editado: ${newMember.apellido || ''}, ${newMember.nombre || ''} del afiliado ${affiliate?.apellido || ''}, ${affiliate?.nombre || ''} (ID: ${affiliate?.id})`
+        );
+      } else {
+        const { error } = await supabase
+          .from("affiliate_family_members")
+          .insert([memberToInsert]);
+
+        if (error) throw error;
+
+        await logAction(
+          "AGREGAR_FAMILIAR",
+          `Familiar agregado: ${newMember.apellido || ''}, ${newMember.nombre || ''} al afiliado ${affiliate?.apellido || ''}, ${affiliate?.nombre || ''} (ID: ${affiliate?.id})`
+        );
+      }
 
       fetchFamilyMembers();
       onUpdate(); // Update family count in main table
       setNewMember({
+        id: undefined,
         nombre: "",
         apellido: "",
         dni: "",
@@ -535,7 +551,9 @@ export default function AffiliateDetailsModal({
                 mb: 4, p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px dashed", borderColor: "primary.main",
               }}
             >
-              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700 }}>Agregar Familiar</Typography>
+              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700 }}>
+                {newMember.id ? "Editar Familiar" : "Agregar Familiar"}
+              </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap gap={1}>
                 <TextField
                   label="Nombre" size="small" value={newMember.nombre}
@@ -563,9 +581,19 @@ export default function AffiliateDetailsModal({
                   onChange={(e) => setNewMember({ ...newMember, grado_escolar: e.target.value })}
                   sx={{ width: 100 }}
                 />
-                <Button variant="contained" onClick={handleAddMember} startIcon={<AddIcon />} sx={{ borderRadius: 1 }}>
-                  Cargar
+                <Button variant="contained" onClick={handleAddMember} startIcon={newMember.id ? <SaveIcon /> : <AddIcon />} sx={{ borderRadius: 1 }}>
+                  {newMember.id ? "Guardar" : "Cargar"}
                 </Button>
+                {newMember.id && (
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    onClick={() => setNewMember({ id: undefined, nombre: "", apellido: "", dni: "", fecha_nacimiento: "", edad: undefined, grado_escolar: "" })}
+                    sx={{ borderRadius: 1 }}
+                  >
+                    Cancelar
+                  </Button>
+                )}
               </Stack>
             </Box>
 
@@ -595,6 +623,23 @@ export default function AffiliateDetailsModal({
                         <TableCell>{member.fecha_nacimiento ? new Date(member.fecha_nacimiento).toLocaleDateString("es-AR", { timeZone: "UTC" }) : "-"}</TableCell>
                         <TableCell>{calculateAge(member.fecha_nacimiento) ?? member.edad ?? "-"}</TableCell>
                         <TableCell align="center">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() =>
+                              setNewMember({
+                                id: member.id,
+                                nombre: member.nombre || "",
+                                apellido: member.apellido || "",
+                                dni: member.dni || "",
+                                fecha_nacimiento: member.fecha_nacimiento ? member.fecha_nacimiento.split("T")[0] : "",
+                                edad: member.edad,
+                                grado_escolar: member.grado_escolar || "",
+                              })
+                            }
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
                           <IconButton size="small" color="error" onClick={() => handleDeleteMember(member.id!)}><DeleteIcon fontSize="small" /></IconButton>
                         </TableCell>
                       </TableRow>

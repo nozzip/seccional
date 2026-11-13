@@ -1,5 +1,16 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Corrección de Imagen Expirada (403 fbcdn) y Restricción Estricta de Edición solo para Administradores
+**Fecha:** 2026-11-13
+**Modo:** Mejorar
+**Descripción:** Se resolvió el error `403 Forbidden` de consola provocado por una URL expirada de Facebook CDN (`306089941_752709825990743_4199141370397311541_n.png` en el convenio ID 96) y se reforzó que todas las acciones de edición estén restringidas exclusivamente al Administrador:
+1. **Saneamiento de Imágenes Expiradas (`GridBeneficios.tsx` y Supabase `benefits`):**
+   - Función `getSafeBenefitImg()` que intercepta URLs expiradas de `fbcdn.net` o vacías y asigna como respaldo el logo institucional (`seccionalLogo.png`), eliminando las peticiones fallidas `403`.
+   - Actualización del registro ID 96 (`Kobakk Coffee & break`) en Supabase `benefits`.
+2. **Restricción Estricta de Edición para Administradores (`GridBeneficios.tsx`, `PerfilView.tsx`, `AffiliateDetailsModal.tsx`):**
+   - Uso exclusivo de `isUserAdmin()` para habilitar los botones de edición en `GridBeneficios.tsx` y en los familiares cargados de `PerfilView.tsx`.
+   - Incorporación del botón de edición (`EditIcon`) en la tabla de Grupo Familiar dentro del panel de administración (`AffiliateDetailsModal.tsx`) con registro en auditoría (`EDITAR_FAMILIAR`).
+
 ## [ÉXITO] - Mejoras Integrales para el Afiliado (Perfil, Solicitudes, Carnet Offline y Buscador de Convenios)
 **Fecha:** 2026-11-13
 **Modo:** Mejorar / Desarrollar
