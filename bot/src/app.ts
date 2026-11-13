@@ -38,6 +38,31 @@ const main = async () => {
 
     bot.httpServer(PORT);
 
+    // Endpoint HTTP local para envío controlado de mensajes salientes desde la sesión activa
+    if ((adapterProvider as any).server?.post) {
+      (adapterProvider as any).server.post(
+        '/v1/messages',
+        bot.handleCtx(async (botCtx, req, res) => {
+          try {
+            const { number, message } = req.body || {};
+            if (!number || !message) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ ok: false, error: 'Faltan number o message' }));
+            }
+            const cleanDigits = String(number).replace(/\D/g, '');
+            const target = cleanDigits.startsWith('54') ? cleanDigits : `549${cleanDigits}`;
+            await botCtx?.sendMessage(target, String(message), {});
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, target }));
+          } catch (err: any) {
+            console.error('Error en /v1/messages:', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: false, error: err?.message || 'Error interno' }));
+          }
+        })
+      );
+    }
+
     // Escuchar mensajes salientes del operador humano (desde el teléfono o WhatsApp Web)
     adapterProvider.on('ready', () => {
       console.log('🤖 Socket de WhatsApp listo. Monitor de respuestas humanas activado.');

@@ -1,5 +1,12 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Endpoint HTTP Local `/v1/messages` en Bot de WhatsApp para Envíos Controlados
+**Fecha:** 2026-11-13
+**Modo:** Desarrollar
+**Descripción:** Se incorporó el endpoint local `POST /v1/messages` en `bot/src/app.ts` utilizando `bot.handleCtx` para permitir el envío controlado de mensajes salientes directamente desde la sesión activa de Baileys sin conflictos de sesión múltiple.
+1. **Normalización automática:** Formatea números argentinos de 10 dígitos agregando el prefijo `549`.
+2. **Validación:** Compilación TypeScript (`npx tsc --noEmit`) sin errores y prueba de envío real exitosa (`Status: 200`).
+
 ## [ÉXITO] - Corrección de Imagen Expirada (403 fbcdn) y Restricción Estricta de Edición solo para Administradores
 **Fecha:** 2026-11-13
 **Modo:** Mejorar
