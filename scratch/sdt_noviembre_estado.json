@@ -1,0 +1,742 @@
+[
+  {
+    "index": 1,
+    "phone": "3815899241",
+    "target": "5493815899241",
+    "affiliates": [
+      "ALBORNOZ, MARIA INES"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:42:43.286Z",
+    "error": null,
+    "detailLines": "ALBORNOZ, MARIA INES: $30.300"
+  },
+  {
+    "index": 2,
+    "phone": "3815008550",
+    "target": "5493815008550",
+    "affiliates": [
+      "ALVAREZ, MARIA EUGENIA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:43:18.826Z",
+    "error": null,
+    "detailLines": "ALVAREZ, MARIA EUGENIA: Claro = $ 44.668,80 + Asispre = $ 22.000,00 = $66.669"
+  },
+  {
+    "index": 3,
+    "phone": "3815376533",
+    "target": "5493815376533",
+    "affiliates": [
+      "ALVAREZ, SONIA MERCEDES"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:43:48.247Z",
+    "error": null,
+    "detailLines": "ALVAREZ, SONIA MERCEDES: Claro = $ 47.240,28 + Asispre = $ 47.500,00 = $94.741"
+  },
+  {
+    "index": 4,
+    "phone": "3874152530",
+    "target": "5493874152530",
+    "affiliates": [
+      "BATALLANOS, SILVIA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:49:40.672Z",
+    "error": null,
+    "detailLines": "BATALLANOS, SILVIA: $51.110"
+  },
+  {
+    "index": 5,
+    "phone": "3888468653",
+    "target": "5493888468653",
+    "affiliates": [
+      "BEJARANO, SABRINA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:50:14.105Z",
+    "error": null,
+    "detailLines": "BEJARANO, SABRINA: $93.801"
+  },
+  {
+    "index": 6,
+    "phone": "3814631240",
+    "target": "5493814631240",
+    "affiliates": [
+      "BORDALLO, MARILY"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:50:55.072Z",
+    "error": null,
+    "detailLines": "BORDALLO, MARILY: $27.200"
+  },
+  {
+    "index": 7,
+    "phone": "3814684454",
+    "target": "5493814684454",
+    "affiliates": [
+      "CAMPOFOSCO, HUMBERTO JOSE"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:51:26.710Z",
+    "error": null,
+    "detailLines": "CAMPOFOSCO, HUMBERTO JOSE: $49.100"
+  },
+  {
+    "index": 8,
+    "phone": "3875653286",
+    "target": "5493875653286",
+    "affiliates": [
+      "CARRERAS, JUAN IGNACIO"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:51:54.725Z",
+    "error": null,
+    "detailLines": "CARRERAS, JUAN IGNACIO: $41.921"
+  },
+  {
+    "index": 9,
+    "phone": "3815390736",
+    "target": "5493815390736",
+    "affiliates": [
+      "CARRIZO, STELLA MARINA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:52:28.694Z",
+    "error": null,
+    "detailLines": "CARRIZO, STELLA MARINA: Claro = $ 36.017,40 + Asispre = $ 21.700,00 = $57.718"
+  },
+  {
+    "index": 10,
+    "phone": "3814091589",
+    "target": "5493814091589",
+    "affiliates": [
+      "CASTAÑO, PATRICIA SUSANA",
+      "SOUSA, JOSE LUIS",
+      "SOUSA, SANTIAGO TOMAS"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:53:08.395Z",
+    "error": null,
+    "detailLines": "CASTAÑO, PATRICIA SUSANA: $67.004\nSOUSA, JOSE LUIS: $44.669\nSOUSA, SANTIAGO TOMAS: $22.335"
+  },
+  {
+    "index": 11,
+    "phone": "3874190590",
+    "target": "5493874190590",
+    "affiliates": [
+      "CASTELLANOS, JOSE"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:53:43.862Z",
+    "error": null,
+    "detailLines": "CASTELLANOS, JOSE: $89.338"
+  },
+  {
+    "index": 12,
+    "phone": "3815676189",
+    "target": "5493815676189",
+    "affiliates": [
+      "CHAILA, ANA MARIA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:54:34.956Z",
+    "error": null,
+    "detailLines": "CHAILA, ANA MARIA: $15.400"
+  },
+  {
+    "index": 13,
+    "phone": "3815185515",
+    "target": "5493815185515",
+    "affiliates": [
+      "CHAVEZ, RAUL DANIEL"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:55:24.128Z",
+    "error": null,
+    "detailLines": "CHAVEZ, RAUL DANIEL: $89.900"
+  },
+  {
+    "index": 14,
+    "phone": "3874091938",
+    "target": "5493874091938",
+    "affiliates": [
+      "CLAUDIA ELCIRA, GARCÍA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:55:56.068Z",
+    "error": null,
+    "detailLines": "CLAUDIA ELCIRA, GARCÍA: $64.255"
+  },
+  {
+    "index": 15,
+    "phone": "3812107965",
+    "target": "5493812107965",
+    "affiliates": [
+      "COSTILLA CAMPERO, CESAR"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:56:50.226Z",
+    "error": null,
+    "detailLines": "COSTILLA CAMPERO, CESAR: $41.921"
+  },
+  {
+    "index": 16,
+    "phone": "3814785386",
+    "target": "5493814785386",
+    "affiliates": [
+      "COSTILLA CAMPERO, GONZALO"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:57:34.684Z",
+    "error": null,
+    "detailLines": "COSTILLA CAMPERO, GONZALO: $41.921"
+  },
+  {
+    "index": 17,
+    "phone": "3815007376",
+    "target": "5493815007376",
+    "affiliates": [
+      "DARUIS, MIGUEL"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:58:08.847Z",
+    "error": null,
+    "detailLines": "DARUIS, MIGUEL: $99.122"
+  },
+  {
+    "index": 18,
+    "phone": "3814793302",
+    "target": "5493814793302",
+    "affiliates": [
+      "DECIMA, OSCAR ALBERTO"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T17:59:01.541Z",
+    "error": null,
+    "detailLines": "DECIMA, OSCAR ALBERTO: $89.338"
+  },
+  {
+    "index": 19,
+    "phone": "3865314627",
+    "target": "5493865314627",
+    "affiliates": [
+      "DELGADO, JUAN MARTIN",
+      "DELGADO, JUAN SIMON"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:09:39.331Z",
+    "error": null,
+    "detailLines": "DELGADO, JUAN MARTIN: $83.841\nDELGADO, JUAN SIMON: $41.921"
+  },
+  {
+    "index": 20,
+    "phone": "3816815105",
+    "target": "5493816815105",
+    "affiliates": [
+      "DIAZ, FATIMA DEL CARMEN"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:10:33.309Z",
+    "error": null,
+    "detailLines": "DIAZ, FATIMA DEL CARMEN: $109.859"
+  },
+  {
+    "index": 21,
+    "phone": "3816814679",
+    "target": "5493816814679",
+    "affiliates": [
+      "FLORES, JORGE DAVID"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:11:21.116Z",
+    "error": null,
+    "detailLines": "FLORES, JORGE DAVID: $20.600"
+  },
+  {
+    "index": 22,
+    "phone": "3816617969",
+    "target": "5493816617969",
+    "affiliates": [
+      "FRIAS, SILVIA JIMENA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:12:03.965Z",
+    "error": null,
+    "detailLines": "FRIAS, SILVIA JIMENA: $32.118"
+  },
+  {
+    "index": 23,
+    "phone": "3815144243",
+    "target": "5493815144243",
+    "affiliates": [
+      "GARAT, FRANCISCO ERNESTO"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:12:54.307Z",
+    "error": null,
+    "detailLines": "GARAT, FRANCISCO ERNESTO: $80.656"
+  },
+  {
+    "index": 24,
+    "phone": "3816098429",
+    "target": "5493816098429",
+    "affiliates": [
+      "GARCIA SANCHEZ, TOMAS ENRIQUE"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:13:31.310Z",
+    "error": null,
+    "detailLines": "GARCIA SANCHEZ, TOMAS ENRIQUE: $35.700"
+  },
+  {
+    "index": 25,
+    "phone": "3815886082",
+    "target": "5493815886082",
+    "affiliates": [
+      "GIANDOMINCO, LUCIANA BEATRIZ"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:14:14.357Z",
+    "error": null,
+    "detailLines": "GIANDOMINCO, LUCIANA BEATRIZ: $22.500"
+  },
+  {
+    "index": 26,
+    "phone": "3816638444",
+    "target": "5493816638444",
+    "affiliates": [
+      "HADBE, JORGE DANIEL"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:14:51.807Z",
+    "error": null,
+    "detailLines": "HADBE, JORGE DANIEL: $98.926"
+  },
+  {
+    "index": 27,
+    "phone": "3815827394",
+    "target": "5493815827394",
+    "affiliates": [
+      "IBARRA, JORGE MARTIN"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:15:19.537Z",
+    "error": null,
+    "detailLines": "IBARRA, JORGE MARTIN: $49.259"
+  },
+  {
+    "index": 28,
+    "phone": "3816413444",
+    "target": "5493816413444",
+    "affiliates": [
+      "IBAÑEZ, NANCY"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:15:47.620Z",
+    "error": null,
+    "detailLines": "IBAÑEZ, NANCY: $88.109"
+  },
+  {
+    "index": 29,
+    "phone": "3815934809",
+    "target": "5493815934809",
+    "affiliates": [
+      "LAFUENTE, VALERIA",
+      "PAZ DEL CUETO, JORGE MAUR"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:16:24.887Z",
+    "error": null,
+    "detailLines": "LAFUENTE, VALERIA: $41.921\nPAZ DEL CUETO, JORGE MAUR: $41.921"
+  },
+  {
+    "index": 30,
+    "phone": "3814186035",
+    "target": "5493814186035",
+    "affiliates": [
+      "LEDESMA, BERNARDO OSVALDO"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:16:59.286Z",
+    "error": null,
+    "detailLines": "LEDESMA, BERNARDO OSVALDO: Claro = $ 27.390,36 + Asispre = $ 15.700,00 = $43.091"
+  },
+  {
+    "index": 31,
+    "phone": "3815125269",
+    "target": "5493815125269",
+    "affiliates": [
+      "LOPEZ SOSA, GRACIELA DEL MILAGRO"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:17:41.333Z",
+    "error": null,
+    "detailLines": "LOPEZ SOSA, GRACIELA DEL MILAGRO: $27.200"
+  },
+  {
+    "index": 32,
+    "phone": "3874137755",
+    "target": "5493874137755",
+    "affiliates": [
+      "LORENZO, GABRIEL"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:18:25.866Z",
+    "error": null,
+    "detailLines": "LORENZO, GABRIEL: $86.589"
+  },
+  {
+    "index": 33,
+    "phone": "3816060530",
+    "target": "5493816060530",
+    "affiliates": [
+      "LUNA, CESAR"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:18:54.001Z",
+    "error": null,
+    "detailLines": "LUNA, CESAR: $67.004"
+  },
+  {
+    "index": 34,
+    "phone": "3814546694",
+    "target": "5493814546694",
+    "affiliates": [
+      "MARTINEZ, LIA GEORGINA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:29:21.092Z",
+    "error": null,
+    "detailLines": "MARTINEZ, LIA GEORGINA: $30.200"
+  },
+  {
+    "index": 35,
+    "phone": "3816013783",
+    "target": "5493816013783",
+    "affiliates": [
+      "MASINO, FIORELLA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:30:10.366Z",
+    "error": null,
+    "detailLines": "MASINO, FIORELLA: $27.200"
+  },
+  {
+    "index": 36,
+    "phone": "3814181647",
+    "target": "5493814181647",
+    "affiliates": [
+      "MEDINA, MYRIAM MABEL"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:30:36.407Z",
+    "error": null,
+    "detailLines": "MEDINA, MYRIAM MABEL: $21.700"
+  },
+  {
+    "index": 37,
+    "phone": "3816723900",
+    "target": "5493816723900",
+    "affiliates": [
+      "MELO, WALTER GABRIEL"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:31:26.662Z",
+    "error": null,
+    "detailLines": "MELO, WALTER GABRIEL: Claro = $ 118.688,40 + Asispre = $ 36.600,00 = $155.289"
+  },
+  {
+    "index": 38,
+    "phone": "3874460582",
+    "target": "5493874460582",
+    "affiliates": [
+      "MICHEL CULLEN, LUCIA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:32:16.056Z",
+    "error": null,
+    "detailLines": "MICHEL CULLEN, LUCIA: $65.010"
+  },
+  {
+    "index": 39,
+    "phone": "3815876820",
+    "target": "5493815876820",
+    "affiliates": [
+      "NAVARRO, MARIO ALFREDO"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:33:03.140Z",
+    "error": null,
+    "detailLines": "NAVARRO, MARIO ALFREDO: $20.600"
+  },
+  {
+    "index": 40,
+    "phone": "3815732364",
+    "target": "5493815732364",
+    "affiliates": [
+      "NICOLOFF, LILIANA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:33:41.653Z",
+    "error": null,
+    "detailLines": "NICOLOFF, LILIANA: $49.100"
+  },
+  {
+    "index": 41,
+    "phone": "3816036331",
+    "target": "5493816036331",
+    "affiliates": [
+      "NUÑEZ, MANUEL"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:34:22.847Z",
+    "error": null,
+    "detailLines": "NUÑEZ, MANUEL: $32.118"
+  },
+  {
+    "index": 42,
+    "phone": "3815014517",
+    "target": "5493815014517",
+    "affiliates": [
+      "ORDOÑEZ, GUSTAVO ALFREDO"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:35:02.937Z",
+    "error": null,
+    "detailLines": "ORDOÑEZ, GUSTAVO ALFREDO: $92.371"
+  },
+  {
+    "index": 43,
+    "phone": "3816401270",
+    "target": "5493816401270",
+    "affiliates": [
+      "ORTIZ, MARIA BELEN"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:35:36.656Z",
+    "error": null,
+    "detailLines": "ORTIZ, MARIA BELEN: $7.800"
+  },
+  {
+    "index": 44,
+    "phone": "3872127007",
+    "target": "5493872127007",
+    "affiliates": [
+      "PALOMO, LILIANA ELIZABETH"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:36:13.547Z",
+    "error": null,
+    "detailLines": "PALOMO, LILIANA ELIZABETH: $183.279"
+  },
+  {
+    "index": 45,
+    "phone": "3815018889",
+    "target": "5493815018889",
+    "affiliates": [
+      "PANTOJA, JUAN MANUEL"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:37:08.523Z",
+    "error": null,
+    "detailLines": "PANTOJA, JUAN MANUEL: $36.100"
+  },
+  {
+    "index": 46,
+    "phone": "3814438494",
+    "target": "5493814438494",
+    "affiliates": [
+      "PAREYON, FAUSTINO ANTONIO"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:37:38.523Z",
+    "error": null,
+    "detailLines": "PAREYON, FAUSTINO ANTONIO: $76.787"
+  },
+  {
+    "index": 47,
+    "phone": "3816453803",
+    "target": "5493816453803",
+    "affiliates": [
+      "PASTERIS, JOSE MANUEL",
+      "PASTERIS, JOSE MARCELO"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:38:20.851Z",
+    "error": null,
+    "detailLines": "PASTERIS, JOSE MANUEL: $22.335\nPASTERIS, JOSE MARCELO: $89.338"
+  },
+  {
+    "index": 48,
+    "phone": "3815844991",
+    "target": "5493815844991",
+    "affiliates": [
+      "PAZ BLAS, ANGEL",
+      "RIVADENEIRA, SILVIA"
+    ],
+    "status": "SENT",
+    "sentAt": "2026-11-13T18:38:51.849Z",
+    "error": null,
+    "detailLines": "PAZ BLAS, ANGEL: $70.037\nRIVADENEIRA, SILVIA: $22.335"
+  },
+  {
+    "index": 49,
+    "phone": "3816041319",
+    "target": "5493816041319",
+    "affiliates": [
+      "ROJAS, SUSANA DEL VALLE"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "ROJAS, SUSANA DEL VALLE: $23.900"
+  },
+  {
+    "index": 50,
+    "phone": "3814544778",
+    "target": "5493814544778",
+    "affiliates": [
+      "ROTGER, PEDRO ANTONIO"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "ROTGER, PEDRO ANTONIO: Claro = $ 248.862,26 + Asispre = $ 48.700,00 = $297.563"
+  },
+  {
+    "index": 51,
+    "phone": "3813518383",
+    "target": "5493813518383",
+    "affiliates": [
+      "RUIZ DE HUIDOBRO, ANGEL M",
+      "RUIZ DE HUIDOBRO, DANIEL",
+      "RUIZ DE HUIDOBRO, FEDERIC"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "RUIZ DE HUIDOBRO, ANGEL M: $22.335\nRUIZ DE HUIDOBRO, DANIEL: $44.669\nRUIZ DE HUIDOBRO, FEDERIC: $29.780"
+  },
+  {
+    "index": 52,
+    "phone": "3874145086",
+    "target": "5493874145086",
+    "affiliates": [
+      "RUIZ RAMIREZ, MERCEDES IS"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "RUIZ RAMIREZ, MERCEDES IS: $41.921"
+  },
+  {
+    "index": 53,
+    "phone": "3815498332",
+    "target": "5493815498332",
+    "affiliates": [
+      "SALVATIERRA, SERGIO LUIS"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "SALVATIERRA, SERGIO LUIS: $182.925"
+  },
+  {
+    "index": 54,
+    "phone": "3814428492",
+    "target": "5493814428492",
+    "affiliates": [
+      "SANCHEZ, ROQUE RAMON"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "SANCHEZ, ROQUE RAMON: Claro = $ 111.672,00 + Asispre = $ 39.500,00 = $151.172"
+  },
+  {
+    "index": 55,
+    "phone": "3876124877",
+    "target": "5493876124877",
+    "affiliates": [
+      "SCHEIN, CINTIA"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "SCHEIN, CINTIA: $167.681"
+  },
+  {
+    "index": 56,
+    "phone": "3815941858",
+    "target": "5493815941858",
+    "affiliates": [
+      "SEGUI, RUBEN ANTONIO"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "SEGUI, RUBEN ANTONIO: $30.200"
+  },
+  {
+    "index": 57,
+    "phone": "3815111292",
+    "target": "5493815111292",
+    "affiliates": [
+      "SERRATO, ANA CAROLINA"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "SERRATO, ANA CAROLINA: $30.300"
+  },
+  {
+    "index": 58,
+    "phone": "3816208959",
+    "target": "5493816208959",
+    "affiliates": [
+      "SORIA, MARIA ELENA"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "SORIA, MARIA ELENA: $68.250"
+  },
+  {
+    "index": 59,
+    "phone": "3814099593",
+    "target": "5493814099593",
+    "affiliates": [
+      "SPINELLI, MYRIAM LEONOR"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "SPINELLI, MYRIAM LEONOR: $39.500"
+  },
+  {
+    "index": 60,
+    "phone": "3815004330",
+    "target": "5493815004330",
+    "affiliates": [
+      "SUAREZ, TOMAS FABRICIO"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "SUAREZ, TOMAS FABRICIO: Claro = $ 251.521,14 + Asispre = $ 40.800,00 = $292.322"
+  },
+  {
+    "index": 61,
+    "phone": "3874507736",
+    "target": "5493874507736",
+    "affiliates": [
+      "ZANDANEL, GUILLERMO FEDER"
+    ],
+    "status": "PENDING",
+    "sentAt": null,
+    "error": null,
+    "detailLines": "ZANDANEL, GUILLERMO FEDER: $40.554"
+  }
+]
