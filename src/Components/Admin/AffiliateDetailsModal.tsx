@@ -207,7 +207,7 @@ export default function AffiliateDetailsModal({
         apellido: newMember.apellido?.trim() || "",
         dni: newMember.dni?.trim() || null,
         fecha_nacimiento: newMember.fecha_nacimiento || null,
-        edad: newMember.edad ?? null,
+        edad: calculateAge(newMember.fecha_nacimiento) ?? newMember.edad ?? null,
         grado_escolar: newMember.grado_escolar?.trim() || null,
       };
 
@@ -263,13 +263,17 @@ export default function AffiliateDetailsModal({
   const calculateAge = (birthDate?: string) => {
     if (!birthDate) return null;
     const today = new Date();
-    const birth = new Date(birthDate);
+    const parts = birthDate.split("T")[0].split("-");
+    const birth = parts.length === 3
+      ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+      : new Date(birthDate);
+    if (isNaN(birth.getTime())) return null;
     let age = today.getFullYear() - birth.getFullYear();
     const m = today.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
       age--;
     }
-    return age;
+    return age >= 0 ? age : null;
   };
 
   if (!affiliate) return null;
@@ -589,7 +593,7 @@ export default function AffiliateDetailsModal({
                         <TableCell>{member.nombre}</TableCell>
                         <TableCell>{member.dni || "-"}</TableCell>
                         <TableCell>{member.fecha_nacimiento ? new Date(member.fecha_nacimiento).toLocaleDateString("es-AR", { timeZone: "UTC" }) : "-"}</TableCell>
-                        <TableCell>{member.edad ?? calculateAge(member.fecha_nacimiento) ?? "-"}</TableCell>
+                        <TableCell>{calculateAge(member.fecha_nacimiento) ?? member.edad ?? "-"}</TableCell>
                         <TableCell align="center">
                           <IconButton size="small" color="error" onClick={() => handleDeleteMember(member.id!)}><DeleteIcon fontSize="small" /></IconButton>
                         </TableCell>

@@ -73,8 +73,25 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
     const [editingMember, setEditingMember] = useState<Partial<FamilyMember> | null>(null);
     const [affiliateId, setAffiliateId] = useState<number | null>(null);
     const [memberRelationship, setMemberRelationship] = useState<'hijo' | 'conyuge'>('hijo');
+    const [memberBirthDate, setMemberBirthDate] = useState({ dia: '', mes: '', anio: '' });
     const [myRequests, setMyRequests] = useState<WorkflowRequestItem[]>([]);
     const [loadingRequests, setLoadingRequests] = useState(false);
+
+    const calculateAge = (birthDate?: string | null): number | null => {
+        if (!birthDate) return null;
+        const today = new Date();
+        const parts = birthDate.split('T')[0].split('-');
+        const birth = parts.length === 3
+            ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+            : new Date(birthDate);
+        if (isNaN(birth.getTime())) return null;
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        return age >= 0 ? age : null;
+    };
 
     const theme = useTheme();
 
@@ -293,13 +310,18 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 setEditingMember(null);
                 setSuccess('Cónyuge agregado correctamente');
             } else {
+                const fechaNacStr = (memberBirthDate.anio && memberBirthDate.mes && memberBirthDate.dia)
+                    ? `${memberBirthDate.anio.padStart(4, '0')}-${memberBirthDate.mes.padStart(2, '0')}-${memberBirthDate.dia.padStart(2, '0')}`
+                    : (editingMember.fecha_nacimiento || null);
+                const calculatedEdad = calculateAge(fechaNacStr) ?? editingMember.edad ?? null;
+
                 const memberToInsert = {
                     affiliate_id: affiliateId,
                     nombre: editingMember.nombre?.trim() || '',
                     apellido: editingMember.apellido?.trim() || '',
                     dni: editingMember.dni?.trim() || null,
-                    fecha_nacimiento: editingMember.fecha_nacimiento || null,
-                    edad: editingMember.edad || null,
+                    fecha_nacimiento: fechaNacStr,
+                    edad: calculatedEdad,
                     grado_escolar: editingMember.grado_escolar?.trim() || null,
                 };
 
@@ -593,7 +615,8 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     </Box>
                     <IconButton
                         onClick={() => {
-                            setEditingMember({ nombre: '', apellido: '', dni: '', edad: undefined });
+                            setEditingMember({ nombre: '', apellido: '', dni: '', fecha_nacimiento: '', edad: undefined });
+                            setMemberBirthDate({ dia: '', mes: '', anio: '' });
                             setMemberRelationship('hijo');
                             setFamilyDialogOpen(true);
                         }}
@@ -652,7 +675,11 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                             <>
                                                 Hijo/a
                                                 {member.dni && ` - DNI: ${member.dni}`}
-                                                {member.edad && ` - ${member.edad} años`}
+                                                {member.fecha_nacimiento && ` - Nac: ${(() => { const [y, m, d] = member.fecha_nacimiento.split('T')[0].split('-'); return `${d}/${m}/${y}`; })()}`}
+                                                {(() => {
+                                                    const calcEdad = calculateAge(member.fecha_nacimiento) ?? member.edad;
+                                                    return calcEdad !== null && calcEdad !== undefined ? ` - ${calcEdad} años` : '';
+                                                })()}
                                                 {member.grado_escolar && ` - ${member.grado_escolar}`}
                                             </>
                                         }
@@ -838,6 +865,60 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                         />
                         {memberRelationship === 'hijo' && (
                             <>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                                        Fecha de Nacimiento
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                        <TextField
+                                            label="Día"
+                                            value={memberBirthDate.dia}
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                                setMemberBirthDate({ ...memberBirthDate, dia: v });
+                                            }}
+                                            size="small"
+                                            sx={{ width: 80 }}
+                                            inputProps={{ inputMode: 'numeric', maxLength: 2 }}
+                                        />
+                                        <TextField
+                                            label="Mes"
+                                            value={memberBirthDate.mes}
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                                setMemberBirthDate({ ...memberBirthDate, mes: v });
+                                            }}
+                                            size="small"
+                                            sx={{ width: 80 }}
+                                            inputProps={{ inputMode: 'numeric', maxLength: 2 }}
+                                        />
+                                        <TextField
+                                            label="Año"
+                                            value={memberBirthDate.anio}
+                                            onChange={(e) => {
+                                                const v = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                                setMemberBirthDate({ ...memberBirthDate, anio: v });
+                                            }}
+                                            size="small"
+                                            sx={{ width: 100 }}
+                                            inputProps={{ inputMode: 'numeric', maxLength: 4 }}
+                                        />
+                                        {memberBirthDate.anio.length === 4 && memberBirthDate.mes && memberBirthDate.dia && (() => {
+                                            const previewDate = `${memberBirthDate.anio}-${memberBirthDate.mes.padStart(2, '0')}-${memberBirthDate.dia.padStart(2, '0')}`;
+                                            const previewAge = calculateAge(previewDate);
+                                            return previewAge !== null ? (
+                                                <Chip
+                                                    label={`${previewAge} años`}
+                                                    size="small"
+                                                    color="primary"
+                                                    variant="outlined"
+                                                    sx={{ fontWeight: 700 }}
+                                                />
+                                            ) : null;
+                                        })()}
+                                    </Box>
+                                </Box>
+                                {/* // TODO: Revisar para eliminar
                                 <TextField
                                     label="Edad"
                                     type="number"
@@ -846,6 +927,7 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                     fullWidth
                                     size="small"
                                 />
+                                */}
                                 <TextField
                                     label="Grado escolar"
                                     value={editingMember?.grado_escolar || ''}

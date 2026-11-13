@@ -1,5 +1,19 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Fecha de Nacimiento y Cálculo Automático de Edad en Grupo Familiar
+**Fecha:** 2026-11-13
+**Modo:** Mejorar
+**Descripción:** Se actualizó la carga y visualización del grupo familiar para registrar la fecha de nacimiento de los hijos y calcular su edad de manera dinámica y automática:
+1. **Carga desde el Perfil del Afiliado (`PerfilView.tsx`):**
+   - Al agregar un hijo/a desde el portal del afiliado, ahora se solicita **Fecha de Nacimiento** (Día / Mes / Año) con previsualización en vivo de la edad calculada (`Chip` con `X años`), guardando tanto `fecha_nacimiento` como `edad` calculada en `affiliate_family_members` y `workflow_requests`.
+   - En el listado del grupo familiar del perfil se muestra la fecha de nacimiento (`Nac: DD/MM/AAAA`) y la edad calculada dinámicamente.
+2. **Prioridad de Cálculo Dinámico en Panel de Administración (`AffiliateDetailsModal.tsx` y `AfiliadosManager.tsx`):**
+   - Se prioriza `calculateAge(member.fecha_nacimiento) ?? member.edad` en la ficha del afiliado, tabla general de familiares, filtros de edad, ordenamiento y exportación a Excel, manteniendo `member.edad` únicamente como respaldo para registros históricos sin fecha de nacimiento.
+   - Se normalizó el parseo de fechas `YYYY-MM-DD` en `calculateAge` para evitar desfases de huso horario (UTC-3).
+
+### Arquitecturas Aprobadas (Actualización):
+- **Edad Dinámica en Grupo Familiar:** Prioridad de cálculo en tiempo real a partir de `fecha_nacimiento` frente a la fecha actual, con fallback a `edad` estática para registros heredados.
+
 ## [ÉXITO] - Sincronización y Desglose Completo de Totales de Afiliados en Resumen General Noroeste
 **Fecha:** 2026-10-02
 **Modo:** Mejorar

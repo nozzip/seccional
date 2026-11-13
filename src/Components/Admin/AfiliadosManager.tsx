@@ -173,13 +173,17 @@ const MenuProps = {
 const calculateAge = (dateString: string | null): number | null => {
   if (!dateString) return null;
   const today = new Date();
-  const birthDate = new Date(dateString);
+  const parts = dateString.split("T")[0].split("-");
+  const birthDate = parts.length === 3
+    ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+    : new Date(dateString);
+  if (isNaN(birthDate.getTime())) return null;
   let age = today.getFullYear() - birthDate.getFullYear();
   const m = today.getMonth() - birthDate.getMonth();
   if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
-  return age;
+  return age >= 0 ? age : null;
 };
 
 export const cleanLocationName = (name: string | null | undefined): string => {
@@ -1448,9 +1452,9 @@ export default function AfiliadosManager() {
         selectedGenders.length === 0 ||
         selectedGenders.includes(f._inferredGender || "");
 
-      let ageToUse = f.edad;
+      let ageToUse = calculateAge(f.fecha_nacimiento);
       if (ageToUse === null || ageToUse === undefined) {
-        ageToUse = calculateAge(f.fecha_nacimiento);
+        ageToUse = f.edad;
       }
 
       const matchesAge =
@@ -1539,8 +1543,8 @@ export default function AfiliadosManager() {
           break;
         }
         case "edad": {
-          const ageA = a.edad ?? calculateAge(a.fecha_nacimiento) ?? 0;
-          const ageB = b.edad ?? calculateAge(b.fecha_nacimiento) ?? 0;
+          const ageA = calculateAge(a.fecha_nacimiento) ?? a.edad ?? 0;
+          const ageB = calculateAge(b.fecha_nacimiento) ?? b.edad ?? 0;
           comparison = ageA - ageB;
           break;
         }
@@ -1630,9 +1634,9 @@ export default function AfiliadosManager() {
     } else {
       // Export Familiares
       const exportData = sortedFamilyMembers.map((member) => {
-        let ageToUse = member.edad;
+        let ageToUse = calculateAge(member.fecha_nacimiento);
         if (ageToUse === null || ageToUse === undefined) {
-          ageToUse = calculateAge(member.fecha_nacimiento);
+          ageToUse = member.edad;
         }
 
         return {
@@ -2629,9 +2633,9 @@ export default function AfiliadosManager() {
                   </TableRow>
                 ) : (
                   paginatedFamilyMembers.map((member) => {
-                    let calcAge = member.edad;
+                    let calcAge = calculateAge(member.fecha_nacimiento);
                     if (calcAge === null || calcAge === undefined) {
-                      calcAge = calculateAge(member.fecha_nacimiento);
+                      calcAge = member.edad;
                     }
                     return (
                       <TableRow hover key={member.id}>
