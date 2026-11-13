@@ -1,5 +1,10 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Bloqueo Global Efectivo de Respuestas Automáticas en el Bot (`is_bot_active = false`)
+**Fecha:** 2026-11-13
+**Modo:** Mejorar
+**Descripción:** Se corrigió la intercepción del interruptor global `is_bot_active` en `bot/src/app.ts` y `bot/src/services/botConfigService.ts` para garantizar que, cuando el bot está deshabilitado desde el Panel de Administración (o Supabase), no se dispare ninguna respuesta automática ante mensajes entrantes (ni bienvenida, ni flujos capturados ni palabras clave), manteniendo operativo el envío saliente controlado por `/v1/messages`.
+
 ## [ÉXITO] - Endpoint HTTP Local `/v1/messages` en Bot de WhatsApp para Envíos Controlados
 **Fecha:** 2026-11-13
 **Modo:** Desarrollar

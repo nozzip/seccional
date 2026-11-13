@@ -3,6 +3,7 @@ import { BaileysProvider } from '@builderbot/provider-baileys';
 import { fetchLatestBaileysVersion } from 'baileys';
 import { flows } from './flows/index.js';
 import { pauseManager } from './services/pauseManager.js';
+import { isBotGloballyActive, getCachedBotActive } from './services/botConfigService.js';
 import 'dotenv/config';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3008;
@@ -35,6 +36,18 @@ const main = async () => {
       provider: adapterProvider,
       database: adapterDB,
     });
+
+    // Sincronizar estado global del bot (is_bot_active) cada 3 segundos y bloquear respuestas si está deshabilitado
+    await isBotGloballyActive();
+    setInterval(() => {
+      isBotGloballyActive().catch(() => {});
+    }, 3000);
+
+    const originalCheckIf = bot.dynamicBlacklist.checkIf.bind(bot.dynamicBlacklist);
+    bot.dynamicBlacklist.checkIf = (phoneNumber: string) => {
+      if (!getCachedBotActive()) return true;
+      return originalCheckIf(phoneNumber);
+    };
 
     bot.httpServer(PORT);
 
