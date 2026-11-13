@@ -18,6 +18,7 @@ import {
     DialogContent,
     DialogActions,
     CircularProgress,
+    LinearProgress,
     Alert,
     Chip,
     alpha,
@@ -325,47 +326,91 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     grado_escolar: editingMember.grado_escolar?.trim() || null,
                 };
 
-                const { data, error } = await supabase
-                    .from('affiliate_family_members')
-                    .insert(memberToInsert)
-                    .select()
-                    .single();
+                if (editingMember.id) {
+                    const { data, error } = await supabase
+                        .from('affiliate_family_members')
+                        .update(memberToInsert)
+                        .eq('id', editingMember.id)
+                        .select()
+                        .single();
 
-                if (error) throw error;
+                    if (error) throw error;
 
-                // Notify Admin in Gestión Unificada (workflow_requests)
-                try {
-                    await supabase.from('workflow_requests').insert({
-                        type: 'family_update',
-                        status: 'pending',
-                        requester_info: {
-                            nombre: `${affiliateData?.nombre} ${affiliateData?.apellido}`,
-                            legajo: affiliateData?.legajo,
-                            cuil: affiliateData?.cuil,
-                            email: affiliateData?.email,
-                            telefono: affiliateData?.telefono,
-                        },
-                        data: {
-                            title: `Alta de Familiar: ${memberToInsert.nombre} ${memberToInsert.apellido}`,
-                            summary: `Hijo/a: ${memberToInsert.nombre} ${memberToInsert.apellido}${memberToInsert.edad ? ` (${memberToInsert.edad} años)` : ''}${memberToInsert.grado_escolar ? ` - Grado: ${memberToInsert.grado_escolar}` : ''}`,
-                            action: 'Alta de Hijo/a',
-                            nombre: memberToInsert.nombre,
-                            apellido: memberToInsert.apellido,
-                            parentesco: 'Hijo/a',
-                            dni: memberToInsert.dni,
-                            fecha_nacimiento: memberToInsert.fecha_nacimiento,
-                            edad: memberToInsert.edad,
-                            grado_escolar: memberToInsert.grado_escolar,
-                        }
-                    });
-                } catch (wfErr) {
-                    console.warn("No se pudo registrar solicitud en workflow_requests:", wfErr);
+                    try {
+                        await supabase.from('workflow_requests').insert({
+                            type: 'family_update',
+                            status: 'pending',
+                            requester_info: {
+                                nombre: `${affiliateData?.nombre} ${affiliateData?.apellido}`,
+                                legajo: affiliateData?.legajo,
+                                cuil: affiliateData?.cuil,
+                                email: affiliateData?.email,
+                                telefono: affiliateData?.telefono,
+                            },
+                            data: {
+                                title: `Actualización de Familiar: ${memberToInsert.nombre} ${memberToInsert.apellido}`,
+                                summary: `Hijo/a: ${memberToInsert.nombre} ${memberToInsert.apellido}${memberToInsert.edad !== null ? ` (${memberToInsert.edad} años)` : ''}${memberToInsert.grado_escolar ? ` - Grado: ${memberToInsert.grado_escolar}` : ''}`,
+                                action: 'Modificación de Hijo/a',
+                                nombre: memberToInsert.nombre,
+                                apellido: memberToInsert.apellido,
+                                parentesco: 'Hijo/a',
+                                dni: memberToInsert.dni,
+                                fecha_nacimiento: memberToInsert.fecha_nacimiento,
+                                edad: memberToInsert.edad,
+                                grado_escolar: memberToInsert.grado_escolar,
+                            }
+                        });
+                    } catch (wfErr) {
+                        console.warn("No se pudo registrar solicitud en workflow_requests:", wfErr);
+                    }
+
+                    setFamilyMembers(familyMembers.map(m => m.id === editingMember.id ? data : m));
+                    setFamilyDialogOpen(false);
+                    setEditingMember(null);
+                    setSuccess('Familiar actualizado correctamente');
+                } else {
+                    const { data, error } = await supabase
+                        .from('affiliate_family_members')
+                        .insert(memberToInsert)
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+
+                    // Notify Admin in Gestión Unificada (workflow_requests)
+                    try {
+                        await supabase.from('workflow_requests').insert({
+                            type: 'family_update',
+                            status: 'pending',
+                            requester_info: {
+                                nombre: `${affiliateData?.nombre} ${affiliateData?.apellido}`,
+                                legajo: affiliateData?.legajo,
+                                cuil: affiliateData?.cuil,
+                                email: affiliateData?.email,
+                                telefono: affiliateData?.telefono,
+                            },
+                            data: {
+                                title: `Alta de Familiar: ${memberToInsert.nombre} ${memberToInsert.apellido}`,
+                                summary: `Hijo/a: ${memberToInsert.nombre} ${memberToInsert.apellido}${memberToInsert.edad ? ` (${memberToInsert.edad} años)` : ''}${memberToInsert.grado_escolar ? ` - Grado: ${memberToInsert.grado_escolar}` : ''}`,
+                                action: 'Alta de Hijo/a',
+                                nombre: memberToInsert.nombre,
+                                apellido: memberToInsert.apellido,
+                                parentesco: 'Hijo/a',
+                                dni: memberToInsert.dni,
+                                fecha_nacimiento: memberToInsert.fecha_nacimiento,
+                                edad: memberToInsert.edad,
+                                grado_escolar: memberToInsert.grado_escolar,
+                            }
+                        });
+                    } catch (wfErr) {
+                        console.warn("No se pudo registrar solicitud en workflow_requests:", wfErr);
+                    }
+
+                    setFamilyMembers([...familyMembers, data]);
+                    setFamilyDialogOpen(false);
+                    setEditingMember(null);
+                    setSuccess('Familiar agregado correctamente');
                 }
-
-                setFamilyMembers([...familyMembers, data]);
-                setFamilyDialogOpen(false);
-                setEditingMember(null);
-                setSuccess('Familiar agregado correctamente');
             }
         } catch (err: any) {
             console.error('Error adding family member:', err);
@@ -409,6 +454,29 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
         }
     };
 
+    const handleEditConyuge = () => {
+        if (!affiliateData?.conyuge_nombre) return;
+        const parts = affiliateData.conyuge_nombre.trim().split(' ');
+        const nombre = parts[0] || '';
+        const apellido = parts.slice(1).join(' ') || '';
+        setEditingMember({
+            nombre,
+            apellido,
+            dni: affiliateData.conyuge_dni || '',
+        });
+        setMemberRelationship('conyuge');
+        setFamilyDialogOpen(true);
+    };
+
+    const handleEditFamilyMember = (member: FamilyMember) => {
+        const fechaStr = member.fecha_nacimiento ? member.fecha_nacimiento.split('T')[0] : '';
+        const [anio, mes, dia] = fechaStr ? fechaStr.split('-') : ['', '', ''];
+        setEditingMember({ ...member });
+        setMemberBirthDate({ dia: dia || '', mes: mes || '', anio: anio || '' });
+        setMemberRelationship('hijo');
+        setFamilyDialogOpen(true);
+    };
+
     if (!affiliateData) {
         return (
             <Box sx={{ p: 4, textAlign: 'center' }}>
@@ -433,6 +501,58 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                     {error}
                 </Alert>
             )}
+
+            {(() => {
+                const missingItems: string[] = [];
+                if (!affiliateData.telefono && !formData.telefono) missingItems.push('Teléfono');
+                if (!affiliateData.email && !formData.email) missingItems.push('Email');
+                if (!affiliateData.fecha_nacimiento && !(formData.anio && formData.mes && formData.dia)) missingItems.push('Tu Fecha de Nacimiento');
+                const childrenWithoutBirth = familyMembers.filter(m => !m.fecha_nacimiento).length;
+                if (childrenWithoutBirth > 0) {
+                    missingItems.push(`Fecha de nacimiento de ${childrenWithoutBirth} hijo/a${childrenWithoutBirth > 1 ? 's' : ''}`);
+                }
+
+                const totalChecks = 3 + (familyMembers.length > 0 ? 1 : 0);
+                const completedChecks = totalChecks - missingItems.length;
+                const progress = Math.round((completedChecks / totalChecks) * 100);
+
+                return (
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            p: 2,
+                            mb: 3,
+                            borderRadius: 3,
+                            border: '1px solid',
+                            borderColor: progress === 100 ? alpha(theme.palette.success.main, 0.4) : alpha(theme.palette.primary.main, 0.25),
+                            bgcolor: progress === 100 ? alpha(theme.palette.success.main, 0.06) : alpha(theme.palette.primary.main, 0.04),
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: progress === 100 ? 'success.main' : 'primary.main' }}>
+                                {progress === 100 ? '¡Tu legajo digital está al 100%!' : 'Estado de tu Legajo Digital'}
+                            </Typography>
+                            <Chip
+                                label={`${progress}%`}
+                                size="small"
+                                color={progress === 100 ? 'success' : 'primary'}
+                                sx={{ fontWeight: 800, height: 22 }}
+                            />
+                        </Box>
+                        <LinearProgress
+                            variant="determinate"
+                            value={progress}
+                            color={progress === 100 ? 'success' : 'primary'}
+                            sx={{ height: 8, borderRadius: 4, mb: missingItems.length > 0 ? 1 : 0 }}
+                        />
+                        {missingItems.length > 0 && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600 }}>
+                                Pendiente completar: {missingItems.join(' • ')}
+                            </Typography>
+                        )}
+                    </Paper>
+                );
+            })()}
 
             <Paper sx={{ p: 3, borderRadius: 3, mb: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -650,6 +770,14 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                     />
                                     <ListItemSecondaryAction>
                                         <IconButton
+                                            color="primary"
+                                            size="small"
+                                            onClick={handleEditConyuge}
+                                            sx={{ mr: 0.5 }}
+                                        >
+                                            <EditIcon fontSize="small" />
+                                        </IconButton>
+                                        <IconButton
                                             edge="end"
                                             color="error"
                                             size="small"
@@ -685,6 +813,14 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                         }
                                     />
                                     <ListItemSecondaryAction>
+                                        <IconButton
+                                            color="primary"
+                                            size="small"
+                                            onClick={() => handleEditFamilyMember(member)}
+                                            sx={{ mr: 0.5 }}
+                                        >
+                                            <EditIcon fontSize="small" />
+                                        </IconButton>
                                         <IconButton
                                             edge="end"
                                             color="error"
@@ -789,17 +925,60 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                                             alignItems: 'stretch'
                                         }}
                                     >
-                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5, gap: 1 }}>
-                                            {icon}
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                                                {title}
-                                            </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5, gap: 1 }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                {icon}
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                                    {title}
+                                                </Typography>
+                                            </Box>
+                                            {(() => {
+                                                const st = (req.status || 'pending').toLowerCase();
+                                                const statusConfig =
+                                                    st === 'approved' || st === 'aprobado' || st === 'completado'
+                                                        ? { label: 'Aprobado', color: 'success' as const }
+                                                        : st === 'rejected' || st === 'rechazado'
+                                                        ? { label: 'Observado / Rechazado', color: 'error' as const }
+                                                        : st === 'in_progress' || st === 'en_revision'
+                                                        ? { label: 'En Revisión', color: 'info' as const }
+                                                        : { label: 'Pendiente', color: 'warning' as const };
+                                                return (
+                                                    <Chip
+                                                        label={statusConfig.label}
+                                                        color={statusConfig.color}
+                                                        size="small"
+                                                        sx={{ fontWeight: 700, height: 22, fontSize: '0.7rem' }}
+                                                    />
+                                                );
+                                            })()}
                                         </Box>
 
                                         {details && (
                                             <Typography variant="body2" sx={{ color: 'text.secondary', ml: 4.5, mb: 0.5, fontSize: '0.85rem' }}>
                                                 {details}
                                             </Typography>
+                                        )}
+
+                                        {(req.data?.admin_notes || req.data?.respuesta_admin) && (
+                                            <Box
+                                                sx={{
+                                                    ml: 4.5,
+                                                    mt: 0.5,
+                                                    mb: 0.5,
+                                                    p: 1,
+                                                    borderRadius: 1.5,
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                                    borderLeft: '3px solid',
+                                                    borderColor: 'primary.main',
+                                                }}
+                                            >
+                                                <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', display: 'block' }}>
+                                                    Respuesta de Administración:
+                                                </Typography>
+                                                <Typography variant="caption" color="text.primary">
+                                                    {req.data?.admin_notes || req.data?.respuesta_admin}
+                                                </Typography>
+                                            </Box>
                                         )}
 
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 4.5, mt: 0.5 }}>
@@ -828,7 +1007,9 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
             </Button>
 
             <Dialog open={familyDialogOpen} onClose={() => setFamilyDialogOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Agregar Familiar</DialogTitle>
+                <DialogTitle>
+                    {editingMember?.id || (memberRelationship === 'conyuge' && affiliateData.conyuge_nombre) ? 'Editar Familiar' : 'Agregar Familiar'}
+                </DialogTitle>
                 <DialogContent>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
                         <TextField
@@ -838,9 +1019,10 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                             onChange={(e) => setMemberRelationship(e.target.value as 'hijo' | 'conyuge')}
                             fullWidth
                             size="small"
+                            disabled={Boolean(editingMember?.id)}
                         >
                             <MenuItem value="hijo">Hijo/a</MenuItem>
-                            {!affiliateData.conyuge_nombre && <MenuItem value="conyuge">Cónyuge</MenuItem>}
+                            <MenuItem value="conyuge">Cónyuge</MenuItem>
                         </TextField>
                         <TextField
                             label="Nombre"
@@ -942,7 +1124,7 @@ export default function PerfilView({ affiliateData, onUpdate, onLogout }: Perfil
                 <DialogActions>
                     <Button onClick={() => setFamilyDialogOpen(false)}>Cancelar</Button>
                     <Button variant="contained" onClick={handleAddFamilyMember}>
-                        Agregar
+                        {editingMember?.id || (memberRelationship === 'conyuge' && affiliateData.conyuge_nombre) ? 'Guardar Cambios' : 'Agregar'}
                     </Button>
                 </DialogActions>
             </Dialog>

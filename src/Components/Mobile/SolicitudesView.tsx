@@ -19,7 +19,7 @@ import HouseSidingIcon from '@mui/icons-material/HouseSiding';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
-import { CircularProgress, Alert, List, ListItem } from '@mui/material';
+import { CircularProgress, Alert, List, ListItem, Chip } from '@mui/material';
 import { supabase } from '../../supabaseClient';
 import TurismoForm from './TurismoForm';
 import GremialForm from './GremialForm';
@@ -353,17 +353,60 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                                             alignItems: 'stretch'
                                         }}
                                     >
-                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5, gap: 1 }}>
-                                            {icon}
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                                                {title}
-                                            </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5, gap: 1 }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                {icon}
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                                    {title}
+                                                </Typography>
+                                            </Box>
+                                            {(() => {
+                                                const st = (req.status || 'pending').toLowerCase();
+                                                const statusConfig =
+                                                    st === 'approved' || st === 'aprobado' || st === 'completado'
+                                                        ? { label: 'Aprobado', color: 'success' as const }
+                                                        : st === 'rejected' || st === 'rechazado'
+                                                        ? { label: 'Observado / Rechazado', color: 'error' as const }
+                                                        : st === 'in_progress' || st === 'en_revision'
+                                                        ? { label: 'En Revisión', color: 'info' as const }
+                                                        : { label: 'Pendiente', color: 'warning' as const };
+                                                return (
+                                                    <Chip
+                                                        label={statusConfig.label}
+                                                        color={statusConfig.color}
+                                                        size="small"
+                                                        sx={{ fontWeight: 700, height: 22, fontSize: '0.7rem' }}
+                                                    />
+                                                );
+                                            })()}
                                         </Box>
 
                                         {details && (
                                             <Typography variant="body2" sx={{ color: 'text.secondary', ml: 4, mb: 0.5, fontSize: '0.85rem' }}>
                                                 {details}
                                             </Typography>
+                                        )}
+
+                                        {(req.data?.admin_notes || req.data?.respuesta_admin) && (
+                                            <Box
+                                                sx={{
+                                                    ml: 4,
+                                                    mt: 0.5,
+                                                    mb: 0.5,
+                                                    p: 1,
+                                                    borderRadius: 1.5,
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                                    borderLeft: '3px solid',
+                                                    borderColor: 'primary.main',
+                                                }}
+                                            >
+                                                <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', display: 'block' }}>
+                                                    Respuesta de Administración:
+                                                </Typography>
+                                                <Typography variant="caption" color="text.primary">
+                                                    {req.data?.admin_notes || req.data?.respuesta_admin}
+                                                </Typography>
+                                            </Box>
                                         )}
 
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 4, mt: 0.5 }}>
@@ -383,7 +426,7 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
 
             <TurismoForm
                 open={turismoOpen}
-                onClose={() => setTurismoOpen(false)}
+                onClose={() => { setTurismoOpen(false); fetchMyRequests(); }}
                 affiliateData={affiliateData}
                 isSubsidized={turismoSubsidized}
                 subsidizedType={turismoSubsidized ? gremialType : ''}
@@ -391,7 +434,7 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
 
             <GremialForm
                 open={gremialOpen}
-                onClose={() => setGremialOpen(false)}
+                onClose={() => { setGremialOpen(false); fetchMyRequests(); }}
                 affiliateData={affiliateData}
                 type={gremialType}
             />

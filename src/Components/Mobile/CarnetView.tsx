@@ -12,6 +12,7 @@ import {
     Tooltip,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import ShareIcon from '@mui/icons-material/Share';
 import BadgeIcon from '@mui/icons-material/Badge';
 import { AffiliateData } from '../../types/mobile';
 import { jsPDF } from 'jspdf';
@@ -29,12 +30,20 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
 
     React.useEffect(() => {
         const fetchQR = async () => {
+            const cacheKey = affiliateData?.legajo ? `mobile_app_cached_qr_${affiliateData.legajo}` : null;
+            if (cacheKey) {
+                const cachedQr = localStorage.getItem(cacheKey);
+                if (cachedQr) setQrDataUrl(cachedQr);
+            }
             if (affiliateData?.validation_token) {
                 console.log("Generating QR for token:", affiliateData.validation_token);
                 // Construct the validation URL
                 const validationUrl = `${window.location.origin}${window.location.pathname}#/validar/${affiliateData.validation_token}`;
                 const url = await generateQRCodeDataURL(validationUrl);
                 setQrDataUrl(url);
+                if (cacheKey && url) {
+                    localStorage.setItem(cacheKey, url);
+                }
             } else {
                 console.warn("No validation token found in affiliateData");
             }
@@ -45,6 +54,13 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
     React.useEffect(() => {
         const fetchFamily = async () => {
             if (!affiliateData?.legajo) return;
+            const cacheKey = `mobile_app_cached_family_${affiliateData.legajo}`;
+            const cachedFam = localStorage.getItem(cacheKey);
+            if (cachedFam) {
+                try {
+                    setFamilyMembers(JSON.parse(cachedFam));
+                } catch {}
+            }
             try {
                 const { data: affData } = await supabase
                     .from('affiliates')
@@ -62,6 +78,7 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
 
                     if (famData) {
                         setFamilyMembers(famData);
+                        localStorage.setItem(cacheKey, JSON.stringify(famData));
                     }
                 }
             } catch (err) {
@@ -214,6 +231,28 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
         }
 
         doc.save(`Carnet_AEFIP_${affiliateData.apellido || 'afiliado'}.pdf`);
+    };
+
+    const handleShareCarnet = async () => {
+        if (!affiliateData) return;
+        const validationUrl = affiliateData.validation_token
+            ? `${window.location.origin}${window.location.pathname}#/validar/${affiliateData.validation_token}`
+            : window.location.origin;
+        const shareText = `Credencial Digital A.E.F.I.P. Seccional Noroeste\nAfiliado/a: ${affiliateData.nombre} ${affiliateData.apellido}\nCUIL: ${affiliateData.cuil || '-'}\nValidar vigencia online: ${validationUrl}`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Carnet Digital AEFIP Noroeste',
+                    text: shareText,
+                    url: validationUrl,
+                });
+                return;
+            } catch (err) {
+                console.warn('Share cancelled or failed:', err);
+            }
+        }
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
     };
 
     if (!affiliateData) {
@@ -400,23 +439,41 @@ export default function CarnetView({ affiliateData }: CarnetViewProps) {
             </Paper>
 
             <Box sx={{ maxWidth: 500, mx: 'auto' }}>
-                <Button
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    startIcon={<DownloadIcon />}
-                    onClick={generatePDF}
-                    sx={{
-                        py: 1.5,
-                        borderRadius: 2,
-                        fontWeight: 700,
-                        fontSize: '1rem',
-                        boxShadow: '0 4px 14px rgba(26, 95, 122, 0.3)',
-                        mb: 3,
-                    }}
-                >
-                    Descargar Carnet PDF
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1.5, mb: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        startIcon={<DownloadIcon />}
+                        onClick={generatePDF}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: 2,
+                            fontWeight: 700,
+                            fontSize: '0.95rem',
+                            boxShadow: '0 4px 14px rgba(26, 95, 122, 0.3)',
+                        }}
+                    >
+                        Descargar Carnet PDF
+                    </Button>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        size="large"
+                        startIcon={<ShareIcon />}
+                        onClick={handleShareCarnet}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: 2,
+                            fontWeight: 700,
+                            fontSize: '0.95rem',
+                            borderWidth: 2,
+                            '&:hover': { borderWidth: 2 },
+                        }}
+                    >
+                        Compartir Carnet
+                    </Button>
+                </Box>
     
                 <Paper sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.08) }}>
                     <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>

@@ -1,5 +1,28 @@
 # Registro de IA - Seccional Noroeste
 
+## [ÉXITO] - Mejoras Integrales para el Afiliado (Perfil, Solicitudes, Carnet Offline y Buscador de Convenios)
+**Fecha:** 2026-11-13
+**Modo:** Mejorar / Desarrollar
+**Descripción:** Se implementaron los 4 pilares de mejoras de experiencia para el afiliado en el portal Web y la App Móvil (PWA):
+1. **Edición de Grupo Familiar e Indicador de Legajo Digital (`PerfilView.tsx`):**
+   - Incorporación de barra de progreso **"Estado de tu Legajo Digital"** con cálculo en vivo del porcentaje completado y detalle de datos pendientes.
+   - Botón de edición (`EditIcon`) para modificar cónyuge e hijos ya registrados sin necesidad de eliminarlos y volverlos a crear.
+2. **Seguimiento de Estado de Trámites y Pre-carga Familiar en Turismo (`SolicitudesView.tsx`, `PerfilView.tsx`, `TurismoForm.tsx`):**
+   - Visualización de chips de estado (`Pendiente`, `En Revisión`, `Aprobado`, `Observado / Rechazado`) y bloque de respuesta de administración en el historial de solicitudes.
+   - Selector rápido de 1 toque **"Seleccionar de mi Grupo Familiar"** dentro de `TurismoForm.tsx` para sumar al cónyuge e hijos como acompañantes automáticamente.
+3. **Carnet Digital Offline y Compartir Credencial (`CarnetView.tsx`):**
+   - Persistencia en caché local (`localStorage`) del código QR y del listado de familiares a cargo para garantizar la apertura inmediata del carnet aun sin señal de internet.
+   - Incorporación del botón **"Compartir Carnet"** con soporte nativo `navigator.share` y fallback directo a WhatsApp.
+4. **Convenios Inteligentes (Favoritos, Provincia del Afiliado y Google Maps) y Campana de Novedades (`GridBeneficios.tsx`, `MobileBeneficiosApp.tsx`):**
+   - Sistema de **Favoritos (`★ Favoritos`)** persistido localmente con botón de corazón en cada tarjeta y modal, ordenando los favoritos en primer lugar.
+   - Detección automática de la provincia del afiliado logueado con chip de acceso rápido (*"Ver convenios de tu provincia"*).
+   - Botón directo **"Cómo llegar"** conectado a Google Maps en los convenios con dirección física.
+   - Incorporación de campana de **Novedades y Comunicados** con contador de no leídos en la barra superior de la App Móvil (`MobileBeneficiosApp.tsx`).
+
+### Arquitecturas Aprobadas (Actualización):
+- **Carnet Resiliente Offline:** Caché local por legajo para QR y grupo familiar en `CarnetView.tsx`.
+- **Favoritos y Geolocalización de Convenios:** Persistencia local de convenios favoritos (`affiliate_favorite_benefits`) y resolución de provincia del titular en `GridBeneficios.tsx`.
+
 ## [ÉXITO] - Fecha de Nacimiento y Cálculo Automático de Edad en Grupo Familiar
 **Fecha:** 2026-11-13
 **Modo:** Mejorar

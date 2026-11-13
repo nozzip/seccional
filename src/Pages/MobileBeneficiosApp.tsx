@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, IconButton, AppBar, Toolbar, useTheme, alpha, BottomNavigation, BottomNavigationAction, Paper, Tooltip } from '@mui/material';
+import { Box, Typography, IconButton, AppBar, Toolbar, useTheme, alpha, BottomNavigation, BottomNavigationAction, Paper, Tooltip, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemText, Divider } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import HomeIcon from '@mui/icons-material/Home';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import BadgeIcon from '@mui/icons-material/Badge';
 import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import PersonIcon from '@mui/icons-material/Person';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import MobileLogin from '../Components/Mobile/MobileLogin';
@@ -24,8 +25,34 @@ export default function MobileBeneficiosApp() {
     const [userName, setUserName] = useState('');
     const [affiliateData, setAffiliateData] = useState<AffiliateData | null>(null);
     const [currentTab, setCurrentTab] = useState(0);
+    const [newsOpen, setNewsOpen] = useState(false);
+    const [latestNews, setLatestNews] = useState<any[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
     const theme = useTheme();
     const { toggleColorMode } = useColorMode();
+
+    useEffect(() => {
+        const loadLatestNews = async () => {
+            try {
+                const { data } = await supabase
+                    .from('news')
+                    .select('id, title, summary, created_at')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+                if (data) {
+                    setLatestNews(data);
+                    const lastSeen = localStorage.getItem('mobile_app_last_seen_news');
+                    if (!lastSeen && data.length > 0) {
+                        setUnreadCount(data.length);
+                    } else if (lastSeen) {
+                        const unseen = data.filter((n: any) => new Date(n.created_at) > new Date(lastSeen)).length;
+                        setUnreadCount(unseen);
+                    }
+                }
+            } catch {}
+        };
+        loadLatestNews();
+    }, []);
 
     const showServiciosTab = false; // TODO: Cambiar a true cuando esté lista la base de datos de deudas de servicios
 
@@ -212,6 +239,24 @@ export default function MobileBeneficiosApp() {
                         </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Tooltip title="Novedades y Comunicados">
+                            <IconButton
+                                onClick={() => {
+                                    setNewsOpen(true);
+                                    setUnreadCount(0);
+                                    localStorage.setItem('mobile_app_last_seen_news', new Date().toISOString());
+                                }}
+                                color="primary"
+                                sx={{
+                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                    '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) }
+                                }}
+                            >
+                                <Badge badgeContent={unreadCount} color="error">
+                                    <NotificationsIcon />
+                                </Badge>
+                            </IconButton>
+                        </Tooltip>
                         <Tooltip title={theme.palette.mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
                             <IconButton
                                 onClick={toggleColorMode}
@@ -274,6 +319,61 @@ export default function MobileBeneficiosApp() {
                     </BottomNavigation>
                 </Box>
             </Paper>
+
+            <Dialog open={newsOpen} onClose={() => setNewsOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ fontWeight: 800, color: 'primary.main' }}>
+                    Últimas Novedades
+                </DialogTitle>
+                <DialogContent dividers>
+                    {latestNews.length === 0 ? (
+                        <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                            No hay comunicados recientes.
+                        </Typography>
+                    ) : (
+                        <List disablePadding>
+                            {latestNews.map((item, idx) => (
+                                <React.Fragment key={item.id}>
+                                    <ListItem
+                                        alignItems="flex-start"
+                                         sx={{ px: 0, cursor: 'pointer' }}
+                                        onClick={() => {
+                                            setNewsOpen(false);
+                                            window.location.hash = `#/prensa/${item.id}`;
+                                        }}
+                                    >
+                                        <ListItemText
+                                            primary={
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                                                    {item.title}
+                                                </Typography>
+                                            }
+                                            secondary={
+                                                <>
+                                                    <Typography variant="caption" color="primary.main" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
+                                                        {new Date(item.created_at).toLocaleDateString('es-AR')}
+                                                    </Typography>
+                                                    <Typography variant="body2" color="text.secondary" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                        {item.summary}
+                                                    </Typography>
+                                                </>
+                                            }
+                                        />
+                                    </ListItem>
+                                    {idx < latestNews.length - 1 && <Divider />}
+                                </React.Fragment>
+                            ))}
+                        </List>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => { setNewsOpen(false); window.location.hash = '#/prensa'; }}>
+                        Ver toda la Prensa
+                    </Button>
+                    <Button variant="contained" onClick={() => setNewsOpen(false)}>
+                        Cerrar
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 }
