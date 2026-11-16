@@ -18,6 +18,7 @@ import {
     Alert,
     CircularProgress,
     Divider,
+    Chip,
     alpha,
     useTheme,
 } from '@mui/material';
@@ -28,6 +29,7 @@ import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import HouseSidingIcon from '@mui/icons-material/HouseSiding';
+import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
 import { supabase } from '../../supabaseClient';
 import { AffiliateData } from '../../types/mobile';
 import { formatDateDisplay } from '../../utils/dateFormatter';
@@ -76,6 +78,7 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
     const [error, setError] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [guests, setGuests] = useState<Guest[]>([]);
+    const [savedFamily, setSavedFamily] = useState<Guest[]>([]);
     const [newGuest, setNewGuest] = useState<Guest>({
         nombre: '',
         apellido: '',
@@ -104,6 +107,22 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
         }));
     }, [subsidizedType]);
 
+    const calculateAge = (birthDate?: string | null): number | null => {
+        if (!birthDate) return null;
+        const today = new Date();
+        const parts = birthDate.split('T')[0].split('-');
+        const birth = parts.length === 3
+            ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+            : new Date(birthDate);
+        if (isNaN(birth.getTime())) return null;
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        return age >= 0 ? age : null;
+    };
+
     React.useEffect(() => {
         if (open) {
             setFormData(prev => ({
@@ -116,8 +135,55 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
             setFile(null);
             setError('');
             setSuccess(false);
+
+            const loadFamilyMembers = async () => {
+                if (!affiliateData?.legajo) return;
+                const list: Guest[] = [];
+                if (affiliateData.conyuge_nombre) {
+                    const parts = affiliateData.conyuge_nombre.trim().split(' ');
+                    list.push({
+                        nombre: parts[0] || affiliateData.conyuge_nombre,
+                        apellido: parts.slice(1).join(' ') || '-',
+                        parentesco: 'Cónyuge',
+                        edad: 0,
+                        dni: affiliateData.conyuge_dni || '',
+                    });
+                }
+                try {
+                    const { data: affData } = await supabase
+                        .from('affiliates')
+                        .select('id')
+                        .eq('legajo', affiliateData.legajo)
+                        .eq('branch', 'noroeste')
+                        .limit(1);
+
+                    if (affData && affData.length > 0) {
+                        const { data: famData } = await supabase
+                            .from('affiliate_family_members')
+                            .select('nombre, apellido, dni, fecha_nacimiento, edad')
+                            .eq('affiliate_id', affData[0].id)
+                            .order('nombre', { ascending: true });
+
+                        if (famData) {
+                            famData.forEach((m: any) => {
+                                list.push({
+                                    nombre: m.nombre || '',
+                                    apellido: m.apellido || '',
+                                    parentesco: 'Hijo/a',
+                                    edad: calculateAge(m.fecha_nacimiento) ?? m.edad ?? 0,
+                                    dni: m.dni || '',
+                                });
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error loading family for TurismoForm:', e);
+                }
+                setSavedFamily(list);
+            };
+            loadFamilyMembers();
         }
-    }, [open]);
+    }, [open, affiliateData]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
@@ -425,6 +491,51 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
                             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                                 Invitados
                             </Typography>
+
+                            {savedFamily.length > 0 && (
+                                <Paper
+                                    elevation={0}
+                                    sx={{
+                                        p: 1.5,
+                                        borderRadius: 2,
+                                        border: '1px dashed',
+                                        borderColor: 'primary.main',
+                                        bgcolor: alpha(theme.palette.primary.main, 0.04),
+                                    }}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                            <FamilyRestroomIcon color="primary" fontSize="small" />
+                                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main' }}>
+                                                Seleccionar de mi Grupo Familiar (1 toque):
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                        {savedFamily.map((fam, idx) => {
+                                            const alreadyAdded = guests.some(
+                                                g => (fam.dni && g.dni === fam.dni) || (g.nombre === fam.nombre && g.apellido === fam.apellido)
+                                            );
+                                            return (
+                                                <Chip
+                                                    key={idx}
+                                                    label={`${fam.nombre} (${fam.parentesco})`}
+                                                    size="small"
+                                                    color={alreadyAdded ? 'success' : 'primary'}
+                                                    variant={alreadyAdded ? 'filled' : 'outlined'}
+                                                    disabled={alreadyAdded}
+                                                    onClick={() => {
+                                                        if (!alreadyAdded) {
+                                                            setGuests(prev => [...prev, fam]);
+                                                        }
+                                                    }}
+                                                    sx={{ fontWeight: 700 }}
+                                                />
+                                            );
+                                        })}
+                                    </Box>
+                                </Paper>
+                            )}
 
                             <Paper sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
                                 <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>

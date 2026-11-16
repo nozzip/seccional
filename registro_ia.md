@@ -84,6 +84,127 @@
 ### Arquitecturas Aprobadas (Actualización):
 - **Detalle Integral de Solicitudes de Reserva:** Visualización completa de metadatos (huéspedes, notas y adjuntos) en el modal de gestión administrativa.
 
+## [ÉXITO] - Bloqueo Global Efectivo de Respuestas Automáticas en el Bot (`is_bot_active = false`)
+**Fecha:** 2026-11-13
+**Modo:** Mejorar
+**Descripción:** Se corrigió la intercepción del interruptor global `is_bot_active` en `bot/src/app.ts` y `bot/src/services/botConfigService.ts` para garantizar que, cuando el bot está deshabilitado desde el Panel de Administración (o Supabase), no se dispare ninguna respuesta automática ante mensajes entrantes (ni bienvenida, ni flujos capturados ni palabras clave), manteniendo operativo el envío saliente controlado por `/v1/messages`.
+
+## [ÉXITO] - Endpoint HTTP Local `/v1/messages` en Bot de WhatsApp para Envíos Controlados
+**Fecha:** 2026-11-13
+**Modo:** Desarrollar
+**Descripción:** Se incorporó el endpoint local `POST /v1/messages` en `bot/src/app.ts` utilizando `bot.handleCtx` para permitir el envío controlado de mensajes salientes directamente desde la sesión activa de Baileys sin conflictos de sesión múltiple.
+1. **Normalización automática:** Formatea números argentinos de 10 dígitos agregando el prefijo `549`.
+2. **Validación:** Compilación TypeScript (`npx tsc --noEmit`) sin errores y prueba de envío real exitosa (`Status: 200`).
+
+## [ÉXITO] - Corrección de Imagen Expirada (403 fbcdn) y Restricción Estricta de Edición solo para Administradores
+**Fecha:** 2026-11-13
+**Modo:** Mejorar
+**Descripción:** Se resolvió el error `403 Forbidden` de consola provocado por una URL expirada de Facebook CDN (`306089941_752709825990743_4199141370397311541_n.png` en el convenio ID 96) y se reforzó que todas las acciones de edición estén restringidas exclusivamente al Administrador:
+1. **Saneamiento de Imágenes Expiradas (`GridBeneficios.tsx` y Supabase `benefits`):**
+   - Función `getSafeBenefitImg()` que intercepta URLs expiradas de `fbcdn.net` o vacías y asigna como respaldo el logo institucional (`seccionalLogo.png`), eliminando las peticiones fallidas `403`.
+   - Actualización del registro ID 96 (`Kobakk Coffee & break`) en Supabase `benefits`.
+2. **Restricción Estricta de Edición para Administradores (`GridBeneficios.tsx`, `PerfilView.tsx`, `AffiliateDetailsModal.tsx`):**
+   - Uso exclusivo de `isUserAdmin()` para habilitar los botones de edición en `GridBeneficios.tsx` y en los familiares cargados de `PerfilView.tsx`.
+   - Incorporación del botón de edición (`EditIcon`) en la tabla de Grupo Familiar dentro del panel de administración (`AffiliateDetailsModal.tsx`) con registro en auditoría (`EDITAR_FAMILIAR`).
+
+## [ÉXITO] - Mejoras Integrales para el Afiliado (Perfil, Solicitudes, Carnet Offline y Buscador de Convenios)
+**Fecha:** 2026-11-13
+**Modo:** Mejorar / Desarrollar
+**Descripción:** Se implementaron los 4 pilares de mejoras de experiencia para el afiliado en el portal Web y la App Móvil (PWA):
+1. **Edición de Grupo Familiar e Indicador de Legajo Digital (`PerfilView.tsx`):**
+   - Incorporación de barra de progreso **"Estado de tu Legajo Digital"** con cálculo en vivo del porcentaje completado y detalle de datos pendientes.
+   - Botón de edición (`EditIcon`) para modificar cónyuge e hijos ya registrados sin necesidad de eliminarlos y volverlos a crear.
+2. **Seguimiento de Estado de Trámites y Pre-carga Familiar en Turismo (`SolicitudesView.tsx`, `PerfilView.tsx`, `TurismoForm.tsx`):**
+   - Visualización de chips de estado (`Pendiente`, `En Revisión`, `Aprobado`, `Observado / Rechazado`) y bloque de respuesta de administración en el historial de solicitudes.
+   - Selector rápido de 1 toque **"Seleccionar de mi Grupo Familiar"** dentro de `TurismoForm.tsx` para sumar al cónyuge e hijos como acompañantes automáticamente.
+3. **Carnet Digital Offline y Compartir Credencial (`CarnetView.tsx`):**
+   - Persistencia en caché local (`localStorage`) del código QR y del listado de familiares a cargo para garantizar la apertura inmediata del carnet aun sin señal de internet.
+   - Incorporación del botón **"Compartir Carnet"** con soporte nativo `navigator.share` y fallback directo a WhatsApp.
+4. **Convenios Inteligentes (Favoritos, Provincia del Afiliado y Google Maps) y Campana de Novedades (`GridBeneficios.tsx`, `MobileBeneficiosApp.tsx`):**
+   - Sistema de **Favoritos (`★ Favoritos`)** persistido localmente con botón de corazón en cada tarjeta y modal, ordenando los favoritos en primer lugar.
+   - Detección automática de la provincia del afiliado logueado con chip de acceso rápido (*"Ver convenios de tu provincia"*).
+   - Botón directo **"Cómo llegar"** conectado a Google Maps en los convenios con dirección física.
+   - Incorporación de campana de **Novedades y Comunicados** con contador de no leídos en la barra superior de la App Móvil (`MobileBeneficiosApp.tsx`).
+
+### Arquitecturas Aprobadas (Actualización):
+- **Carnet Resiliente Offline:** Caché local por legajo para QR y grupo familiar en `CarnetView.tsx`.
+- **Favoritos y Geolocalización de Convenios:** Persistencia local de convenios favoritos (`affiliate_favorite_benefits`) y resolución de provincia del titular en `GridBeneficios.tsx`.
+
+## [ÉXITO] - Fecha de Nacimiento y Cálculo Automático de Edad en Grupo Familiar
+**Fecha:** 2026-11-13
+**Modo:** Mejorar
+**Descripción:** Se actualizó la carga y visualización del grupo familiar para registrar la fecha de nacimiento de los hijos y calcular su edad de manera dinámica y automática:
+1. **Carga desde el Perfil del Afiliado (`PerfilView.tsx`):**
+   - Al agregar un hijo/a desde el portal del afiliado, ahora se solicita **Fecha de Nacimiento** (Día / Mes / Año) con previsualización en vivo de la edad calculada (`Chip` con `X años`), guardando tanto `fecha_nacimiento` como `edad` calculada en `affiliate_family_members` y `workflow_requests`.
+   - En el listado del grupo familiar del perfil se muestra la fecha de nacimiento (`Nac: DD/MM/AAAA`) y la edad calculada dinámicamente.
+2. **Prioridad de Cálculo Dinámico en Panel de Administración (`AffiliateDetailsModal.tsx` y `AfiliadosManager.tsx`):**
+   - Se prioriza `calculateAge(member.fecha_nacimiento) ?? member.edad` en la ficha del afiliado, tabla general de familiares, filtros de edad, ordenamiento y exportación a Excel, manteniendo `member.edad` únicamente como respaldo para registros históricos sin fecha de nacimiento.
+   - Se normalizó el parseo de fechas `YYYY-MM-DD` en `calculateAge` para evitar desfases de huso horario (UTC-3).
+
+### Arquitecturas Aprobadas (Actualización):
+- **Edad Dinámica en Grupo Familiar:** Prioridad de cálculo en tiempo real a partir de `fecha_nacimiento` frente a la fecha actual, con fallback a `edad` estática para registros heredados.
+
+## [ÉXITO] - Sincronización y Desglose Completo de Totales de Afiliados en Resumen General Noroeste
+**Fecha:** 2026-10-02
+**Modo:** Mejorar
+**Descripción:** Se unificó el cálculo y la presentación visual de métricas de afiliados entre `AdminOverviewNoroeste.tsx` ("Resumen") y `AfiliadosManager.tsx` ("Afiliados"):
+1. **Desglose Exacto 1-a-1 de Totales:** En lugar de un único valor global no categorizado, el panel de "Resumen General Noroeste" ahora presenta las tarjetas correspondientes a:
+   - **Afiliados Activos:** 316 (Titulares activos en AEFIP).
+   - **UPS / Doble Afiliación:** 183 (Afiliados vinculados a UPS).
+   - **Jubilados Aportantes:** 139 (Jubilados que aportan a la seccional).
+   - **Desafiliados:** 31 (Bajas registradas con fecha histórica).
+   - **Total Hijos:** 295 (Familiares a cargo registrados).
+   - **Padrón Total:** 862 (Total histórico de titulares registrados en base de datos).
+2. **Coherencia Absoluta de Datos:** Se replicó exactamente el mismo algoritmo de filtrado por estados y condiciones utilizado en el gestor de afiliados, asegurando que ambos paneles muestren idénticos números en tiempo real.
+3. **Diseño Visual Armónico:** Se adaptó el componente `StatCard` con resolución de colores por tema (`primary.main`, `warning.main`, `secondary.main`, `error.main`, `info.main`, `text.primary`), disposición en subgrilla de 2 columnas balanceada con las secciones financieras de Caja Central y Banco, y soporte reactivo a cambios en Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Métricas de Padrón Unificadas:** Reglas de categorización de afiliados estandarizadas entre el Dashboard General de la Seccional (`AdminOverviewNoroeste`) y el Gestor Operativo (`AfiliadosManager`).
+
+
+## [ÉXITO] - Ordenamiento Interactivo Multicolumna con Botones en Tablas de Afiliados y Familiares
+**Fecha:** 2026-10-02
+**Modo:** Mejorar
+**Descripción:** Se incorporaron botones interactivos de ordenación en las cabeceras de columnas del gestor de afiliados (`AfiliadosManager.tsx`):
+1. **Botones de Ordenamiento por Columna:** Cada columna de datos (CUIL, Legajo, Apellido, Nombre, Provincia, Estado y Sexo en Titulares; Apellido, Nombre, DNI, Edad, Titular y Provincia en Familiares) cuenta ahora con su botón dedicado de ordenamiento junto al título de la columna.
+2. **Alternancia Bidireccional e Indicadores Visuales:** Al presionar el botón o la cabecera, se alterna entre orden ascendente (A-Z / 0-9) y descendente (Z-A / 9-0). Cuenta con estados visuales con `ArrowUpwardIcon` y `ArrowDownwardIcon` destacados en color primario con fondo translúcido, e icono neutral `SwapVertIcon` para columnas no activas, acompañados de tooltips descriptivos.
+3. **Lógica de Comparación Robusta:** Algoritmo de comparación adaptativo por tipo de dato: ordenamiento numérico natural para CUIL, Legajo y DNI, orden alfabético en español (con `localeCompare`) para Apellidos, Nombres, Provincias y Sexo, y orden categórico para Estado.
+4. **Sincronización Total con Paginación y Exportación:** El ordenamiento se aplica sobre el universo filtrado previo a la paginación, permitiendo que la navegación entre páginas y la descarga a Excel respeten fielmente el orden elegido por el usuario.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Ordenamiento Multicolumna:** Lógica de clasificación desacoplada por campo y sentido (`sortField`, `sortDirection`) con UI de cabecera sincronizada con paginación y exportación de datos.
+
+
+## [ÉXITO] - Selector Dinámico de Estado y Filtro Específico por Fecha de Desafiliación
+**Fecha:** 2026-10-02
+**Modo:** Mejorar
+**Descripción:** Se enriqueció la barra de Filtros Avanzados en `AfiliadosManager.tsx` agregando:
+1. **Selector Desplegable de Estado / Condición:** Ubicado en la grilla principal de filtros junto a Provincia y Sexo, permitiendo alternar de forma inmediata entre *"Todos los Estados"*, *"Solo Activos"*, *"Solo Desafiliados (Bajas)"*, *"Solo UPS"* y *"Solo Jubilados"*.
+2. **Sincronización Bidireccional Total:** El selector se sincroniza en tiempo real con las 4 tarjetas `InfoCard` superiores y las casillas de verificación de roles.
+3. **Filtro Específico por Fecha de Baja:** Al seleccionar "Desafiliados", se despliega automáticamente un selector contextual con las fechas exactas de las importaciones en las que ocurrieron las bajas y la cantidad de afiliados correspondientes a cada fecha, permitiendo auditar importaciones específicas.
+4. **Limpieza Unificada:** El botón "Limpiar filtros" reinicia todos los selectores y casillas a su estado inicial.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Filtrado Avanzado de Afiliados:** Doble control de filtrado (Checkbox + Selector Dropdown de Estado) y drill-down temporal por fecha de importación para desafiliados.
+
+## [ÉXITO] - Prevención de Duplicados en Importación de Activos y Registro Histórico de Desafiliaciones con Fecha
+**Fecha:** 2026-10-02
+**Modo:** Mejorar
+**Descripción:** Se revisó y mejoró de forma integral el proceso de carga/importación de afiliados activos desde planillas Excel (`handleImportExcel`), implementando:
+1. **Detección y No Duplicación:** Verificación exhaustiva de registros ya existentes en base de datos mediante CUIL normalizado, Legajo, DNI o Nombre Completo. Si el afiliado ya existe en la base de datos, no se inserta como duplicado; se reactiva en caso de haber estado dado de baja y se actualizan sus datos.
+2. **Condición de Desafiliación con Registro de Fecha:** Si un afiliado activo en el padrón de la Seccional no figura en la lista importada, se le asigna la condición de "Desafiliado" (`desafiliado: true`, `is_aefip: false`) y se almacena la fecha exacta de la importación en la que dejó de figurar (`fecha_desafiliacion`). Se preserva la fecha original si el afiliado ya venía desafiliado en importaciones anteriores.
+3. **Métricas y Filtros en Panel de Administración:**
+   - Incorporación de la 4ª tarjeta `InfoCard` dedicada a "Desafiliados" con contador dinámico y color `error.main`.
+   - Filtro avanzado por casilla de verificación "Desafiliados" para aislar rápidamente el historial de bajas.
+   - Columna `ESTADO` en la tabla de titulares con chips visuales distintivos (`ACTIVO`, `DESAFILIADO` con subtítulo `Baja: DD/MM/AAAA`, `UPS`, `JUBILADO`).
+   - Inclusión del estado y fecha de desafiliación en la exportación a Excel y en el modal de ficha del afiliado con guardado defensivo contra Supabase.
+4. **Migración SQL y Resiliencia Defensiva:**
+   - Script `sql/add_desafiliados_to_affiliates.sql` para incorporar las columnas `desafiliado` e `fecha_desafiliacion` en Supabase.
+   - Manejo defensivo en frontend con auto-recuperación y avisos si las columnas aún no han sido añadidas en Supabase.
+
+### Arquitecturas Aprobadas (Actualización):
+- **Gestión y Registro de Desafiliados:** Normalización de identificadores en importación Excel, condición `desafiliado`, persistencia histórica en `fecha_desafiliacion`, métrica en `InfoCard` y fallback defensivo ante esquemas de base de datos.
+
 ## [ÉXITO] - Navegación Guiada por Provincia y Rubro, Beneficios Gremiales y Asesor Humano Directo
 **Fecha:** 2026-08-20
 **Modo:** Desarrollar

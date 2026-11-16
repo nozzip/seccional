@@ -16,6 +16,9 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import PersonOffIcon from "@mui/icons-material/PersonOff";
+import GroupsIcon from "@mui/icons-material/Groups";
 import { supabase } from "../../supabaseClient";
 
 const StatCard = ({
@@ -27,38 +30,50 @@ const StatCard = ({
 }: any) => {
   const theme = useTheme();
 
+  const getResolvedColor = (colorStr: string) => {
+    if (colorStr.includes(".")) {
+      const [palette, shade] = colorStr.split(".");
+      return (theme.palette as any)[palette]?.[shade] || theme.palette.primary.main;
+    }
+    return colorStr;
+  };
+
+  const resolvedColor = getResolvedColor(color);
+
   return (
     <Paper
       elevation={0}
       sx={{
-        p: 3,
+        p: 2.2,
         borderRadius: 4,
         border: "1px solid",
-        borderColor: alpha(theme.palette.divider, 0.5),
+        borderColor: alpha(theme.palette.divider, 0.4),
         bgcolor: "background.paper",
         display: "flex",
         alignItems: "center",
-        gap: 3,
+        gap: 2,
+        height: "100%",
         transition: "all 0.3s ease",
         "&:hover": {
           transform: "translateY(-4px)",
-          boxShadow: "0 12px 24px rgba(0,0,0,0.06)",
-          borderColor: alpha(theme.palette.primary.main, 0.3),
+          boxShadow: `0 12px 24px ${alpha(resolvedColor, 0.08)}`,
+          borderColor: alpha(resolvedColor, 0.35),
         },
       }}
     >
       <Avatar
         sx={{
-          bgcolor: alpha(theme.palette.primary.main, 0.08),
+          bgcolor: alpha(resolvedColor, 0.1),
           color: color,
-          width: 64,
-          height: 64,
-          borderRadius: 3,
+          width: 50,
+          height: 50,
+          borderRadius: 2.5,
+          flexShrink: 0,
         }}
       >
-        <Icon sx={{ fontSize: 32 }} />
+        <Icon sx={{ fontSize: 26 }} />
       </Avatar>
-      <Box>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
         <Typography
           variant="body2"
           color="text.secondary"
@@ -66,15 +81,18 @@ const StatCard = ({
             fontWeight: 700,
             letterSpacing: 0.5,
             textTransform: "uppercase",
-            fontSize: "0.7rem",
-            mb: 0.5,
+            fontSize: "0.68rem",
+            mb: 0.25,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {title}
         </Typography>
         <Typography
-          variant="h4"
-          sx={{ fontWeight: 900, color: "text.primary" }}
+          variant="h5"
+          sx={{ fontWeight: 900, color: "text.primary", lineHeight: 1.1 }}
         >
           {value}
         </Typography>
@@ -82,7 +100,7 @@ const StatCard = ({
           <Typography
             variant="caption"
             color="text.secondary"
-            sx={{ display: "block", mt: 0.5, fontWeight: 600 }}
+            sx={{ display: "block", mt: 0.25, fontWeight: 600, fontSize: "0.65rem" }}
           >
             {subtitle}
           </Typography>
@@ -96,7 +114,12 @@ export default function AdminOverviewNoroeste() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalAffiliates: 0,
+    totalActivos: 0,
+    totalUPS: 0,
+    totalJubiladosAP: 0,
+    totalDesafiliados: 0,
     totalFamily: 0,
+    totalPadron: 0,
     cajaCentralIncome: 0,
     cajaCentralExpense: 0,
     bancoIncome: 0,
@@ -106,15 +129,32 @@ export default function AdminOverviewNoroeste() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Fetch Affiliates Count
-      const { count: affCount } = await supabase
+      // 1. Fetch Affiliates for Noroeste with all relevant status columns
+      const { data: affs, error: affErr } = await supabase
         .from("affiliates")
-        .select("*", { count: "exact", head: true });
+        .select("id, branch, is_aefip, is_ups, es_jubilado, is_aportante, desafiliado")
+        .eq("branch", "noroeste");
+
+      if (affErr) throw affErr;
 
       // 2. Fetch Family Members Count
       const { count: famCount } = await supabase
         .from("affiliate_family_members")
         .select("*", { count: "exact", head: true });
+
+      // Breakdown identical to AfiliadosManager.tsx
+      const affList = affs || [];
+      const totalActivos = affList.filter(
+        (a) => a.is_aefip && !a.is_ups && !a.es_jubilado && !a.desafiliado
+      ).length;
+      const totalUPS = affList.filter((a) => a.is_ups).length;
+      const totalJubiladosAP = affList.filter(
+        (a) => a.es_jubilado && a.is_aportante
+      ).length;
+      const totalDesafiliados = affList.filter(
+        (a) => a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado)
+      ).length;
+      const totalPadron = affList.length;
 
       // 3. Fetch Transactions for Noroeste
       const { data: txs } = await supabase
@@ -144,8 +184,13 @@ export default function AdminOverviewNoroeste() {
       }
 
       setStats({
-        totalAffiliates: affCount || 0,
+        totalAffiliates: totalActivos,
+        totalActivos,
+        totalUPS,
+        totalJubiladosAP,
+        totalDesafiliados,
         totalFamily: famCount || 0,
+        totalPadron,
         cajaCentralIncome: cajaInc,
         cajaCentralExpense: cajaExp,
         bancoIncome: bancoInc,
@@ -205,25 +250,67 @@ export default function AdminOverviewNoroeste() {
 
       <Grid container spacing={4}>
         {/* Lado Izquierdo: Estadísticas de Personas */}
-        <Grid size={{ xs: 12, lg: 5 }}>
-          <Stack spacing={3}>
-            <StatCard
-              title="Total Afiliados"
-              value={stats.totalAffiliates.toString()}
-              icon={PeopleIcon}
-              color="primary.main"
-            />
-            <StatCard
-              title="Total Hijos"
-              value={stats.totalFamily.toString()}
-              icon={ChildCareIcon}
-              color="secondary.main"
-            />
-          </Stack>
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <StatCard
+                title="Afiliados Activos"
+                value={stats.totalActivos.toString()}
+                icon={PeopleIcon}
+                color="primary.main"
+                subtitle="Titulares activos"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <StatCard
+                title="UPS / Doble Afil."
+                value={stats.totalUPS.toString()}
+                icon={AssignmentIndIcon}
+                color="warning.main"
+                subtitle="Doble afiliación"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <StatCard
+                title="Jubilados Aport."
+                value={stats.totalJubiladosAP.toString()}
+                icon={PeopleIcon}
+                color="secondary.main"
+                subtitle="Aportantes"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <StatCard
+                title="Desafiliados"
+                value={stats.totalDesafiliados.toString()}
+                icon={PersonOffIcon}
+                color="error.main"
+                subtitle="Bajas registradas"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <StatCard
+                title="Total Hijos"
+                value={stats.totalFamily.toString()}
+                icon={ChildCareIcon}
+                color="info.main"
+                subtitle="Familiares a cargo"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <StatCard
+                title="Padrón Total"
+                value={stats.totalPadron.toString()}
+                icon={GroupsIcon}
+                color="text.primary"
+                subtitle="Titulares registrados"
+              />
+            </Grid>
+          </Grid>
         </Grid>
 
         {/* Lado Derecho: Finanzas (Caja Central arriba, Banco abajo) */}
-        <Grid size={{ xs: 12, lg: 7 }}>
+        <Grid size={{ xs: 12, lg: 6 }}>
           <Stack spacing={3} alignItems="flex-end">
             {/* Financial Section - Caja Central */}
             <Paper

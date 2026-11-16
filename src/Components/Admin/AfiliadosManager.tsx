@@ -55,6 +55,11 @@ import MaleIcon from "@mui/icons-material/Male";
 import FemaleIcon from "@mui/icons-material/Female";
 import PersonIcon from "@mui/icons-material/Person";
 import WcIcon from "@mui/icons-material/Wc";
+import PersonOffIcon from "@mui/icons-material/PersonOff";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
+
 
 interface Affiliate {
   id: number;
@@ -76,6 +81,8 @@ interface Affiliate {
   is_aportante?: boolean;
   tipo_jubilado?: string;
   is_aefip?: boolean;
+  desafiliado?: boolean;
+  fecha_desafiliacion?: string | null;
 }
 
 export interface FamilyMemberDetail {
@@ -166,13 +173,17 @@ const MenuProps = {
 const calculateAge = (dateString: string | null): number | null => {
   if (!dateString) return null;
   const today = new Date();
-  const birthDate = new Date(dateString);
+  const parts = dateString.split("T")[0].split("-");
+  const birthDate = parts.length === 3
+    ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+    : new Date(dateString);
+  if (isNaN(birthDate.getTime())) return null;
   let age = today.getFullYear() - birthDate.getFullYear();
   const m = today.getMonth() - birthDate.getMonth();
   if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
-  return age;
+  return age >= 0 ? age : null;
 };
 
 export const cleanLocationName = (name: string | null | undefined): string => {
@@ -224,6 +235,24 @@ const fixLocation = (prov: string, city: string) => {
   return { provincia: cleaned, ciudad: cleaned };
 };
 
+export const formatDateDisplay = (dateStr?: string | null): string => {
+  if (!dateStr) return "";
+  try {
+    const cleanDate = String(dateStr).split("T")[0];
+    const parts = cleanDate.split(/[-/]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        return `${parts[2].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[0]}`;
+      } else if (parts[2].length === 4) {
+        return `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[2]}`;
+      }
+    }
+    return cleanDate;
+  } catch {
+    return String(dateStr || "");
+  }
+};
+
 export default function AfiliadosManager() {
   const theme = useTheme();
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
@@ -264,6 +293,98 @@ export default function AfiliadosManager() {
   const [filterActive, setFilterActive] = useState(false);
   const [filterUPS, setFilterUPS] = useState(false);
   const [filterJubiladosAP, setFilterJubiladosAP] = useState(false);
+  const [filterDesafiliados, setFilterDesafiliados] = useState(false);
+  const [selectedEstado, setSelectedEstado] = useState<string>("todos");
+  const [selectedDesafiliacionDate, setSelectedDesafiliacionDate] = useState<string>("todas");
+
+  // Sorting State
+  const [sortField, setSortField] = useState<string>("apellido");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [familySortField, setFamilySortField] = useState<string>("apellido");
+  const [familySortDirection, setFamilySortDirection] = useState<"asc" | "desc">("asc");
+
+  const handleRequestSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+    setPage(0);
+  };
+
+  const handleFamilyRequestSort = (field: string) => {
+    if (familySortField === field) {
+      setFamilySortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setFamilySortField(field);
+      setFamilySortDirection("asc");
+    }
+    setPage(0);
+  };
+
+  const affiliateColumns = [
+    { id: "cuil", label: "CUIL" },
+    { id: "legajo", label: "LEGAJO" },
+    { id: "apellido", label: "APELLIDO" },
+    { id: "nombre", label: "NOMBRE" },
+    { id: "provincia", label: "PROVINCIA" },
+    { id: "estado", label: "ESTADO" },
+    { id: "sexo", label: "SEXO" },
+  ];
+
+  const familyColumns = [
+    { id: "apellido", label: "HIJO/A APELLIDO" },
+    { id: "nombre", label: "HIJO/A NOMBRE" },
+    { id: "dni", label: "DNI" },
+    { id: "edad", label: "EDAD" },
+    { id: "titular", label: "TITULAR" },
+    { id: "provincia", label: "PROVINCIA" },
+  ];
+
+
+  const desafiliacionDates = useMemo(() => {
+    return Array.from(
+      new Set(
+        affiliates
+          .filter(a => a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado))
+          .map(a => a.fecha_desafiliacion)
+          .filter(Boolean)
+      )
+    ).sort().reverse() as string[];
+  }, [affiliates]);
+
+  const handleEstadoChange = (val: string) => {
+    setSelectedEstado(val);
+    setSelectedDesafiliacionDate("todas");
+    if (val === "activos") {
+      setFilterActive(true);
+      setFilterUPS(false);
+      setFilterJubiladosAP(false);
+      setFilterDesafiliados(false);
+    } else if (val === "desafiliados") {
+      setFilterDesafiliados(true);
+      setFilterActive(false);
+      setFilterUPS(false);
+      setFilterJubiladosAP(false);
+    } else if (val === "ups") {
+      setFilterUPS(true);
+      setFilterActive(false);
+      setFilterJubiladosAP(false);
+      setFilterDesafiliados(false);
+    } else if (val === "jubilados") {
+      setFilterJubiladosAP(true);
+      setFilterActive(false);
+      setFilterUPS(false);
+      setFilterDesafiliados(false);
+    } else {
+      setFilterActive(false);
+      setFilterUPS(false);
+      setFilterJubiladosAP(false);
+      setFilterDesafiliados(false);
+    }
+    setPage(0);
+  };
 
   // Debounce search input - Reduced to 150ms for snappier feel
   useEffect(() => {
@@ -303,7 +424,7 @@ export default function AfiliadosManager() {
           ciudad: cleanedProv,
           family_count: countMap[a.id] || 0,
           _searchStr:
-            `${a.nombre} ${a.apellido} ${a.cuil} ${a.legajo} ${a.dni}`.toLowerCase(),
+            `${a.nombre} ${a.apellido} ${a.cuil} ${a.legajo} ${a.dni} ${a.desafiliado ? "desafiliado baja" : "activo"} ${a.fecha_desafiliacion || ""}`.toLowerCase(),
         };
       });
 
@@ -367,82 +488,203 @@ export default function AfiliadosManager() {
           return;
         }
 
-        // Fresh fetch for matching
-        const { data: currentAffs } = await supabase.from("affiliates").select("*");
-        if (!currentAffs) throw new Error("No se pudo obtener la lista de afiliados.");
+        // Fresh fetch for matching against current database records
+        const { data: currentAffs, error: fetchErr } = await supabase.from("affiliates").select("*");
+        if (fetchErr || !currentAffs) throw new Error("No se pudo obtener la lista de afiliados.");
 
-        const updates = [];
-        const inserts = [];
+        const cleanDigits = (val: any) => String(val || "").replace(/\D/g, "");
+
+        const getRowVal = (row: any, possibleKeys: string[]) => {
+          for (const k of Object.keys(row)) {
+            const cleanK = k.trim().toLowerCase();
+            if (possibleKeys.some((p) => p.toLowerCase() === cleanK)) {
+              return row[k];
+            }
+          }
+          return undefined;
+        };
+
+        const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+        const todayFormatted = todayStr.split("-").reverse().join("/");
+
+        const updates: any[] = [];
+        const inserts: any[] = [];
+        const matchedIds = new Set<number>();
 
         for (const row of data as any[]) {
-          const nombre = String(row.NOMBRE || row.nombre || "");
-          const cuil = String(row.CUIL || row.cuil || "").trim();
-          const legajo = String(row.LEGAJO || row.legajo || "").trim();
-          const apellido = String(row.APELLIDO || row.apellido || "").trim();
-          const rawProv = String(row.PROVINCIA || row.provincia || "").trim();
-          const rawCity = String(row.CIUDAD || row.ciudad || "").trim();
+          let nombre = String(getRowVal(row, ["nombre", "nombres"]) || "").trim();
+          let apellido = String(getRowVal(row, ["apellido", "apellidos"]) || "").trim();
+
+          const fullNameRaw = String(getRowVal(row, ["apellido y nombre", "nombre y apellido", "afiliado", "titular"]) || "").trim();
+          if ((!apellido || !nombre) && fullNameRaw) {
+            const parsed = parseFullName(fullNameRaw);
+            apellido = parsed.apellido;
+            nombre = parsed.nombre;
+          }
+
+          const rawCuil = getRowVal(row, ["cuil", "c.u.i.l.", "c.u.i.l", "cuil titular", "nro cuil", "nro. cuil"]);
+          const cuil = String(rawCuil || "").trim();
+          const cleanCuil = cleanDigits(cuil);
+
+          const rawLegajo = getRowVal(row, ["legajo", "nro legajo", "nro. legajo", "leg"]);
+          const legajo = String(rawLegajo || "").trim();
+          const cleanLegajo = cleanDigits(legajo);
+
+          const rawDni = getRowVal(row, ["dni", "documento", "doc", "doc.", "doc nro", "doc. nro.", "nro documento"]);
+          const cleanDni = cleanDigits(rawDni);
+
+          const rawProv = String(getRowVal(row, ["provincia", "prov"]) || "").trim();
+          const rawCity = String(getRowVal(row, ["ciudad", "localidad", "agencia", "distrito"]) || "").trim();
           const { provincia, ciudad } = fixLocation(rawProv, rawCity);
-          const sexoExcel = row.SEXO || row.sexo;
+          const sexoExcel = getRowVal(row, ["sexo", "genero"]);
 
-          if (!cuil && !legajo && !apellido) continue;
+          if (!cleanCuil && !cleanLegajo && !cleanDni && !apellido && !nombre) continue;
 
-          // Match by CUIL or Legajo
-          let match = null;
-          if (cuil) match = currentAffs.find(a => a.cuil === cuil);
-          if (!match && legajo) match = currentAffs.find(a => a.legajo === legajo);
+          // Matching against database:
+          // 1. Match by clean CUIL
+          let match: any = null;
+          if (cleanCuil && cleanCuil.length >= 7) {
+            match = currentAffs.find((a: any) => cleanDigits(a.cuil) === cleanCuil);
+          }
 
-          const affData = {
-            cuil,
-            legajo,
-            apellido,
-            nombre,
-            provincia,
-            ciudad,
-            sexo: sexoExcel ? String(sexoExcel) : inferGender(nombre, cuil),
+          // 2. Match by clean Legajo
+          if (!match && cleanLegajo && cleanLegajo.length >= 3) {
+            match = currentAffs.find((a: any) => {
+              if (a.legajo?.trim().toLowerCase() === legajo.toLowerCase()) return true;
+              return cleanDigits(a.legajo) === cleanLegajo;
+            });
+          }
+
+          // 3. Match by DNI
+          if (!match && cleanDni && cleanDni.length >= 6) {
+            match = currentAffs.find((a: any) => {
+              const aDni = cleanDigits(a.dni);
+              if (aDni === cleanDni) return true;
+              const aCuil = cleanDigits(a.cuil);
+              return aCuil.length >= 10 && aCuil.substring(2, aCuil.length - 1) === cleanDni;
+            });
+          }
+
+          // 4. Fallback match by normalized Name
+          if (!match && apellido && nombre) {
+            const normRowName = normalizeName(`${apellido} ${nombre}`);
+            match = currentAffs.find(
+              (a: any) => normalizeName(`${a.apellido} ${a.nombre}`) === normRowName
+            );
+          }
+
+          const affData: any = {
+            cuil: cleanCuil || cuil || (match?.cuil || ""),
+            legajo: legajo || match?.legajo || "",
+            apellido: apellido || match?.apellido || "",
+            nombre: nombre || match?.nombre || "",
+            provincia: provincia || match?.provincia || "SALTA",
+            ciudad: ciudad || match?.ciudad || provincia || "SALTA",
+            sexo: sexoExcel ? String(sexoExcel) : (match?.sexo || inferGender(nombre, cuil)),
             is_aefip: true,
-            branch: "noroeste"
+            desafiliado: false,
+            fecha_desafiliacion: null, // Reactivación: se quita la desafiliación al volver a figurar en el padrón activo
+            branch: "noroeste",
           };
 
           if (match) {
+            // "si ya existe en la base de datos, no se agrega" -> NO se agrega a 'inserts', se actualiza / reactiva
+            matchedIds.add(match.id);
             updates.push({ id: match.id, ...affData });
           } else {
+            // Nuevo afiliado que no existía en el padrón
             inserts.push(affData);
           }
         }
 
-        // 1. Execute batch updates for existing records
+        // 1. Batch updates for existing records (no duplicados)
+        let hasColumnError = false;
         if (updates.length > 0) {
           for (const upd of updates) {
             const { id, ...rest } = upd;
-            await supabase.from("affiliates").update(rest).eq("id", id);
+            const { error: updErr } = await supabase.from("affiliates").update(rest).eq("id", id);
+            if (updErr && (updErr.message?.includes("desafiliado") || updErr.code === "42703")) {
+              hasColumnError = true;
+              const { desafiliado, fecha_desafiliacion, ...fallbackRest } = rest;
+              await supabase.from("affiliates").update(fallbackRest).eq("id", id);
+            } else if (updErr) {
+              console.error("Error updating affiliate id", id, updErr);
+            }
           }
         }
 
-        // 2. Execute batch inserts for new records
+        // 2. Batch inserts for new records
         if (inserts.length > 0) {
-          const { error } = await supabase.from("affiliates").insert(inserts);
-          if (error) throw error;
+          const { error: insErr } = await supabase.from("affiliates").insert(inserts);
+          if (insErr && (insErr.message?.includes("desafiliado") || insErr.code === "42703")) {
+            hasColumnError = true;
+            const fallbackInserts = inserts.map(({ desafiliado, fecha_desafiliacion, ...rest }: any) => rest);
+            const { error: insFallbackErr } = await supabase.from("affiliates").insert(fallbackInserts);
+            if (insFallbackErr) throw insFallbackErr;
+          } else if (insErr) {
+            throw insErr;
+          }
         }
 
-        // 3. Logic for disaffiliations:
-        // Find records currently is_aefip = true that were NOT in the Excel (not in 'updates')
-        const updatedIds = updates.map(u => u.id);
-        const disaffiliateIds = currentAffs
-          .filter(a => a.is_aefip && !updatedIds.includes(a.id))
-          .map(a => a.id);
+        // 3. Logic for disaffiliations ("si no esta en la lista, agregar un condicional mas que diga 'Desafiliado' y tenga los datos de que fecha se desafilió, es decir, en que importación ya no apareció más el mismo, para ir teniendo un registro de quienes se desafiliaron"):
+        const disaffiliatedCandidates = currentAffs.filter((a: any) => {
+          // Ignorar afiliados exclusivos de UPS o jubilados externos que no eran AEFIP
+          const isExternalOnly = (a.is_ups && !a.is_aefip) || (a.es_jubilado && !a.is_aefip);
+          if (isExternalOnly) return false;
 
-        if (disaffiliateIds.length > 0) {
-          await supabase
+          // No estuvo presente en la lista del archivo importado
+          return !matchedIds.has(a.id);
+        });
+
+        let newlyDisaffiliatedCount = 0;
+        let previouslyDisaffiliatedCount = 0;
+
+        for (const aff of disaffiliatedCandidates) {
+          const wasAlreadyDisaffiliated = aff.desafiliado === true && aff.fecha_desafiliacion;
+          if (wasAlreadyDisaffiliated) {
+            previouslyDisaffiliatedCount++;
+            // Ya tenía su fecha de desafiliación original registrada, conservamos el registro histórico
+            continue;
+          }
+
+          newlyDisaffiliatedCount++;
+          const disaffDate = aff.fecha_desafiliacion || todayStr;
+          const disaffPayload: any = {
+            is_aefip: false,
+            desafiliado: true,
+            fecha_desafiliacion: disaffDate,
+          };
+
+          const { error: disaffErr } = await supabase
             .from("affiliates")
-            .update({ is_aefip: false })
-            .in("id", disaffiliateIds);
+            .update(disaffPayload)
+            .eq("id", aff.id);
+
+          if (disaffErr && (disaffErr.message?.includes("desafiliado") || disaffErr.code === "42703")) {
+            hasColumnError = true;
+            await supabase.from("affiliates").update({ is_aefip: false }).eq("id", aff.id);
+          }
         }
 
-        alert(`Importación finalizada:\n- ${updates.length} Afiliados actualizados.\n- ${inserts.length} Nuevos afiliados agregados.\n- ${disaffiliateIds.length} Afiliados marcados como "Baja" (no estaban en la lista).`);
+        let alertMsg = `Importación de Activos finalizada:\n\n` +
+          `• ${updates.length} Afiliados existentes verificados (ya estaban en la base de datos, no se duplicaron).\n` +
+          `• ${inserts.length} Nuevos afiliados incorporados al padrón.\n` +
+          `• ${newlyDisaffiliatedCount} Afiliados no aparecieron en la lista y fueron marcados como "Desafiliado" (Fecha de baja: ${todayFormatted}).`;
+
+        if (previouslyDisaffiliatedCount > 0) {
+          alertMsg += `\n• ${previouslyDisaffiliatedCount} Afiliados continúan desafiliados de importaciones previas (conservando su fecha original).`;
+        }
+
+        if (hasColumnError) {
+          alertMsg += `\n\n⚠️ AVISO DE BASE DE DATOS:\n` +
+            `Para registrar permanentemente las columnas 'desafiliado' y 'fecha_desafiliacion' en Supabase, ejecuta el script: sql/add_desafiliados_to_affiliates.sql en el Editor SQL de tu proyecto Supabase.`;
+        }
+
+        alert(alertMsg);
 
         await logAction(
           "IMPORTAR_EXCEL",
-          `Importación de Titulares AEFIP: ${updates.length} actualizados, ${inserts.length} nuevos, ${disaffiliateIds.length} dados de baja`
+          `Importación de Titulares AEFIP: ${updates.length} verificados (no duplicados), ${inserts.length} nuevos, ${newlyDisaffiliatedCount} dados de baja/desafiliados el ${todayFormatted}`
         );
 
         setShowSuccess(true);
@@ -1015,29 +1257,31 @@ export default function AfiliadosManager() {
     }
   };
 
-  // Base list of affiliates that meet the current status toggles (Active, UPS, Jubilados)
+  // Base list of affiliates that meet the current status toggles (Active, UPS, Jubilados, Desafiliados)
   const baseAffiliates = useMemo(() => {
-    const hasAnyFilter = filterActive || filterUPS || filterJubiladosAP;
+    const hasAnyFilter = filterActive || filterUPS || filterJubiladosAP || filterDesafiliados || selectedEstado !== "todos";
     
     return affiliates.filter((a: any) => {
-      // Base validation: Only show Active AEFIP, UPS, or AP Retirees
-      const isActivo = a.is_aefip && !a.is_ups && !a.es_jubilado;
-      const isUps = a.is_ups;
-      const isJubiladoAp = a.es_jubilado && a.is_aportante;
-      const isJubiladoNoAp = a.es_jubilado && !a.is_aportante;
-      
-      const isValidMember = isActivo || isUps || isJubiladoAp || isJubiladoNoAp;
-      if (!isValidMember) return false;
+      const isDesafiliado = Boolean(a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado));
+      const isActivo = Boolean(a.is_aefip && !a.is_ups && !a.es_jubilado && !isDesafiliado);
+      const isUps = Boolean(a.is_ups);
+      const isJubiladoAp = Boolean(a.es_jubilado && a.is_aportante);
+      const isJubiladoNoAp = Boolean(a.es_jubilado && !a.is_aportante);
+
+      if (filterDesafiliados && selectedDesafiliacionDate !== "todas") {
+        if (a.fecha_desafiliacion !== selectedDesafiliacionDate) return false;
+      }
 
       if (!hasAnyFilter) return true;
 
       return (
         (filterActive && isActivo) ||
         (filterUPS && isUps) ||
-        (filterJubiladosAP && (isJubiladoAp || isJubiladoNoAp))
+        (filterJubiladosAP && (isJubiladoAp || isJubiladoNoAp)) ||
+        (filterDesafiliados && isDesafiliado)
       );
     });
-  }, [affiliates, filterActive, filterUPS, filterJubiladosAP]);
+  }, [affiliates, filterActive, filterUPS, filterJubiladosAP, filterDesafiliados, selectedEstado, selectedDesafiliacionDate]);
 
   // Derive filter options based on the base list
   const provinces = useMemo(
@@ -1149,10 +1393,11 @@ export default function AfiliadosManager() {
   };
 
   const stats = useMemo(() => {
-    const totalActivos = affiliates.filter(a => a.is_aefip && !a.is_ups && !a.es_jubilado).length;
+    const totalActivos = affiliates.filter(a => a.is_aefip && !a.is_ups && !a.es_jubilado && !a.desafiliado).length;
     const totalUPS = affiliates.filter(a => a.is_ups).length;
     const totalJubiladosAP = affiliates.filter(a => a.es_jubilado && a.is_aportante).length;
-    return { totalActivos, totalUPS, totalJubiladosAP };
+    const totalDesafiliados = affiliates.filter(a => a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado)).length;
+    return { totalActivos, totalUPS, totalJubiladosAP, totalDesafiliados };
   }, [affiliates]);
 
   const potentialMatches = useMemo(() => {
@@ -1207,9 +1452,9 @@ export default function AfiliadosManager() {
         selectedGenders.length === 0 ||
         selectedGenders.includes(f._inferredGender || "");
 
-      let ageToUse = f.edad;
+      let ageToUse = calculateAge(f.fecha_nacimiento);
       if (ageToUse === null || ageToUse === undefined) {
-        ageToUse = calculateAge(f.fecha_nacimiento);
+        ageToUse = f.edad;
       }
 
       const matchesAge =
@@ -1233,20 +1478,106 @@ export default function AfiliadosManager() {
     maxAge,
   ]);
 
+  // Sorted Data
+  const sortedAffiliates = useMemo(() => {
+    if (!sortField) return filteredAffiliates;
+    return [...filteredAffiliates].sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case "cuil": {
+          const numA = (a.cuil || "").replace(/\D/g, "");
+          const numB = (b.cuil || "").replace(/\D/g, "");
+          comparison = numA.localeCompare(numB, undefined, { numeric: true });
+          break;
+        }
+        case "legajo": {
+          const legA = (a.legajo || "").trim();
+          const legB = (b.legajo || "").trim();
+          comparison = legA.localeCompare(legB, undefined, { numeric: true });
+          break;
+        }
+        case "apellido":
+          comparison = (a.apellido || "").localeCompare(b.apellido || "", "es", { sensitivity: "base" });
+          break;
+        case "nombre":
+          comparison = (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
+          break;
+        case "provincia":
+          comparison = (a.provincia || "").localeCompare(b.provincia || "", "es", { sensitivity: "base" });
+          break;
+        case "estado": {
+          const getEstadoStr = (item: Affiliate) => {
+            if (item.desafiliado || (!item.is_aefip && !item.is_ups && !item.es_jubilado)) return "DESAFILIADO";
+            if (item.is_ups) return "UPS";
+            if (item.es_jubilado) return item.is_aportante ? "JUBILADO AP" : "JUBILADO NO AP";
+            return "ACTIVO";
+          };
+          comparison = getEstadoStr(a).localeCompare(getEstadoStr(b), "es");
+          break;
+        }
+        case "sexo":
+          comparison = (a.sexo || "").localeCompare(b.sexo || "", "es");
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [filteredAffiliates, sortField, sortDirection]);
+
+  const sortedFamilyMembers = useMemo(() => {
+    if (!familySortField) return filteredFamilyMembers;
+    return [...filteredFamilyMembers].sort((a, b) => {
+      let comparison = 0;
+      switch (familySortField) {
+        case "apellido":
+          comparison = (a.apellido || "").localeCompare(b.apellido || "", "es", { sensitivity: "base" });
+          break;
+        case "nombre":
+          comparison = (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
+          break;
+        case "dni": {
+          const numA = (a.dni || "").replace(/\D/g, "");
+          const numB = (b.dni || "").replace(/\D/g, "");
+          comparison = numA.localeCompare(numB, undefined, { numeric: true });
+          break;
+        }
+        case "edad": {
+          const ageA = calculateAge(a.fecha_nacimiento) ?? a.edad ?? 0;
+          const ageB = calculateAge(b.fecha_nacimiento) ?? b.edad ?? 0;
+          comparison = ageA - ageB;
+          break;
+        }
+        case "titular": {
+          const parentA = `${a.parent_apellido || ""} ${a.parent_nombre || ""}`.trim();
+          const parentB = `${b.parent_apellido || ""} ${b.parent_nombre || ""}`.trim();
+          comparison = parentA.localeCompare(parentB, "es", { sensitivity: "base" });
+          break;
+        }
+        case "provincia":
+          comparison = (a.parent_provincia || "").localeCompare(b.parent_provincia || "", "es", { sensitivity: "base" });
+          break;
+        default:
+          comparison = 0;
+      }
+      return familySortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [filteredFamilyMembers, familySortField, familySortDirection]);
+
   // Paginated Data
   const paginatedAffiliates = useMemo(() => {
-    return filteredAffiliates.slice(
+    return sortedAffiliates.slice(
       page * rowsPerPage,
       page * rowsPerPage + rowsPerPage,
     );
-  }, [filteredAffiliates, page, rowsPerPage]);
+  }, [sortedAffiliates, page, rowsPerPage]);
 
   const paginatedFamilyMembers = useMemo(() => {
-    return filteredFamilyMembers.slice(
+    return sortedFamilyMembers.slice(
       page * rowsPerPage,
       page * rowsPerPage + rowsPerPage,
     );
-  }, [filteredFamilyMembers, page, rowsPerPage]);
+  }, [sortedFamilyMembers, page, rowsPerPage]);
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -1272,25 +1603,40 @@ export default function AfiliadosManager() {
   const handleExportFiltrados = () => {
     if (activeTab === 0) {
       // Export Titulares
-      const exportData = filteredAffiliates.map((a) => ({
-        CUIL: a.cuil,
-        LEGAJO: a.legajo,
-        APELLIDO: a.apellido,
-        NOMBRE: a.nombre,
-        PROVINCIA: a.provincia,
-        SEXO: a.sexo,
-        CANT_HIJOS: a.family_count || 0,
-      }));
+      const exportData = sortedAffiliates.map((a) => {
+        const isDesaf = Boolean(a.desafiliado || (!a.is_aefip && !a.is_ups && !a.es_jubilado));
+        const estadoStr = isDesaf
+          ? "Desafiliado"
+          : a.is_ups
+          ? "UPS"
+          : a.es_jubilado
+          ? a.is_aportante
+            ? "Jubilado AP"
+            : "Jubilado No AP"
+          : "Activo";
+
+        return {
+          CUIL: a.cuil,
+          LEGAJO: a.legajo,
+          APELLIDO: a.apellido,
+          NOMBRE: a.nombre,
+          PROVINCIA: a.provincia,
+          ESTADO: estadoStr,
+          FECHA_DESAFILIACION: a.fecha_desafiliacion ? formatDateDisplay(a.fecha_desafiliacion) : "",
+          SEXO: a.sexo,
+          CANT_HIJOS: a.family_count || 0,
+        };
+      });
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Titulares Filtrados");
       XLSX.writeFile(wb, "Titulares_Filtrados.xlsx");
     } else {
       // Export Familiares
-      const exportData = filteredFamilyMembers.map((member) => {
-        let ageToUse = member.edad;
+      const exportData = sortedFamilyMembers.map((member) => {
+        let ageToUse = calculateAge(member.fecha_nacimiento);
         if (ageToUse === null || ageToUse === undefined) {
-          ageToUse = calculateAge(member.fecha_nacimiento);
+          ageToUse = member.edad;
         }
 
         return {
@@ -1317,20 +1663,23 @@ export default function AfiliadosManager() {
   return (
     <Box sx={{ p: { xs: 1, md: 2 }, pb: 4 }}>
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <InfoCard
             title="Afiliados Activos"
             value={stats.totalActivos}
             icon={PeopleIcon}
             selected={filterActive}
             onClick={() => {
-              setFilterActive(!filterActive);
+              const next = !filterActive;
+              setFilterActive(next);
               setFilterUPS(false);
               setFilterJubiladosAP(false);
+              setFilterDesafiliados(false);
+              setSelectedEstado(next ? "activos" : "todos");
             }}
           />
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <InfoCard
             title="UPS / Doble Afiliación"
             value={stats.totalUPS}
@@ -1338,13 +1687,16 @@ export default function AfiliadosManager() {
             color="warning.main"
             selected={filterUPS}
             onClick={() => {
-              setFilterUPS(!filterUPS);
+              const next = !filterUPS;
+              setFilterUPS(next);
               setFilterActive(false);
               setFilterJubiladosAP(false);
+              setFilterDesafiliados(false);
+              setSelectedEstado(next ? "ups" : "todos");
             }}
           />
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <InfoCard
             title="Jubilados Aportantes"
             value={stats.totalJubiladosAP}
@@ -1352,9 +1704,29 @@ export default function AfiliadosManager() {
             color="secondary.main"
             selected={filterJubiladosAP}
             onClick={() => {
-              setFilterJubiladosAP(!filterJubiladosAP);
+              const next = !filterJubiladosAP;
+              setFilterJubiladosAP(next);
               setFilterActive(false);
               setFilterUPS(false);
+              setFilterDesafiliados(false);
+              setSelectedEstado(next ? "jubilados" : "todos");
+            }}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <InfoCard
+            title="Desafiliados"
+            value={stats.totalDesafiliados}
+            icon={PersonOffIcon}
+            color="error.main"
+            selected={filterDesafiliados}
+            onClick={() => {
+              const next = !filterDesafiliados;
+              setFilterDesafiliados(next);
+              setFilterActive(false);
+              setFilterUPS(false);
+              setFilterJubiladosAP(false);
+              setSelectedEstado(next ? "desafiliados" : "todos");
             }}
           />
         </Grid>
@@ -1615,18 +1987,73 @@ export default function AfiliadosManager() {
             </Typography>
           </Stack>
 
-          <Stack direction="row" spacing={3} alignItems="center">
+          <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Checkbox checked={filterActive} onChange={(e) => setFilterActive(e.target.checked)} size="small" />
+              <Checkbox checked={filterActive} onChange={(e) => {
+                const checked = e.target.checked;
+                setFilterActive(checked);
+                if (checked) {
+                  setFilterDesafiliados(false);
+                  setFilterUPS(false);
+                  setFilterJubiladosAP(false);
+                  setSelectedEstado("activos");
+                } else {
+                  setSelectedEstado("todos");
+                }
+              }} size="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Afiliados Activos</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Checkbox checked={filterUPS} onChange={(e) => setFilterUPS(e.target.checked)} size="small" />
+              <Checkbox checked={filterUPS} onChange={(e) => {
+                const checked = e.target.checked;
+                setFilterUPS(checked);
+                if (checked) {
+                  setFilterActive(false);
+                  setFilterDesafiliados(false);
+                  setFilterJubiladosAP(false);
+                  setSelectedEstado("ups");
+                } else {
+                  setSelectedEstado("todos");
+                }
+              }} size="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Afiliados UPS</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Checkbox checked={filterJubiladosAP} onChange={(e) => setFilterJubiladosAP(e.target.checked)} size="small" />
+              <Checkbox checked={filterJubiladosAP} onChange={(e) => {
+                const checked = e.target.checked;
+                setFilterJubiladosAP(checked);
+                if (checked) {
+                  setFilterActive(false);
+                  setFilterUPS(false);
+                  setFilterDesafiliados(false);
+                  setSelectedEstado("jubilados");
+                } else {
+                  setSelectedEstado("todos");
+                }
+              }} size="small" />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Jubilados Aportantes</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Checkbox
+                checked={filterDesafiliados}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setFilterDesafiliados(checked);
+                  if (checked) {
+                    setFilterActive(false);
+                    setFilterUPS(false);
+                    setFilterJubiladosAP(false);
+                    setSelectedEstado("desafiliados");
+                  } else {
+                    setSelectedEstado("todos");
+                  }
+                }}
+                size="small"
+                color="error"
+              />
+              <Typography variant="body2" sx={{ fontWeight: 700, color: "error.main" }}>
+                Desafiliados
+              </Typography>
             </Box>
           </Stack>
         </Box>
@@ -1634,7 +2061,11 @@ export default function AfiliadosManager() {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr 1fr" },
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr 1fr",
+              md: filterDesafiliados && desafiliacionDates.length > 0 ? "2fr 1.2fr 1.2fr 1fr 1fr" : "2fr 1.2fr 1fr 1fr",
+            },
             gap: 2,
           }}
         >
@@ -1642,7 +2073,7 @@ export default function AfiliadosManager() {
             fullWidth
             size="small"
             variant="outlined"
-            placeholder="Buscar por nombre, apellido, CUIL o legajo..."
+            placeholder="Buscar por nombre, apellido, CUIL, legajo o fecha de baja..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             InputProps={{
@@ -1658,6 +2089,48 @@ export default function AfiliadosManager() {
               },
             }}
           />
+
+          {activeTab === 0 && (
+            <FormControl fullWidth size="small">
+              <InputLabel>Estado / Condición</InputLabel>
+              <Select
+                value={selectedEstado}
+                label="Estado / Condición"
+                onChange={(e) => handleEstadoChange(e.target.value)}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="todos">Todos los Estados</MenuItem>
+                <MenuItem value="activos">Solo Activos</MenuItem>
+                <MenuItem value="desafiliados" sx={{ color: "error.main", fontWeight: 700 }}>
+                  Solo Desafiliados (Bajas)
+                </MenuItem>
+                <MenuItem value="ups">Solo UPS</MenuItem>
+                <MenuItem value="jubilados">Solo Jubilados</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+
+          {activeTab === 0 && filterDesafiliados && desafiliacionDates.length > 0 && (
+            <FormControl fullWidth size="small">
+              <InputLabel>Fecha de Baja</InputLabel>
+              <Select
+                value={selectedDesafiliacionDate}
+                label="Fecha de Baja"
+                onChange={(e) => {
+                  setSelectedDesafiliacionDate(e.target.value);
+                  setPage(0);
+                }}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="todas">Todas las fechas de baja</MenuItem>
+                {desafiliacionDates.map((dateStr) => (
+                  <MenuItem key={dateStr} value={dateStr}>
+                    {formatDateDisplay(dateStr)} ({affiliates.filter(a => a.fecha_desafiliacion === dateStr).length} desafiliados)
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           {activeTab === 1 && (
             <>
@@ -1730,13 +2203,27 @@ export default function AfiliadosManager() {
         </Box>
 
         {(selectedProvinces.length > 0 ||
-          selectedGenders.length > 0) && (
+          selectedGenders.length > 0 ||
+          filterActive ||
+          filterUPS ||
+          filterJubiladosAP ||
+          filterDesafiliados ||
+          selectedEstado !== "todos" ||
+          selectedDesafiliacionDate !== "todas") && (
           <Button
             size="small"
             variant="text"
             onClick={() => {
               setSelectedProvinces([]);
               setSelectedGenders([]);
+              setFilterActive(false);
+              setFilterUPS(false);
+              setFilterJubiladosAP(false);
+              setFilterDesafiliados(false);
+              setSelectedEstado("todos");
+              setSelectedDesafiliacionDate("todas");
+              setSortField("apellido");
+              setSortDirection("asc");
               setPage(0);
             }}
             sx={{
@@ -1760,33 +2247,97 @@ export default function AfiliadosManager() {
             <>
               <TableHead>
                 <TableRow>
-                  {[
-                    "CUIL",
-                    "LEGAJO",
-                    "APELLIDO",
-                    "NOMBRE",
-                    "PROVINCIA",
-                    "SEXO",
-                  ].map((header) => (
-                    <TableCell
-                      key={header}
-                      sx={{
-                        fontWeight: 700,
-                        backgroundColor: "background.paper",
-                        borderBottom: "2px solid",
-                        borderColor: "divider",
-                      }}
-                    >
-                      {header}
-                    </TableCell>
-                  ))}
+                  {affiliateColumns.map((col) => {
+                    const isSorted = sortField === col.id;
+                    return (
+                      <TableCell
+                        key={col.id}
+                        onClick={() => handleRequestSort(col.id)}
+                        sx={{
+                          fontWeight: 700,
+                          backgroundColor: "background.paper",
+                          borderBottom: "2px solid",
+                          borderColor: "divider",
+                          cursor: "pointer",
+                          userSelect: "none",
+                          transition: "background-color 0.15s ease",
+                          "&:hover": {
+                            backgroundColor: (th) => alpha(th.palette.primary.main, 0.08),
+                          },
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+                          <Typography
+                            component="span"
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.8rem",
+                              letterSpacing: "0.02em",
+                              color: isSorted ? "primary.main" : "inherit",
+                              transition: "color 0.15s ease",
+                            }}
+                          >
+                            {col.label}
+                          </Typography>
+                          <Tooltip
+                            title={`Ordenar por ${col.label} (${
+                              isSorted
+                                ? sortDirection === "asc"
+                                  ? "Ascendente A-Z / 0-9 (Clic para Descendente)"
+                                  : "Descendente Z-A / 9-0 (Clic para Ascendente)"
+                                : "Clic para ordenar"
+                            })`}
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRequestSort(col.id);
+                              }}
+                              sx={{
+                                p: 0.35,
+                                borderRadius: 1.5,
+                                color: isSorted ? "primary.main" : "text.secondary",
+                                backgroundColor: isSorted
+                                  ? (th) => alpha(th.palette.primary.main, 0.14)
+                                  : (th) => alpha(th.palette.divider, 0.35),
+                                border: isSorted
+                                  ? (th) => `1px solid ${alpha(th.palette.primary.main, 0.45)}`
+                                  : (th) => `1px solid ${alpha(th.palette.divider, 0.8)}`,
+                                transition: "all 0.2s ease",
+                                "&:hover": {
+                                  backgroundColor: (th) => alpha(th.palette.primary.main, 0.25),
+                                  color: "primary.main",
+                                  borderColor: "primary.main",
+                                },
+                              }}
+                            >
+                              {isSorted ? (
+                                sortDirection === "asc" ? (
+                                  <ArrowUpwardIcon sx={{ fontSize: "0.95rem" }} />
+                                ) : (
+                                  <ArrowDownwardIcon sx={{ fontSize: "0.95rem" }} />
+                                )
+                              ) : (
+                                <SwapVertIcon sx={{ fontSize: "0.95rem" }} />
+                              )}
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    );
+                  })}
                   <TableCell
                     align="center"
                     sx={{
-                      fontWeight: 700,
+                      fontWeight: 800,
+                      fontSize: "0.8rem",
+                      letterSpacing: "0.02em",
                       backgroundColor: "background.paper",
                       borderBottom: "2px solid",
                       borderColor: "divider",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     ACCIONES
@@ -1796,7 +2347,7 @@ export default function AfiliadosManager() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
                       <CircularProgress />
                       <Typography variant="body2" sx={{ mt: 2 }}>
                         Cargando titulares...
@@ -1805,70 +2356,125 @@ export default function AfiliadosManager() {
                   </TableRow>
                 ) : filteredAffiliates.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
                       <Typography variant="body1" color="text.secondary">
                         No se encontraron titulares.
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedAffiliates.map((affiliate) => (
-                    <TableRow hover key={affiliate.id}>
-                      <TableCell>{affiliate.cuil}</TableCell>
-                      <TableCell>{affiliate.legajo}</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          {affiliate.apellido}
-                          {affiliate.is_ups && (
+                  paginatedAffiliates.map((affiliate) => {
+                    const isDesaf = Boolean(affiliate.desafiliado || (!affiliate.is_aefip && !affiliate.is_ups && !affiliate.es_jubilado));
+
+                    return (
+                      <TableRow hover key={affiliate.id}>
+                        <TableCell>{affiliate.cuil}</TableCell>
+                        <TableCell>{affiliate.legajo}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            {affiliate.apellido}
+                            {isDesaf && (
+                              <Chip 
+                                label="BAJA" 
+                                size="small" 
+                                color="error" 
+                                sx={{ height: 16, fontSize: "0.6rem", fontWeight: 800, borderRadius: 1 }} 
+                              />
+                            )}
+                            {affiliate.is_ups && (
+                              <Chip 
+                                label="UPS" 
+                                size="small" 
+                                color="warning" 
+                                sx={{ height: 16, fontSize: "0.6rem", fontWeight: 800, borderRadius: 1 }} 
+                              />
+                            )}
+                            {affiliate.es_jubilado && (
+                              <Chip 
+                                label={affiliate.is_aportante ? "JUB. AP" : "JUB. NO AP"} 
+                                size="small" 
+                                color={affiliate.is_aportante ? "secondary" : "default"}
+                                variant={affiliate.is_aportante ? "filled" : "outlined"}
+                                sx={{ height: 16, fontSize: "0.6rem", fontWeight: 800, borderRadius: 1 }} 
+                              />
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>{affiliate.nombre}</TableCell>
+                        <TableCell>{affiliate.provincia}</TableCell>
+                        <TableCell>
+                          {isDesaf ? (
+                            <Box>
+                              <Chip 
+                                label="DESAFILIADO" 
+                                size="small" 
+                                color="error" 
+                                sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, borderRadius: 1.5 }} 
+                              />
+                              {affiliate.fecha_desafiliacion && (
+                                <Typography 
+                                  variant="caption" 
+                                  display="block" 
+                                  sx={{ color: "error.main", fontSize: "0.68rem", fontWeight: 700, mt: 0.5 }}
+                                >
+                                  Baja: {formatDateDisplay(affiliate.fecha_desafiliacion)}
+                                </Typography>
+                              )}
+                            </Box>
+                          ) : affiliate.is_ups ? (
                             <Chip 
                               label="UPS" 
                               size="small" 
                               color="warning" 
-                              sx={{ height: 16, fontSize: "0.6rem", fontWeight: 800, borderRadius: 1 }} 
+                              sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, borderRadius: 1.5 }} 
                             />
-                          )}
-                          {affiliate.es_jubilado && (
+                          ) : affiliate.es_jubilado ? (
                             <Chip 
                               label={affiliate.is_aportante ? "JUB. AP" : "JUB. NO AP"} 
                               size="small" 
                               color={affiliate.is_aportante ? "secondary" : "default"}
                               variant={affiliate.is_aportante ? "filled" : "outlined"}
-                              sx={{ height: 16, fontSize: "0.6rem", fontWeight: 800, borderRadius: 1 }} 
+                              sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, borderRadius: 1.5 }} 
+                            />
+                          ) : (
+                            <Chip 
+                              label="ACTIVO" 
+                              size="small" 
+                              color="success"
+                              variant="outlined" 
+                              sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, borderRadius: 1.5 }} 
                             />
                           )}
-                        </Box>
-                      </TableCell>
-                      <TableCell>{affiliate.nombre}</TableCell>
-                      <TableCell>{affiliate.provincia}</TableCell>
-                      <TableCell>
-                        <Chip
-                          icon={
-                            affiliate.sexo === "Hombre" ? (
-                              <MaleIcon style={{ fontSize: "1rem" }} />
-                            ) : affiliate.sexo === "Mujer" ? (
-                              <FemaleIcon style={{ fontSize: "1rem" }} />
-                            ) : (
-                              <PersonIcon style={{ fontSize: "1rem" }} />
-                            )
-                          }
-                          label={affiliate.sexo}
-                          size="small"
-                          color={
-                            affiliate.sexo === "Hombre"
-                              ? "primary"
-                              : affiliate.sexo === "Mujer"
-                                ? "secondary"
-                                : "default"
-                          }
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: "0.7rem",
-                            height: 22,
-                            borderRadius: 1.5,
-                            "& .MuiChip-icon": { color: "inherit" }
-                          }}
-                        />
-                      </TableCell>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            icon={
+                              affiliate.sexo === "Hombre" ? (
+                                <MaleIcon style={{ fontSize: "1rem" }} />
+                              ) : affiliate.sexo === "Mujer" ? (
+                                <FemaleIcon style={{ fontSize: "1rem" }} />
+                              ) : (
+                                <PersonIcon style={{ fontSize: "1rem" }} />
+                              )
+                            }
+                            label={affiliate.sexo}
+                            size="small"
+                            color={
+                              affiliate.sexo === "Hombre"
+                                ? "primary"
+                                : affiliate.sexo === "Mujer"
+                                  ? "secondary"
+                                  : "default"
+                            }
+                            sx={{
+                              fontWeight: 700,
+                              fontSize: "0.7rem",
+                              height: 22,
+                              borderRadius: 1.5,
+                              "& .MuiChip-icon": { color: "inherit" }
+                            }}
+                          />
+                        </TableCell>
                       <TableCell align="center">
                         <Stack
                           direction="row"
@@ -1915,34 +2521,96 @@ export default function AfiliadosManager() {
                         </Stack>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  );
+                })
+              )}
               </TableBody>
             </>
           ) : (
             <>
               <TableHead>
                 <TableRow>
-                  {[
-                    "HIJO/A APELLIDO",
-                    "HIJO/A NOMBRE",
-                    "DNI",
-                    "EDAD",
-                    "TITULAR",
-                    "PROVINCIA",
-                  ].map((header) => (
-                    <TableCell
-                      key={header}
-                      sx={{
-                        fontWeight: 700,
-                        backgroundColor: "background.paper",
-                        borderBottom: "2px solid",
-                        borderColor: "divider",
-                      }}
-                    >
-                      {header}
-                    </TableCell>
-                  ))}
+                  {familyColumns.map((col) => {
+                    const isSorted = familySortField === col.id;
+                    return (
+                      <TableCell
+                        key={col.id}
+                        onClick={() => handleFamilyRequestSort(col.id)}
+                        sx={{
+                          fontWeight: 700,
+                          backgroundColor: "background.paper",
+                          borderBottom: "2px solid",
+                          borderColor: "divider",
+                          cursor: "pointer",
+                          userSelect: "none",
+                          transition: "background-color 0.15s ease",
+                          "&:hover": {
+                            backgroundColor: (th) => alpha(th.palette.primary.main, 0.08),
+                          },
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+                          <Typography
+                            component="span"
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.8rem",
+                              letterSpacing: "0.02em",
+                              color: isSorted ? "primary.main" : "inherit",
+                              transition: "color 0.15s ease",
+                            }}
+                          >
+                            {col.label}
+                          </Typography>
+                          <Tooltip
+                            title={`Ordenar por ${col.label} (${
+                              isSorted
+                                ? familySortDirection === "asc"
+                                  ? "Ascendente A-Z / 0-9 (Clic para Descendente)"
+                                  : "Descendente Z-A / 9-0 (Clic para Ascendente)"
+                                : "Clic para ordenar"
+                            })`}
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleFamilyRequestSort(col.id);
+                              }}
+                              sx={{
+                                p: 0.35,
+                                borderRadius: 1.5,
+                                color: isSorted ? "primary.main" : "text.secondary",
+                                backgroundColor: isSorted
+                                  ? (th) => alpha(th.palette.primary.main, 0.14)
+                                  : (th) => alpha(th.palette.divider, 0.35),
+                                border: isSorted
+                                  ? (th) => `1px solid ${alpha(th.palette.primary.main, 0.45)}`
+                                  : (th) => `1px solid ${alpha(th.palette.divider, 0.8)}`,
+                                transition: "all 0.2s ease",
+                                "&:hover": {
+                                  backgroundColor: (th) => alpha(th.palette.primary.main, 0.25),
+                                  color: "primary.main",
+                                  borderColor: "primary.main",
+                                },
+                              }}
+                            >
+                              {isSorted ? (
+                                familySortDirection === "asc" ? (
+                                  <ArrowUpwardIcon sx={{ fontSize: "0.95rem" }} />
+                                ) : (
+                                  <ArrowDownwardIcon sx={{ fontSize: "0.95rem" }} />
+                                )
+                              ) : (
+                                <SwapVertIcon sx={{ fontSize: "0.95rem" }} />
+                              )}
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1965,9 +2633,9 @@ export default function AfiliadosManager() {
                   </TableRow>
                 ) : (
                   paginatedFamilyMembers.map((member) => {
-                    let calcAge = member.edad;
+                    let calcAge = calculateAge(member.fecha_nacimiento);
                     if (calcAge === null || calcAge === undefined) {
-                      calcAge = calculateAge(member.fecha_nacimiento);
+                      calcAge = member.edad;
                     }
                     return (
                       <TableRow hover key={member.id}>

@@ -3,6 +3,7 @@ import { BaileysProvider } from '@builderbot/provider-baileys';
 import { fetchLatestBaileysVersion } from 'baileys';
 import { flows } from './flows/index.js';
 import { pauseManager } from './services/pauseManager.js';
+import { isBotGloballyActive, getCachedBotActive } from './services/botConfigService.js';
 import 'dotenv/config';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3008;
@@ -36,7 +37,44 @@ const main = async () => {
       database: adapterDB,
     });
 
+    // Sincronizar estado global del bot (is_bot_active) cada 3 segundos y bloquear respuestas si está deshabilitado
+    await isBotGloballyActive();
+    setInterval(() => {
+      isBotGloballyActive().catch(() => {});
+    }, 3000);
+
+    const originalCheckIf = bot.dynamicBlacklist.checkIf.bind(bot.dynamicBlacklist);
+    bot.dynamicBlacklist.checkIf = (phoneNumber: string) => {
+      if (!getCachedBotActive()) return true;
+      return originalCheckIf(phoneNumber);
+    };
+
     bot.httpServer(PORT);
+
+    // Endpoint HTTP local para envío controlado de mensajes salientes desde la sesión activa
+    if ((adapterProvider as any).server?.post) {
+      (adapterProvider as any).server.post(
+        '/v1/messages',
+        bot.handleCtx(async (botCtx, req, res) => {
+          try {
+            const { number, message } = req.body || {};
+            if (!number || !message) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ ok: false, error: 'Faltan number o message' }));
+            }
+            const cleanDigits = String(number).replace(/\D/g, '');
+            const target = cleanDigits.startsWith('54') ? cleanDigits : `549${cleanDigits}`;
+            await botCtx?.sendMessage(target, String(message), {});
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, target }));
+          } catch (err: any) {
+            console.error('Error en /v1/messages:', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: false, error: err?.message || 'Error interno' }));
+          }
+        })
+      );
+    }
 
     // Escuchar mensajes salientes del operador humano (desde el teléfono o WhatsApp Web)
     adapterProvider.on('ready', () => {

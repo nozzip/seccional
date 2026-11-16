@@ -3,6 +3,10 @@ import { supabase } from '../config/supabase.js';
 let cachedIsActive: boolean = true;
 let lastCheckTime: number = 0;
 
+export function getCachedBotActive(): boolean {
+  return cachedIsActive;
+}
+
 /**
  * Consulta en tiempo real si el bot está habilitado globalmente desde el panel de admin
  * Posee un cache ultra rápido de 3 segundos para evitar sobrecarga en la base de datos.

@@ -54,7 +54,6 @@ export const mainMenuFlow = addKeyword<any, any>(['_event_main_menu_'])
         case 'cabañas':
         case 'predio':
         case 'san lorenzo':
-        case 'warmi':
         case 'azucena':
         case 'subsidios':
           return gotoFlow(gremialBenefitsFlow);

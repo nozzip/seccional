@@ -32,6 +32,7 @@ import {
   Chip,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import PersonIcon from "@mui/icons-material/Person";
 import ChildCareIcon from "@mui/icons-material/ChildCare";
@@ -170,10 +171,16 @@ export default function AffiliateDetailsModal({
         ciudad: cleanProv
       };
       
-      const { error } = await supabase
+      let { error } = await supabase
         .from("affiliates")
         .update(dataToSaveWithClean)
         .eq("id", affiliate.id);
+
+      if (error && (error.message?.includes("desafiliado") || error.code === "42703")) {
+        const { desafiliado, fecha_desafiliacion, ...fallbackData } = dataToSaveWithClean;
+        const res = await supabase.from("affiliates").update(fallbackData).eq("id", affiliate.id);
+        error = res.error;
+      }
 
       if (error) throw error;
 
@@ -202,24 +209,39 @@ export default function AffiliateDetailsModal({
         apellido: newMember.apellido?.trim() || "",
         dni: newMember.dni?.trim() || null,
         fecha_nacimiento: newMember.fecha_nacimiento || null,
-        edad: newMember.edad ?? null,
+        edad: calculateAge(newMember.fecha_nacimiento) ?? newMember.edad ?? null,
         grado_escolar: newMember.grado_escolar?.trim() || null,
       };
 
-      const { error } = await supabase
-        .from("affiliate_family_members")
-        .insert([memberToInsert]);
+      if (newMember.id) {
+        const { error } = await supabase
+          .from("affiliate_family_members")
+          .update(memberToInsert)
+          .eq("id", newMember.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      await logAction(
-        "AGREGAR_FAMILIAR",
-        `Familiar agregado: ${newMember.apellido || ''}, ${newMember.nombre || ''} al afiliado ${affiliate?.apellido || ''}, ${affiliate?.nombre || ''} (ID: ${affiliate?.id})`
-      );
+        await logAction(
+          "EDITAR_FAMILIAR",
+          `Familiar editado: ${newMember.apellido || ''}, ${newMember.nombre || ''} del afiliado ${affiliate?.apellido || ''}, ${affiliate?.nombre || ''} (ID: ${affiliate?.id})`
+        );
+      } else {
+        const { error } = await supabase
+          .from("affiliate_family_members")
+          .insert([memberToInsert]);
+
+        if (error) throw error;
+
+        await logAction(
+          "AGREGAR_FAMILIAR",
+          `Familiar agregado: ${newMember.apellido || ''}, ${newMember.nombre || ''} al afiliado ${affiliate?.apellido || ''}, ${affiliate?.nombre || ''} (ID: ${affiliate?.id})`
+        );
+      }
 
       fetchFamilyMembers();
       onUpdate(); // Update family count in main table
       setNewMember({
+        id: undefined,
         nombre: "",
         apellido: "",
         dni: "",
@@ -258,13 +280,17 @@ export default function AffiliateDetailsModal({
   const calculateAge = (birthDate?: string) => {
     if (!birthDate) return null;
     const today = new Date();
-    const birth = new Date(birthDate);
+    const parts = birthDate.split("T")[0].split("-");
+    const birth = parts.length === 3
+      ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+      : new Date(birthDate);
+    if (isNaN(birth.getTime())) return null;
     let age = today.getFullYear() - birth.getFullYear();
     const m = today.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
       age--;
     }
-    return age;
+    return age >= 0 ? age : null;
   };
 
   if (!affiliate) return null;
@@ -320,6 +346,19 @@ export default function AffiliateDetailsModal({
         {activeTab === 0 ? (
           <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {success && <Alert severity="success" sx={{ mb: 2 }}>Datos actualizados con éxito</Alert>}
+            
+            {Boolean(editData.desafiliado || (!editData.is_aefip && !editData.is_ups && !editData.es_jubilado)) && (
+              <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                  Condición: DESAFILIADO
+                </Typography>
+                <Typography variant="body2">
+                  {editData.fecha_desafiliacion
+                    ? `Fecha registrada de desafiliación (importación donde dejó de figurar): ${formatDateDisplay(editData.fecha_desafiliacion)}`
+                    : "Afiliado registrado como baja en el padrón activo sin fecha exacta registrada."}
+                </Typography>
+              </Alert>
+            )}
             
             <Stack direction="row" spacing={2}>
               <TextField
@@ -407,11 +446,49 @@ export default function AffiliateDetailsModal({
                 control={
                   <Switch
                     checked={editData.is_aefip || false}
-                    onChange={(e) => setEditData({...editData, is_aefip: e.target.checked})}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEditData({
+                        ...editData,
+                        is_aefip: checked,
+                        desafiliado: !checked,
+                        fecha_desafiliacion: !checked ? (editData.fecha_desafiliacion || new Date().toISOString().split('T')[0]) : null
+                      });
+                    }}
                   />
                 }
-                label="Afiliado AEFIP"
+                label="Afiliado AEFIP Activo"
               />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editData.desafiliado || false}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEditData({
+                        ...editData,
+                        desafiliado: checked,
+                        is_aefip: !checked,
+                        fecha_desafiliacion: checked ? (editData.fecha_desafiliacion || new Date().toISOString().split('T')[0]) : null
+                      });
+                    }}
+                    color="error"
+                  />
+                }
+                label="Desafiliado"
+                sx={{ color: editData.desafiliado ? 'error.main' : 'inherit', '& .MuiTypography-root': { fontWeight: editData.desafiliado ? 800 : 400 } }}
+              />
+              {Boolean(editData.desafiliado) && (
+                <TextField
+                  label="Fecha Desafiliación"
+                  type="date"
+                  size="small"
+                  value={editData.fecha_desafiliacion ? editData.fecha_desafiliacion.split('T')[0] : ''}
+                  onChange={(e) => setEditData({ ...editData, fecha_desafiliacion: e.target.value })}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ minWidth: 180 }}
+                />
+              )}
               <FormControlLabel
                 control={
                   <Switch
@@ -475,7 +552,9 @@ export default function AffiliateDetailsModal({
                 mb: 4, p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px dashed", borderColor: "primary.main",
               }}
             >
-              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700 }}>Agregar Familiar</Typography>
+              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700 }}>
+                {newMember.id ? "Editar Familiar" : "Agregar Familiar"}
+              </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap gap={1}>
                 <TextField
                   label="Nombre" size="small" value={newMember.nombre}
@@ -503,9 +582,19 @@ export default function AffiliateDetailsModal({
                   onChange={(e) => setNewMember({ ...newMember, grado_escolar: e.target.value })}
                   sx={{ width: 100 }}
                 />
-                <Button variant="contained" onClick={handleAddMember} startIcon={<AddIcon />} sx={{ borderRadius: 1 }}>
-                  Cargar
+                <Button variant="contained" onClick={handleAddMember} startIcon={newMember.id ? <SaveIcon /> : <AddIcon />} sx={{ borderRadius: 1 }}>
+                  {newMember.id ? "Guardar" : "Cargar"}
                 </Button>
+                {newMember.id && (
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    onClick={() => setNewMember({ id: undefined, nombre: "", apellido: "", dni: "", fecha_nacimiento: "", edad: undefined, grado_escolar: "" })}
+                    sx={{ borderRadius: 1 }}
+                  >
+                    Cancelar
+                  </Button>
+                )}
               </Stack>
             </Box>
 
@@ -533,8 +622,25 @@ export default function AffiliateDetailsModal({
                         <TableCell>{member.nombre}</TableCell>
                         <TableCell>{member.dni || "-"}</TableCell>
                         <TableCell>{member.fecha_nacimiento ? new Date(member.fecha_nacimiento).toLocaleDateString("es-AR", { timeZone: "UTC" }) : "-"}</TableCell>
-                        <TableCell>{member.edad ?? calculateAge(member.fecha_nacimiento) ?? "-"}</TableCell>
+                        <TableCell>{calculateAge(member.fecha_nacimiento) ?? member.edad ?? "-"}</TableCell>
                         <TableCell align="center">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() =>
+                              setNewMember({
+                                id: member.id,
+                                nombre: member.nombre || "",
+                                apellido: member.apellido || "",
+                                dni: member.dni || "",
+                                fecha_nacimiento: member.fecha_nacimiento ? member.fecha_nacimiento.split("T")[0] : "",
+                                edad: member.edad,
+                                grado_escolar: member.grado_escolar || "",
+                              })
+                            }
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
                           <IconButton size="small" color="error" onClick={() => handleDeleteMember(member.id!)}><DeleteIcon fontSize="small" /></IconButton>
                         </TableCell>
                       </TableRow>

@@ -8,14 +8,11 @@ export const gremialBenefitsFlow = addKeyword<any, any>([
   'establecimientos',
   'servicios',
   'san lorenzo',
-  'warmi',
   'azucena',
   'subsidios',
   'ayudas',
   'turismo',
   'predio',
-  'cabañas',
-  'cabanas',
 ])
   .addAnswer(
     [
@@ -26,13 +23,12 @@ export const gremialBenefitsFlow = addKeyword<any, any>([
       'Elegí una opción para ver información detallada:',
       '',
       '1️⃣ 🏡 *Predio San Lorenzo (Salta)* (Instalaciones, pileta, canchas y asadores)',
-      '2️⃣ 🛖 *Cabañas Warmi (El Mollar, Tucumán)* (Alojamiento de montaña)',
-      '3️⃣ 🏨 *Hotel Azucena (Tafí del Valle, Tucumán)* (Hospedaje y confort)',
-      '4️⃣ 💰 *Subsidios y Ayudas Sociales* (Nacimiento, Matrimonio, Adopción, Jubilación)',
-      '5️⃣ 🌐 *Ver todos los servicios en la Web*',
+      '2️⃣ 🏨 *Hotel Azucena (Tafí del Valle, Tucumán)* (Hospedaje y confort)',
+      '3️⃣ 💰 *Subsidios y Ayudas Sociales* (Nacimiento, Matrimonio, Adopción, Jubilación)',
+      '4️⃣ 🌐 *Ver todos los servicios en la Web*',
       '',
       '━━━━━━━━━━━━━━━━━━━━━',
-      '✍️ _Respondé con el número de tu opción (1 al 5) o *0* para volver al menú_'
+      '✍️ _Respondé con el número de tu opción (1 al 4) o *0* para volver al menú_'
     ].join('\n'),
     { capture: true },
     async (ctx: any, { flowDynamic, fallBack }: any) => {
@@ -68,46 +64,9 @@ export const gremialBenefitsFlow = addKeyword<any, any>([
           return await flowDynamic(text);
         }
 
+        // TODO: Revisar para eliminar — case 'warmi' removido por solicitud de retiro de publicidad
+
         case '2':
-        case 'warmi':
-        case 'cabañas':
-        case 'cabanas': {
-          let priceText = '• Tarifas especiales para afiliados y familiares.';
-          try {
-            const { data } = await supabase.from('system_configs').select('value').eq('key', 'cabin_prices').single();
-            if (data?.value && typeof data.value === 'object') {
-              priceText = Object.entries(data.value)
-                .map(([k, v]) => `• *${k.toUpperCase()}:* $${v}`)
-                .join('\n');
-            }
-          } catch (e) {}
-
-          const text = [
-            '🛖 *CABAÑAS WARMI (EL MOLLAR - TUCUMÁN)*',
-            '_Refugio de montaña junto al lago La Angostura_',
-            '━━━━━━━━━━━━━━━━━━━━━',
-            '',
-            '📍 *Ubicación:* El Mollar, Tafí del Valle, Tucumán.',
-            '',
-            '✨ *Comodidades:*',
-            '• Cabañas alpinas para 4, 6 y 8 personas.',
-            '• Cocina completa, vajilla, microondas y heladera.',
-            '• Calefacción, DirectTV y asador individual.',
-            '• Estacionamiento y vistas panorámicas a las montañas.',
-            '',
-            '💰 *Tarifas de Referencia:*',
-            priceText,
-            '',
-            '📅 *Solicitud de Reserva Online:*',
-            `👉 ${WEB_URL}/#/turismo`,
-            '',
-            '━━━━━━━━━━━━━━━━━━━━━',
-            '💡 _Escribí *menu* o *0* para volver al menú principal._'
-          ].join('\n');
-          return await flowDynamic(text);
-        }
-
-        case '3':
         case 'azucena':
         case 'hotel': {
           const text = [
@@ -132,7 +91,7 @@ export const gremialBenefitsFlow = addKeyword<any, any>([
           return await flowDynamic(text);
         }
 
-        case '4':
+        case '3':
         case 'subsidios':
         case 'ayudas': {
           const text = [
@@ -165,7 +124,7 @@ export const gremialBenefitsFlow = addKeyword<any, any>([
           return await flowDynamic(text);
         }
 
-        case '5':
+        case '4':
         case 'web': {
           const text = [
             '🌐 *SERVICIOS Y BENEFICIOS GREMIALES EN LA WEB*',
@@ -181,7 +140,7 @@ export const gremialBenefitsFlow = addKeyword<any, any>([
         }
 
         default:
-          return fallBack('⚠️ Opción no reconocida. Por favor, respondé con un número del *1 al 5* (o *0* para volver al menú):');
+          return fallBack('⚠️ Opción no reconocida. Por favor, respondé con un número del *1 al 4* (o *0* para volver al menú):');
       }
     }
   );

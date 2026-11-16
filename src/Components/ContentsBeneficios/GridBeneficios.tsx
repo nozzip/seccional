@@ -28,6 +28,9 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PhoneIcon from "@mui/icons-material/Phone";
 import SearchIcon from "@mui/icons-material/Search";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { dataBeneficios } from "../mockData";
@@ -50,10 +53,32 @@ export default function GridBeneficios() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedBenefit, setSelectedBenefit] = useState<Benefit | null>(null);
   const [page, setPage] = useState(0);
+  const [favoriteKeys, setFavoriteKeys] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("affiliate_favorite_benefits");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [affiliateProvince, setAffiliateProvince] = useState<string>("");
   const theme = useTheme();
+
+  const getBenefitKey = useCallback((b: BenefitItem) => String(b.id ?? b.title), []);
+
+  const toggleFavorite = useCallback((b: BenefitItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const key = getBenefitKey(b);
+    setFavoriteKeys((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      localStorage.setItem("affiliate_favorite_benefits", JSON.stringify(next));
+      return next;
+    });
+  }, [getBenefitKey]);
 
   const categories = [
     "Todos",
+    "★ Favoritos",
     "Tucumán",
     "Catamarca",
     "Salta",
@@ -103,6 +128,7 @@ export default function GridBeneficios() {
       const { data, error } = await supabase
         .from("benefits")
         .select("*")
+        .eq("is_active", true)
         .order("display_order", { ascending: true });
 
       if (!error && data && data.length > 0) {
@@ -130,10 +156,12 @@ export default function GridBeneficios() {
   };
 
   const filteredBenefits = useMemo(() => {
-    let all = getAllBenefits();
+    let all = [...getAllBenefits()];
 
-    // Filter by Provincia (category)
-    if (selectedCategory !== "Todos") {
+    // Filter by Provincia (category) or Favoritos
+    if (selectedCategory === "★ Favoritos") {
+      all = all.filter((item) => favoriteKeys.includes(getBenefitKey(item)));
+    } else if (selectedCategory !== "Todos") {
       all = all.filter((item) => item.category === selectedCategory);
     }
 
@@ -153,8 +181,17 @@ export default function GridBeneficios() {
       );
     }
 
+    // Prioritize favorites first
+    if (favoriteKeys.length > 0 && selectedCategory !== "★ Favoritos") {
+      all.sort((a, b) => {
+        const favA = favoriteKeys.includes(getBenefitKey(a)) ? 1 : 0;
+        const favB = favoriteKeys.includes(getBenefitKey(b)) ? 1 : 0;
+        return favB - favA;
+      });
+    }
+
     return all;
-  }, [selectedCategory, selectedRubro, searchTerm, dbBenefits]);
+  }, [selectedCategory, selectedRubro, searchTerm, dbBenefits, favoriteKeys, getBenefitKey]);
 
   const paginatedBenefits = useMemo(() => {
     const start = page * ITEMS_PER_PAGE;
@@ -188,12 +225,7 @@ export default function GridBeneficios() {
   const [currentAffiliate, setCurrentAffiliate] = useState<any>(null);
   const isAdmin = useMemo(() => {
     if (!currentAffiliate) return false;
-    return (
-      isUserAdmin(currentAffiliate) ||
-      currentAffiliate.role === 'admin' ||
-      ['34185803', '042418/00', '23276817159'].includes(currentAffiliate.legajo) ||
-      ['34185803', '23276817159'].includes(currentAffiliate.cuil)
-    );
+    return isUserAdmin(currentAffiliate);
   }, [currentAffiliate]);
 
   useEffect(() => {
@@ -224,6 +256,47 @@ export default function GridBeneficios() {
     window.addEventListener("affiliate_login", checkUser);
     return () => window.removeEventListener("affiliate_login", checkUser);
   }, []);
+
+  useEffect(() => {
+    const mapProvToCategory = (rawProv?: string | null): string => {
+      if (!rawProv) return "";
+      const u = rawProv.toUpperCase();
+      if (u.includes("TUCUM")) return "Tucumán";
+      if (u.includes("CATAMARCA")) return "Catamarca";
+      if (u.includes("SALTA") || u.includes("ORAN") || u.includes("ORÁN") || u.includes("METAN")) return "Salta";
+      if (u.includes("SANTIAGO")) return "Santiago del Estero";
+      if (u.includes("JUJUY")) return "Jujuy";
+      return "";
+    };
+
+    const resolveAffiliateProvince = async () => {
+      if (!currentAffiliate) {
+        setAffiliateProvince("");
+        return;
+      }
+      if (currentAffiliate.provincia) {
+        const mapped = mapProvToCategory(currentAffiliate.provincia);
+        if (mapped) {
+          setAffiliateProvince(mapped);
+          return;
+        }
+      }
+      if (currentAffiliate.legajo) {
+        try {
+          const { data } = await supabase
+            .from("affiliates")
+            .select("provincia")
+            .eq("legajo", currentAffiliate.legajo)
+            .limit(1);
+          if (data && data.length > 0 && data[0].provincia) {
+            const mapped = mapProvToCategory(data[0].provincia);
+            if (mapped) setAffiliateProvince(mapped);
+          }
+        } catch {}
+      }
+    };
+    resolveAffiliateProvince();
+  }, [currentAffiliate]);
 
   return (
     <Box>
@@ -293,6 +366,16 @@ export default function GridBeneficios() {
             />
           ))}
         </Box>
+        {affiliateProvince && selectedCategory !== affiliateProvince && (
+          <Chip
+            icon={<LocationOnIcon fontSize="small" />}
+            label={`Ver convenios de tu provincia: ${affiliateProvince}`}
+            color="secondary"
+            variant="outlined"
+            onClick={() => handleCategoryChange(affiliateProvince)}
+            sx={{ fontWeight: 700, cursor: "pointer" }}
+          />
+        )}
       </Box>
 
       {loading ? (
@@ -309,6 +392,8 @@ export default function GridBeneficios() {
                   onEdit={() => handleEdit(item)}
                   currentAffiliate={currentAffiliate}
                   isAdmin={isAdmin}
+                  isFavorite={favoriteKeys.includes(getBenefitKey(item))}
+                  onToggleFavorite={(e) => toggleFavorite(item, e)}
                 />
               </Grid>
             ))}
@@ -361,12 +446,16 @@ function BenefitItemComponent({
   item,
   onEdit,
   currentAffiliate,
-  isAdmin
+  isAdmin,
+  isFavorite,
+  onToggleFavorite
 }: {
   item: BenefitItem;
   onEdit: () => void;
   currentAffiliate: any;
   isAdmin: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: (e: React.MouseEvent) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
@@ -390,14 +479,21 @@ function BenefitItemComponent({
   }, []);
   const handleClose = useCallback(() => setOpen(false), []);
 
+  const getSafeBenefitImg = useCallback((url?: string) => {
+    const fallback = `${import.meta.env.BASE_URL}seccionalLogo.png`;
+    if (!url || url.includes("fbcdn.net")) return fallback;
+    return url;
+  }, []);
+
   const gallery = useMemo(() => {
-    const list = [];
-    if (item.thumbnail) list.push(item.thumbnail);
+    const list: string[] = [];
+    if (item.thumbnail) list.push(getSafeBenefitImg(item.thumbnail));
     if (item.images && Array.isArray(item.images)) {
-      list.push(...item.images);
+      list.push(...item.images.map((img) => getSafeBenefitImg(img)));
     }
+    if (list.length === 0) list.push(getSafeBenefitImg());
     return list;
-  }, [item]);
+  }, [item, getSafeBenefitImg]);
 
   const handleNextImg = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -543,7 +639,7 @@ function BenefitItemComponent({
             sx={{
               width: "100%",
               height: "100%",
-              backgroundImage: `url(${item.thumbnail})`,
+              backgroundImage: `url(${getSafeBenefitImg(item.thumbnail)})`,
               backgroundSize: "contain",
               backgroundRepeat: "no-repeat",
               backgroundPosition: "center",
@@ -601,6 +697,24 @@ function BenefitItemComponent({
           >
             {item.category}
           </Box>
+          <Tooltip title={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}>
+            <IconButton
+              size="small"
+              onClick={onToggleFavorite}
+              sx={{
+                position: "absolute",
+                bottom: 14,
+                right: 14,
+                bgcolor: "white",
+                color: isFavorite ? "#e91e63" : "text.secondary",
+                boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
+                zIndex: 6,
+                "&:hover": { bgcolor: "white", transform: "scale(1.1)" },
+              }}
+            >
+              {isFavorite ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
         </Paper>
       </Box>
 
@@ -626,11 +740,18 @@ function BenefitItemComponent({
           }}
         >
           {item.title}
-          {isAdmin && (
-            <IconButton onClick={(e) => { e.stopPropagation(); onEdit(); }} sx={{ color: "primary.main" }}>
-              <EditIcon />
-            </IconButton>
-          )}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Tooltip title={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}>
+              <IconButton onClick={onToggleFavorite} sx={{ color: isFavorite ? "#e91e63" : "text.secondary" }}>
+                {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+              </IconButton>
+            </Tooltip>
+            {isAdmin && (
+              <IconButton onClick={(e) => { e.stopPropagation(); onEdit(); }} sx={{ color: "primary.main" }}>
+                <EditIcon />
+              </IconButton>
+            )}
+          </Box>
         </DialogTitle>
         <DialogContent sx={{ p: 4 }}>
           {/* Carousel Section */}
@@ -707,24 +828,40 @@ function BenefitItemComponent({
               </Typography>
             </Box>
 
-            {item.telephone && (
-              <Button
-                variant="contained"
-                onClick={handleContact}
-                startIcon={item.telephone_type === 'whatsapp' ? <WhatsAppIcon /> : <PhoneIcon />}
-                sx={{
-                  bgcolor: item.telephone_type === 'whatsapp' ? "#25D366" : "primary.main",
-                  "&:hover": {
-                    bgcolor: item.telephone_type === 'whatsapp' ? "#128C7E" : "primary.dark",
-                  },
-                  borderRadius: 2,
-                  fontWeight: 800,
-                  boxShadow: 2
-                }}
-              >
-                {item.telephone_type === 'whatsapp' ? "WhatsApp" : "Llamar"}
-              </Button>
-            )}
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {item.address && (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<LocationOnIcon />}
+                  onClick={() => {
+                    const query = `${item.title} ${item.address || ""} ${item.category || ""}`.trim();
+                    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, "_blank");
+                  }}
+                  sx={{ borderRadius: 2, fontWeight: 800 }}
+                >
+                  Cómo llegar
+                </Button>
+              )}
+              {item.telephone && (
+                <Button
+                  variant="contained"
+                  onClick={handleContact}
+                  startIcon={item.telephone_type === 'whatsapp' ? <WhatsAppIcon /> : <PhoneIcon />}
+                  sx={{
+                    bgcolor: item.telephone_type === 'whatsapp' ? "#25D366" : "primary.main",
+                    "&:hover": {
+                      bgcolor: item.telephone_type === 'whatsapp' ? "#128C7E" : "primary.dark",
+                    },
+                    borderRadius: 2,
+                    fontWeight: 800,
+                    boxShadow: 2
+                  }}
+                >
+                  {item.telephone_type === 'whatsapp' ? "WhatsApp" : "Llamar"}
+                </Button>
+              )}
+            </Box>
           </Box>
           <Typography
             variant="body1"
