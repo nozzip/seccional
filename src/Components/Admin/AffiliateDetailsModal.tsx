@@ -43,6 +43,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import { supabase } from "../../supabaseClient";
 import { logAction } from "../../utils/auditLogger";
 import { cleanLocationName, PROVINCES_LIST } from "./AfiliadosManager";
+import { formatDateDisplay } from "../../utils/dateFormatter";
 
 interface FamilyMember {
   id?: number;
@@ -582,12 +583,12 @@ export default function AffiliateDetailsModal({
                       if (req.type === 'tourism') {
                         title = req.data?.hotel ? `Turismo: ${req.data.hotel}` : 'Turismo';
                         if (req.data?.check_in && req.data?.check_out) {
-                          details = `Check-in: ${req.data.check_in} | Check-out: ${req.data.check_out} | Pasajeros: ${req.data.passengers || '-'}`;
+                          details = `Check-in: ${formatDateDisplay(req.data.check_in)} | Check-out: ${formatDateDisplay(req.data.check_out)} | Pasajeros: ${req.data.passengers || '-'}`;
                         }
                       } else if (req.type === 'cabin_reservation') {
                         title = 'Cabañas El Mollar';
                         if (req.data?.check_in && req.data?.check_out) {
-                          details = `Estadía: ${req.data.check_in} al ${req.data.check_out} (${req.data.nights || 1} noches)`;
+                          details = `Estadía: ${formatDateDisplay(req.data.check_in)} al ${formatDateDisplay(req.data.check_out)} (${req.data.nights || 1} noches)`;
                         }
                       } else if (req.type === 'benefit') {
                         title = req.data?.benefit_type ? `Gremial: ${req.data.benefit_type}` : 'Subsidio Gremial';

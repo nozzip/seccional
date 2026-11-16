@@ -63,7 +63,7 @@ export default function MobileAppView() {
               Tus Próximos Servicios
             </Typography>
             <Paper sx={{ p: 2, borderRadius: 2, mb: 2, bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>Reserva en Cabañas - "La Warmi"</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>Reserva en Cabañas - El Mollar</Typography>
               <Typography variant="caption" color="text.secondary">Fecha: Próximo Sábado 12:00hs</Typography>
             </Paper>
           </Box>

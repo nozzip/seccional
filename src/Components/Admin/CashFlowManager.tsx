@@ -71,6 +71,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import * as XLSX from "xlsx";
+import { formatDateDisplay } from "../../utils/dateFormatter";
 
 interface Transaction {
   id: number;
@@ -3463,7 +3464,7 @@ export default function CashFlowManager({
                               (b) => b.status !== "Pagado",
                             )}
                             getOptionLabel={(option) =>
-                              `Cabaña U${option.cabin_sub_number} - ${option.user_name} (${option.start_date}) ${option.is_affiliate ? "[Afiliado]" : "[General]"}`
+                              `Cabaña U${option.cabin_sub_number} - ${option.user_name} (${formatDateDisplay(option.start_date)}) ${option.is_affiliate ? "[Afiliado]" : "[General]"}`
                             }
                             onChange={(_, newValue) => {
                               setSelectedCabinId(newValue ? newValue.id : null);
@@ -3490,7 +3491,7 @@ export default function CashFlowManager({
                                   ...prev,
                                   amount:
                                     totalToPay > 0 ? totalToPay.toString() : "",
-                                  description: `Reserva Cabaña: U${newValue.cabin_sub_number} ${newValue.user_name} (${newValue.start_date} al ${newValue.end_date} - ${nights} Noche/s)`,
+                                  description: `Reserva Cabaña: U${newValue.cabin_sub_number} ${newValue.user_name} (${formatDateDisplay(newValue.start_date)} al ${formatDateDisplay(newValue.end_date)} - ${nights} Noche/s)`,
                                 }));
                               }
                             }}

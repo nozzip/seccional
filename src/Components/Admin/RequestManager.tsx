@@ -41,6 +41,7 @@ import NotesIcon from '@mui/icons-material/Notes';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { supabase } from '../../supabaseClient';
 import { logAction } from '../../utils/auditLogger';
+import { formatDateDisplay } from '../../utils/dateFormatter';
 
 interface Request {
     id: number;
@@ -494,7 +495,7 @@ export default function RequestManager() {
                                     <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                                         <Box>
                                             <Typography variant="body2"><strong>Destino:</strong> {selectedRequest.data?.destino || selectedRequest.data?.hotel || '-'}</Typography>
-                                            <Typography variant="body2"><strong>Fechas:</strong> {selectedRequest.data?.fecha_ingreso || selectedRequest.data?.check_in || '-'} al {selectedRequest.data?.fecha_salida || selectedRequest.data?.check_out || '-'}</Typography>
+                                            <Typography variant="body2"><strong>Fechas:</strong> {formatDateDisplay(selectedRequest.data?.fecha_ingreso || selectedRequest.data?.check_in)} al {formatDateDisplay(selectedRequest.data?.fecha_salida || selectedRequest.data?.check_out)}</Typography>
                                             <Typography variant="body2"><strong>Plazas solicitadas:</strong> {selectedRequest.data?.plazas_req || selectedRequest.data?.passengers || '-'}</Typography>
                                             {selectedRequest.data?.es_jubilado !== undefined && (
                                                 <Typography variant="body2"><strong>Condición Jubilado:</strong> {selectedRequest.data.es_jubilado ? 'Sí' : 'No'}</Typography>
@@ -605,7 +606,7 @@ export default function RequestManager() {
                                     <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                                         <Box>
                                             <Typography variant="body2"><strong>Destino / Cabaña:</strong> {selectedRequest.data?.destino || selectedRequest.data?.cabin_type || 'Cabañas El Mollar'}</Typography>
-                                            <Typography variant="body2"><strong>Fechas:</strong> {selectedRequest.data?.fecha_ingreso || selectedRequest.data?.start_date || '-'} al {selectedRequest.data?.fecha_salida || selectedRequest.data?.end_date || '-'}</Typography>
+                                            <Typography variant="body2"><strong>Fechas:</strong> {formatDateDisplay(selectedRequest.data?.fecha_ingreso || selectedRequest.data?.start_date)} al {formatDateDisplay(selectedRequest.data?.fecha_salida || selectedRequest.data?.end_date)}</Typography>
                                             {(selectedRequest.data?.plazas_req || typeof selectedRequest.data?.guests === 'number') && (
                                                 <Typography variant="body2"><strong>Plazas / Pasajeros:</strong> {selectedRequest.data?.plazas_req || selectedRequest.data?.guests}</Typography>
                                             )}
@@ -674,7 +675,7 @@ export default function RequestManager() {
                                     <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                                         <Box>
                                             <Typography variant="body2"><strong>Tipo de Evento:</strong> {selectedRequest.data?.event_type || '-'}</Typography>
-                                            <Typography variant="body2"><strong>Fecha del Evento:</strong> {selectedRequest.data?.start_date || selectedRequest.data?.fecha_ingreso || '-'}</Typography>
+                                            <Typography variant="body2"><strong>Fecha del Evento:</strong> {formatDateDisplay(selectedRequest.data?.start_date || selectedRequest.data?.fecha_ingreso)}</Typography>
                                             {selectedRequest.data?.guests && (
                                                 <Typography variant="body2"><strong>Invitados Estimados:</strong> {selectedRequest.data.guests}</Typography>
                                             )}

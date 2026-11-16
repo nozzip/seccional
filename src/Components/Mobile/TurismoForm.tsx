@@ -30,6 +30,7 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import HouseSidingIcon from '@mui/icons-material/HouseSiding';
 import { supabase } from '../../supabaseClient';
 import { AffiliateData } from '../../types/mobile';
+import { formatDateDisplay } from '../../utils/dateFormatter';
 
 interface Guest {
     nombre: string;
@@ -217,7 +218,7 @@ export default function TurismoForm({ open, onClose, affiliateData, isSubsidized
                 },
                 data: {
                     title: requestTitle,
-                    summary: `${formData.fecha_ingreso} al ${formData.fecha_salida} | ${formData.plazas_req} plazas`,
+                    summary: `${formatDateDisplay(formData.fecha_ingreso)} al ${formatDateDisplay(formData.fecha_salida)} | ${formData.plazas_req} plazas`,
                     is_subsidized: isSubsidized,
                     subsidized_type: subsidizedType,
                     destino: formData.destino,

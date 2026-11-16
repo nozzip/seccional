@@ -24,6 +24,7 @@ import { supabase } from '../../supabaseClient';
 import TurismoForm from './TurismoForm';
 import GremialForm from './GremialForm';
 import { AffiliateData } from '../../types/mobile';
+import { formatDateDisplay } from '../../utils/dateFormatter';
 
 interface WorkflowRequestItem {
     id: number;
@@ -316,13 +317,13 @@ export default function SolicitudesView({ affiliateData }: SolicitudesViewProps)
                                 title = req.data?.hotel ? `Turismo - ${req.data.hotel}` : 'Solicitud de Turismo';
                                 icon = <BeachAccessIcon sx={{ color: 'primary.main', fontSize: 24 }} />;
                                 if (req.data?.check_in && req.data?.check_out) {
-                                    details = `Fechas: ${req.data.check_in} al ${req.data.check_out} | Pasajeros: ${req.data.passengers || '-'}`;
+                                    details = `Fechas: ${formatDateDisplay(req.data.check_in)} al ${formatDateDisplay(req.data.check_out)} | Pasajeros: ${req.data.passengers || '-'}`;
                                 }
                             } else if (req.type === 'cabin_reservation') {
                                 title = 'Cabañas El Mollar';
                                 icon = <HouseSidingIcon sx={{ color: 'success.main', fontSize: 24 }} />;
                                 if (req.data?.check_in && req.data?.check_out) {
-                                    details = `Estadía: ${req.data.check_in} al ${req.data.check_out} (${req.data.nights || 1} noches)`;
+                                    details = `Estadía: ${formatDateDisplay(req.data.check_in)} al ${formatDateDisplay(req.data.check_out)} (${req.data.nights || 1} noches)`;
                                 }
                             } else if (req.type === 'benefit') {
                                 title = req.data?.benefit_type ? `Trámite Gremial: ${req.data.benefit_type}` : 'Trámite Gremial';
